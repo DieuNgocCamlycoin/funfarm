@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Users, Wallet } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const HeroSection = () => {
+  const { t } = useTranslation();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Animated Background */}
@@ -27,7 +30,7 @@ const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2 mb-8 animate-fade-in">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Web3 Agriculture Revolution</span>
+            <span className="text-sm font-medium text-primary">{t('hero.badge')}</span>
           </div>
 
           {/* Main Heading */}
@@ -38,26 +41,25 @@ const HeroSection = () => {
 
           {/* Slogan */}
           <p className="text-xl md:text-2xl text-muted-foreground mb-4 font-display animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Farmers Rich, Eaters Happy
+            {t('hero.slogan')}
           </p>
           <p className="text-lg text-muted-foreground/80 mb-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            Farm to Table, Fair & Fast. <span className="text-accent font-semibold">Free-Fee & Earn.</span>
+            {t('hero.subSlogan')} <span className="text-accent font-semibold">{t('hero.highlight')}</span>
           </p>
 
           {/* Description */}
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            The first Web3 social marketplace connecting farmers directly to consumers. 
-            Transparent blockchain tracking, AI-powered matching, and rewards for everyone.
+            {t('hero.description')}
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in" style={{ animationDelay: '0.5s' }}>
             <Button variant="hero" size="xl" className="group">
-              Start Earning Today
+              {t('hero.startEarning')}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button variant="outline" size="xl">
-              Explore Marketplace
+              {t('hero.exploreMarketplace')}
             </Button>
           </div>
 
@@ -68,21 +70,21 @@ const HeroSection = () => {
                 <Users className="w-6 h-6 text-primary" />
               </div>
               <p className="font-display font-bold text-2xl text-foreground">10K+</p>
-              <p className="text-sm text-muted-foreground">Farmers</p>
+              <p className="text-sm text-muted-foreground">{t('hero.farmers')}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 bg-secondary/10 rounded-xl">
                 <Wallet className="w-6 h-6 text-secondary" />
               </div>
               <p className="font-display font-bold text-2xl text-foreground">$2M+</p>
-              <p className="text-sm text-muted-foreground">Earned</p>
+              <p className="text-sm text-muted-foreground">{t('hero.earned')}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 mx-auto mb-3 bg-accent/10 rounded-xl">
                 <Sparkles className="w-6 h-6 text-accent" />
               </div>
               <p className="font-display font-bold text-2xl text-foreground">50K+</p>
-              <p className="text-sm text-muted-foreground">Products</p>
+              <p className="text-sm text-muted-foreground">{t('hero.products')}</p>
             </div>
           </div>
         </div>

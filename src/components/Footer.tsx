@@ -1,6 +1,9 @@
 import { Leaf, Twitter, Github, MessageCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-muted/50 border-t border-border">
       <div className="container mx-auto px-4 py-16">
@@ -16,8 +19,8 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-muted-foreground mb-6">
-              Web3 Agriculture Revolution.<br />
-              Farmers Rich, Eaters Happy.
+              {t('footer.tagline')}<br />
+              {t('footer.slogan')}
             </p>
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 bg-card border border-border rounded-lg flex items-center justify-center hover:border-primary/50 transition-colors">
@@ -34,33 +37,33 @@ const Footer = () => {
 
           {/* Platform */}
           <div>
-            <h4 className="font-display font-semibold text-foreground mb-4">Platform</h4>
+            <h4 className="font-display font-semibold text-foreground mb-4">{t('footer.platform')}</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Marketplace</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Social Network</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Angel AI</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">CAMLY Token</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.marketplace')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.socialNetwork')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.angelAI')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.camlyToken')}</a></li>
             </ul>
           </div>
 
           {/* Resources */}
           <div>
-            <h4 className="font-display font-semibold text-foreground mb-4">Resources</h4>
+            <h4 className="font-display font-semibold text-foreground mb-4">{t('footer.resources')}</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Documentation</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Whitepaper</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Blog</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">FAQ</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.documentation')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.whitepaper')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.blog')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.faq')}</a></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-display font-semibold text-foreground mb-4">Legal</h4>
+            <h4 className="font-display font-semibold text-foreground mb-4">{t('footer.legal')}</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Cookie Policy</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.privacyPolicy')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.termsOfService')}</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.cookiePolicy')}</a></li>
             </ul>
           </div>
         </div>
@@ -68,10 +71,10 @@ const Footer = () => {
         {/* Bottom */}
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2024 FUN FARM Web3. Part of the FUN Ecosystem.
+            {t('footer.copyright')}
           </p>
           <p className="text-sm text-muted-foreground">
-            Domain: <span className="text-primary font-medium">Farm.Fun.Rich</span>
+            {t('footer.domain')} <span className="text-primary font-medium">Farm.Fun.Rich</span>
           </p>
         </div>
       </div>
