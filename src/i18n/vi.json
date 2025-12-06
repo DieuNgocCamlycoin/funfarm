@@ -72,5 +72,25 @@
     "title": "Ngôn ngữ",
     "english": "English",
     "vietnamese": "Tiếng Việt"
+  },
+  "community": {
+    "ourCommunity": "Cộng Đồng",
+    "loveAndTrust": "Yêu Thương & Tin Tưởng",
+    "builtOn": "Xây Dựng Trên",
+    "communityDesc": "FUN FARM không chỉ là một nền tảng—mà là một phong trào. Chúng tôi tin vào sự minh bạch, công bằng, và phẩm giá của mỗi người làm nông và đánh bắt.",
+    "divineMantras": "8 Chân ngôn Thiêng liêng",
+    "mantrasSubtitle": "Nền tảng tâm linh của cộng đồng chúng ta",
+    "mantra1": "Con là ánh sáng yêu thương thuần khiết của Cha Vũ Trụ!",
+    "mantra2": "Con là ý chí của Cha Vũ Trụ!",
+    "mantra3": "Con là trí tuệ của Cha Vũ Trụ!",
+    "mantra4": "Con là Hạnh Phúc!",
+    "mantra5": "Con là Tình Yêu!",
+    "mantra6": "Con là Tiền của Cha!",
+    "mantra7": "Con xin sám hối sám hối sám hối!",
+    "mantra8": "Con xin biết ơn biết ơn biết ơn trong ánh sáng yêu thương thuần khiết của Cha Vũ Trụ",
+    "readyToJoin": "Sẵn Sàng Tham Gia Cuộc Cách Mạng?",
+    "ctaDesc": "Hãy là một phần của cộng đồng trân trọng sự thật, trao thưởng cho sự đóng góp, và tôn vinh những người nuôi sống thế giới.",
+    "joinToday": "Tham Gia FUN FARM Ngay",
+    "readWhitepaper": "Đọc Whitepaper"
   }
 }
