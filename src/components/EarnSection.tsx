@@ -1,31 +1,34 @@
 import { Gift, Rocket, TrendingUp, Coins, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const earnMethods = [
-  {
-    icon: Gift,
-    title: "Join & Earn",
-    description: "Create your profile, verify your identity, and receive a welcome bonus in CAMLY tokens.",
-    reward: "Welcome Bonus",
-    color: "primary",
-  },
-  {
-    icon: Rocket,
-    title: "Use & Earn",
-    description: "Every valuable action earns rewards: post products, share stories, write reviews, refer friends.",
-    reward: "Per Action",
-    color: "secondary",
-  },
-  {
-    icon: TrendingUp,
-    title: "Grow & Earn",
-    description: "Improve quality, build reputation, increase sales. The more you grow, the more you earn.",
-    reward: "Bonus Multiplier",
-    color: "accent",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const EarnSection = () => {
+  const { t } = useTranslation();
+
+  const earnMethods = [
+    {
+      icon: Gift,
+      titleKey: "earn.joinEarn",
+      descKey: "earn.joinEarnDesc",
+      rewardKey: "earn.welcomeBonus",
+      color: "primary",
+    },
+    {
+      icon: Rocket,
+      titleKey: "earn.useEarn",
+      descKey: "earn.useEarnDesc",
+      rewardKey: "earn.perAction",
+      color: "secondary",
+    },
+    {
+      icon: TrendingUp,
+      titleKey: "earn.growEarn",
+      descKey: "earn.growEarnDesc",
+      rewardKey: "earn.bonusMultiplier",
+      color: "accent",
+    },
+  ];
+
   return (
     <section id="earn" className="py-24 relative overflow-hidden">
       {/* Background Elements */}
@@ -37,14 +40,14 @@ const EarnSection = () => {
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-2 mb-6">
             <Coins className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium text-accent">Token Economy</span>
+            <span className="text-sm font-medium text-accent">{t('earn.badge')}</span>
           </div>
           <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Free-Fee Platform,{" "}
-            <span className="text-gradient-earth">Earn Rewards</span>
+            {t('earn.title')}{" "}
+            <span className="text-gradient-earth">{t('earn.titleHighlight')}</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            No fees taken from your sales. We reward you for contributing value to the ecosystem with CAMLY tokens.
+            {t('earn.subtitle')}
           </p>
         </div>
 
@@ -52,14 +55,14 @@ const EarnSection = () => {
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           {earnMethods.map((method, index) => (
             <div
-              key={method.title}
+              key={method.titleKey}
               className="relative group"
             >
               <div className="bg-card rounded-3xl p-8 border border-border h-full transition-all duration-300 hover:border-accent/30 hover:shadow-card">
                 {/* Step Number */}
                 <div className="absolute -top-4 left-8">
                   <span className="gradient-earth text-primary-foreground font-display font-bold text-sm px-4 py-1 rounded-full">
-                    Step {index + 1}
+                    {t('earn.step')} {index + 1}
                   </span>
                 </div>
 
@@ -80,15 +83,15 @@ const EarnSection = () => {
                 </div>
 
                 <h3 className="font-display font-bold text-2xl mb-3 text-foreground">
-                  {method.title}
+                  {t(method.titleKey)}
                 </h3>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
-                  {method.description}
+                  {t(method.descKey)}
                 </p>
 
                 <div className="flex items-center gap-2">
                   <Coins className="w-5 h-5 text-accent" />
-                  <span className="font-semibold text-accent">{method.reward}</span>
+                  <span className="font-semibold text-accent">{t(method.rewardKey)}</span>
                 </div>
               </div>
             </div>
@@ -101,19 +104,18 @@ const EarnSection = () => {
             <div className="p-8 md:p-12">
               <div className="inline-flex items-center gap-2 bg-accent/10 rounded-full px-4 py-2 mb-6">
                 <span className="font-display font-bold text-accent">CAMLY</span>
-                <span className="text-sm text-muted-foreground">Token</span>
+                <span className="text-sm text-muted-foreground">{t('earn.camlyToken')}</span>
               </div>
               <h3 className="font-display font-bold text-3xl md:text-4xl mb-4 text-foreground">
-                The Currency of{" "}
-                <span className="text-gradient-earth">Love & Value</span>
+                {t('earn.camlyTitle')}{" "}
+                <span className="text-gradient-earth">{t('earn.camlyHighlight')}</span>
               </h3>
               <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
-                CAMLY Coin powers the FUN FARM ecosystem. Earn it, spend it, stake it. 
-                Your reputation becomes your wealth.
+                {t('earn.camlyDesc')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button variant="accent" size="lg" className="group">
-                  Learn About CAMLY
+                  {t('earn.learnCamly')}
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>

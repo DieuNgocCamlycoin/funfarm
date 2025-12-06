@@ -8,47 +8,50 @@ import {
   Leaf,
   Video
 } from "lucide-react";
-
-const features = [
-  {
-    icon: Store,
-    title: "Direct Marketplace",
-    description: "Connect farmers directly to consumers. No middlemen, fair prices for everyone.",
-    color: "primary",
-  },
-  {
-    icon: Users,
-    title: "Social Network",
-    description: "Build your farmer brand, share stories, go live from your farm, and grow your community.",
-    color: "secondary",
-  },
-  {
-    icon: Shield,
-    title: "Blockchain Transparency",
-    description: "Every product tracked from farm to table. Immutable reviews and verified origins.",
-    color: "accent",
-  },
-  {
-    icon: Bot,
-    title: "Angel AI Assistant",
-    description: "Smart matching, demand forecasting, and marketing help powered by divine intelligence.",
-    color: "primary",
-  },
-  {
-    icon: Star,
-    title: "Review & Reward",
-    description: "Honest reviews build reputation. Every valuable contribution earns CAMLY tokens.",
-    color: "secondary",
-  },
-  {
-    icon: Globe,
-    title: "Global Reach",
-    description: "Sell locally or globally. Fresh products delivered faster through optimized logistics.",
-    color: "accent",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const FeaturesSection = () => {
+  const { t } = useTranslation();
+
+  const features = [
+    {
+      icon: Store,
+      titleKey: "features.directMarketplace",
+      descKey: "features.directMarketplaceDesc",
+      color: "primary",
+    },
+    {
+      icon: Users,
+      titleKey: "features.socialNetwork",
+      descKey: "features.socialNetworkDesc",
+      color: "secondary",
+    },
+    {
+      icon: Shield,
+      titleKey: "features.blockchainTransparency",
+      descKey: "features.blockchainTransparencyDesc",
+      color: "accent",
+    },
+    {
+      icon: Bot,
+      titleKey: "features.angelAI",
+      descKey: "features.angelAIDesc",
+      color: "primary",
+    },
+    {
+      icon: Star,
+      titleKey: "features.reviewReward",
+      descKey: "features.reviewRewardDesc",
+      color: "secondary",
+    },
+    {
+      icon: Globe,
+      titleKey: "features.globalReach",
+      descKey: "features.globalReachDesc",
+      color: "accent",
+    },
+  ];
+
   return (
     <section id="features" className="py-24 relative">
       {/* Background */}
@@ -59,14 +62,14 @@ const FeaturesSection = () => {
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-full px-4 py-2 mb-6">
             <Leaf className="w-4 h-4 text-secondary" />
-            <span className="text-sm font-medium text-secondary">Platform Features</span>
+            <span className="text-sm font-medium text-secondary">{t('features.badge')}</span>
           </div>
           <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Everything You Need to{" "}
-            <span className="text-gradient-hero">Thrive</span>
+            {t('features.title')}{" "}
+            <span className="text-gradient-hero">{t('features.titleHighlight')}</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            A complete ecosystem for farmers, consumers, restaurants, and distributors to connect, trade, and prosper together.
+            {t('features.subtitle')}
           </p>
         </div>
 
@@ -74,7 +77,7 @@ const FeaturesSection = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <div
-              key={feature.title}
+              key={feature.titleKey}
               className="group bg-card rounded-2xl p-8 border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-card hover:-translate-y-1"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
@@ -94,10 +97,10 @@ const FeaturesSection = () => {
                 />
               </div>
               <h3 className="font-display font-semibold text-xl mb-3 text-foreground">
-                {feature.title}
+                {t(feature.titleKey)}
               </h3>
               <p className="text-muted-foreground leading-relaxed">
-                {feature.description}
+                {t(feature.descKey)}
               </p>
             </div>
           ))}
@@ -113,10 +116,10 @@ const FeaturesSection = () => {
             </div>
             <div className="flex-1 text-center md:text-left">
               <h3 className="font-display font-bold text-2xl md:text-3xl mb-3 text-foreground">
-                Go Live From Your Farm
+                {t('features.liveFromFarm')}
               </h3>
               <p className="text-muted-foreground text-lg">
-                Stream harvests, share your daily farming life, and build authentic connections with your customers worldwide.
+                {t('features.liveFromFarmDesc')}
               </p>
             </div>
           </div>
