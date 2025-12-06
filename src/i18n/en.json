@@ -34,7 +34,10 @@
     "earnCamly": "Earn CAMLY",
     "earnCamlyDesc": "Get rewarded for every action you take.",
     "zeroFees": "Zero Fees",
-    "zeroFeesDesc": "Direct P2P payments. No middleman."
+    "zeroFeesDesc": "Direct P2P payments. No middleman.",
+    "orContinueWith": "Or continue with",
+    "signInWithGoogle": "Sign in with Google",
+    "googleSignInError": "Google sign in failed"
   },
   "profile": {
     "whoAreYou": "Who are you in FUN FARM? 🌱",

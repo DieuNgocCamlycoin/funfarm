@@ -34,7 +34,10 @@
     "earnCamly": "Nhận thưởng CAMLY",
     "earnCamlyDesc": "Nhận thưởng cho mọi hành động của bạn.",
     "zeroFees": "Không phí",
-    "zeroFeesDesc": "Thanh toán P2P trực tiếp. Không trung gian."
+    "zeroFeesDesc": "Thanh toán P2P trực tiếp. Không trung gian.",
+    "orContinueWith": "Hoặc tiếp tục với",
+    "signInWithGoogle": "Đăng nhập bằng Google",
+    "googleSignInError": "Đăng nhập Google thất bại"
   },
   "profile": {
     "whoAreYou": "Bạn là ai trong FUN FARM? 🌱",
