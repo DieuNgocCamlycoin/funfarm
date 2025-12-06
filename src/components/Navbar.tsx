@@ -1,6 +1,7 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Leaf, Menu, X, Wallet, LogOut, Coins } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins } from "lucide-react";
+import funFarmLogo from "@/assets/logo_FUN_FARM.jpg";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,9 +45,11 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 gradient-hero rounded-xl flex items-center justify-center shadow-glow">
-              <Leaf className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img 
+              src={funFarmLogo} 
+              alt="FUN FARM Web3" 
+              className="w-12 h-12 rounded-xl object-cover shadow-glow"
+            />
             <span className="font-display font-bold text-xl text-gradient-hero">
               FUN FARM
             </span>
