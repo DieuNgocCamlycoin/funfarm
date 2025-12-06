@@ -24,11 +24,13 @@ export type Database = {
           id: string
           is_verified: boolean
           location: string | null
+          pending_reward: number
           phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"]
           reputation_score: number
           updated_at: string
           wallet_address: string
+          wallet_connected: boolean
           welcome_bonus_claimed: boolean
         }
         Insert: {
@@ -40,11 +42,13 @@ export type Database = {
           id: string
           is_verified?: boolean
           location?: string | null
+          pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
           reputation_score?: number
           updated_at?: string
           wallet_address: string
+          wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
         }
         Update: {
@@ -56,11 +60,13 @@ export type Database = {
           id?: string
           is_verified?: boolean
           location?: string | null
+          pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
           reputation_score?: number
           updated_at?: string
           wallet_address?: string
+          wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
         }
         Relationships: []

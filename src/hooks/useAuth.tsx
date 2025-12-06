@@ -16,6 +16,8 @@ interface Profile {
   welcome_bonus_claimed: boolean;
   is_verified: boolean;
   reputation_score: number;
+  pending_reward: number;
+  wallet_connected: boolean;
   created_at: string;
   updated_at: string;
 }
