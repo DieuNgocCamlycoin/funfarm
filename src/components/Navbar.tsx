@@ -4,6 +4,7 @@ import { Leaf, Menu, X, Wallet, LogOut, Coins } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const profileTypeEmojis: Record<string, string> = {
   farmer: '🧑‍🌾',
@@ -29,6 +31,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
   const { user, profile, signOut, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -52,30 +55,30 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link to="/feed" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-              Newsfeed
+              {t('nav.newsfeed')}
             </Link>
             {isHome ? (
               <>
                 <a href="#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  Features
+                  {t('nav.features')}
                 </a>
                 <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  How It Works
+                  {t('nav.howItWorks')}
                 </a>
                 <a href="#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  Earn
+                  {t('nav.earn')}
                 </a>
                 <a href="#community" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  Community
+                  {t('nav.community')}
                 </a>
               </>
             ) : (
               <>
                 <Link to="/#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  Features
+                  {t('nav.features')}
                 </Link>
                 <Link to="/#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  Earn
+                  {t('nav.earn')}
                 </Link>
               </>
             )}
@@ -83,6 +86,8 @@ const Navbar = () => {
 
           {/* Auth Buttons / User Menu */}
           <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher />
+            
             {isLoading ? (
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user && profile ? (
@@ -107,7 +112,7 @@ const Navbar = () => {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuContent className="w-56 bg-popover z-50" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">
@@ -121,18 +126,18 @@ const Navbar = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/feed" className="cursor-pointer">
-                        🏠 My Feed
+                        🏠 {t('nav.myFeed')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/profile-setup" className="cursor-pointer">
-                        ⚙️ Edit Profile
+                        ⚙️ {t('nav.editProfile')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
                       <LogOut className="w-4 h-4 mr-2" />
-                      Disconnect
+                      {t('common.disconnect')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -142,12 +147,12 @@ const Navbar = () => {
                 <Link to="/auth">
                   <Button variant="ghost" className="gap-2">
                     <Wallet className="w-4 h-4" />
-                    Connect
+                    {t('common.connect')}
                   </Button>
                 </Link>
                 <Link to="/auth">
                   <Button className="gradient-hero border-0">
-                    Join Now
+                    {t('common.joinNow')}
                   </Button>
                 </Link>
               </>
@@ -167,6 +172,12 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
+              {/* Language Switcher for Mobile */}
+              <div className="flex items-center justify-between pb-4 border-b border-border">
+                <span className="text-sm text-muted-foreground">{t('language.title')}</span>
+                <LanguageSwitcher />
+              </div>
+              
               {user && profile && (
                 <div className="flex items-center gap-3 pb-4 border-b border-border">
                   <Avatar className="h-10 w-10 border-2 border-primary/20">
@@ -190,44 +201,44 @@ const Navbar = () => {
                 className="text-muted-foreground hover:text-primary transition-colors font-medium"
                 onClick={() => setIsOpen(false)}
               >
-                Newsfeed
+                {t('nav.newsfeed')}
               </Link>
               {isHome ? (
                 <>
                   <a href="#features" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    Features
+                    {t('nav.features')}
                   </a>
                   <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    How It Works
+                    {t('nav.howItWorks')}
                   </a>
                   <a href="#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    Earn
+                    {t('nav.earn')}
                   </a>
                   <a href="#community" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    Community
+                    {t('nav.community')}
                   </a>
                 </>
               ) : (
                 <Link to="/" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                  Home
+                  {t('nav.home')}
                 </Link>
               )}
               <div className="flex gap-3 pt-4">
                 {user ? (
                   <Button variant="outline" className="flex-1 gap-2" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4" />
-                    Disconnect
+                    {t('common.disconnect')}
                   </Button>
                 ) : (
                   <>
                     <Link to="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
                       <Button variant="ghost" className="w-full gap-2">
                         <Wallet className="w-4 h-4" />
-                        Connect
+                        {t('common.connect')}
                       </Button>
                     </Link>
                     <Link to="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full gradient-hero border-0">Join Now</Button>
+                      <Button className="w-full gradient-hero border-0">{t('common.joinNow')}</Button>
                     </Link>
                   </>
                 )}

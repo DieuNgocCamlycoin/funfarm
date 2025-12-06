@@ -1,0 +1,76 @@
+{
+  "common": {
+    "appName": "FUN FARM Web3",
+    "slogan": "Nông dân giàu – Người ăn vui",
+    "subSlogan": "Từ vườn đến bàn ăn – Công bằng & Nhanh chóng. Miễn phí – Kiếm thưởng",
+    "connectWallet": "Kết nối ví",
+    "connect": "Kết nối",
+    "joinNow": "Tham gia ngay",
+    "disconnect": "Ngắt kết nối",
+    "camlyBalance": "Số dư CAMLY"
+  },
+  "nav": {
+    "newsfeed": "Bảng tin",
+    "features": "Tính năng",
+    "howItWorks": "Cách hoạt động",
+    "earn": "Kiếm tiền",
+    "community": "Cộng đồng",
+    "home": "Trang chủ",
+    "myFeed": "Bảng tin của tôi",
+    "editProfile": "Chỉnh sửa hồ sơ"
+  },
+  "auth": {
+    "title": "FUN FARM",
+    "welcomeTitle": "Chào mừng đến FUN FARM Web3!",
+    "walletConnected": "Đã kết nối ví!",
+    "connectYourWallet": "Kết nối ví của bạn",
+    "welcomeBonusDesc": "Tham gia FUN FARM Web3 và nhận ngay {bonus} CAMLY thưởng chào mừng! 🎉",
+    "authenticating": "Đang xác thực...",
+    "allSet": "Bạn đã sẵn sàng!",
+    "authFailed": "Xác thực thất bại",
+    "welcomeMessage": "Chào mừng đến FUN FARM Web3! 🌱",
+    "web3Login": "Đăng nhập Web3",
+    "web3LoginDesc": "Không cần mật khẩu. Ví của bạn là danh tính.",
+    "earnCamly": "Kiếm CAMLY",
+    "earnCamlyDesc": "Nhận thưởng cho mọi hành động của bạn.",
+    "zeroFees": "Không phí",
+    "zeroFeesDesc": "Thanh toán P2P trực tiếp. Không trung gian."
+  },
+  "profile": {
+    "whoAreYou": "Bạn là ai trong FUN FARM? 🌱",
+    "chooseRole": "Chọn vai trò của bạn để bắt đầu",
+    "completeProfile": "Hoàn tất hồ sơ",
+    "tellUsMore": "Hãy cho chúng tôi biết thêm về bạn",
+    "displayName": "Tên hiển thị",
+    "displayNamePlaceholder": "Tên của bạn hoặc tên trang trại",
+    "location": "Địa điểm",
+    "locationPlaceholder": "Thành phố, Tỉnh",
+    "bio": "Giới thiệu",
+    "bioPlaceholder": "Kể cho người mua về trang trại, sản phẩm, hoặc câu chuyện của bạn...",
+    "welcomeBonus": "Thưởng chào mừng của bạn",
+    "continue": "Tiếp tục",
+    "back": "Quay lại",
+    "completeAndClaim": "Hoàn tất & Nhận thưởng",
+    "setupFailed": "Không thể hoàn tất thiết lập",
+    "bonusReceived": "Thưởng chào mừng: {bonus} CAMLY đã nhận! 🎉"
+  },
+  "roles": {
+    "farmer": "Nông dân",
+    "farmerDesc": "Tôi trồng nông sản tươi",
+    "fisher": "Ngư dân",
+    "fisherDesc": "Tôi đánh bắt hải sản",
+    "eater": "Người ăn sạch",
+    "eaterDesc": "Tôi mua & thưởng thức thực phẩm tươi",
+    "restaurant": "Nhà hàng",
+    "restaurantDesc": "Tôi phục vụ những bữa ăn ngon",
+    "distributor": "Điểm bán",
+    "distributorDesc": "Tôi kết nối trang trại & người mua",
+    "shipper": "Shipper",
+    "shipperDesc": "Tôi giao đơn hàng"
+  },
+  "language": {
+    "title": "Ngôn ngữ",
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  }
+}

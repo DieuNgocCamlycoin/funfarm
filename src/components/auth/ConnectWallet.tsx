@@ -1,5 +1,6 @@
 // 🌱 Divine Mantra: "Farm to Table, Fair & Fast"
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, Loader2, CheckCircle2, LogOut } from 'lucide-react';
@@ -7,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { WELCOME_BONUS } from '@/lib/wagmi';
 
 const ConnectWallet = () => {
   const { connectors, connect, isPending, error } = useConnect();
@@ -15,6 +17,7 @@ const ConnectWallet = () => {
   const { signInWithWallet, user, profile } = useAuth();
   const navigate = useNavigate();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const { t } = useTranslation();
 
   // When wallet connects, authenticate with Supabase
   useEffect(() => {
@@ -24,16 +27,16 @@ const ConnectWallet = () => {
         const { error } = await signInWithWallet(address);
         
         if (error) {
-          toast.error('Authentication failed: ' + error.message);
+          toast.error(t('auth.authFailed') + ': ' + error.message);
         } else {
-          toast.success('Welcome to FUN FARM Web3! 🌱');
+          toast.success(t('auth.welcomeMessage'));
         }
         setIsAuthenticating(false);
       }
     };
 
     authenticateWallet();
-  }, [isConnected, address, user, signInWithWallet, isAuthenticating]);
+  }, [isConnected, address, user, signInWithWallet, isAuthenticating, t]);
 
   // Redirect to profile setup if authenticated but no profile type selected
   useEffect(() => {
@@ -49,7 +52,7 @@ const ConnectWallet = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-full gradient-hero flex items-center justify-center">
             <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-display">Wallet Connected!</CardTitle>
+          <CardTitle className="text-2xl font-display">{t('auth.walletConnected')}</CardTitle>
           <CardDescription className="font-mono text-sm">
             {address.slice(0, 6)}...{address.slice(-4)}
           </CardDescription>
@@ -58,18 +61,18 @@ const ConnectWallet = () => {
           {isAuthenticating ? (
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Authenticating...</span>
+              <span>{t('auth.authenticating')}</span>
             </div>
           ) : user ? (
             <div className="text-center">
-              <p className="text-primary font-medium mb-4">✨ You're all set!</p>
+              <p className="text-primary font-medium mb-4">✨ {t('auth.allSet')}</p>
               <Button 
                 variant="outline" 
                 onClick={() => disconnect()}
                 className="gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Disconnect
+                {t('common.disconnect')}
               </Button>
             </div>
           ) : null}
@@ -84,9 +87,9 @@ const ConnectWallet = () => {
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
           <Wallet className="w-8 h-8 text-primary" />
         </div>
-        <CardTitle className="text-2xl font-display">Connect Your Wallet</CardTitle>
+        <CardTitle className="text-2xl font-display">{t('auth.connectYourWallet')}</CardTitle>
         <CardDescription>
-          Join FUN FARM Web3 and receive <span className="text-accent font-bold">50,000 CAMLY</span> welcome bonus! 🎉
+          {t('auth.welcomeBonusDesc', { bonus: WELCOME_BONUS.toLocaleString() })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
