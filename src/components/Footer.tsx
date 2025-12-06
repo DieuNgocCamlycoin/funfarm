@@ -1,4 +1,5 @@
-import { Leaf, Twitter, Github, MessageCircle } from "lucide-react";
+import { Twitter, Github, MessageCircle } from "lucide-react";
+import funFarmLogo from "@/assets/logo_FUN_FARM.jpg";
 import { useTranslation } from "react-i18next";
 
 const Footer = () => {
@@ -11,9 +12,11 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 gradient-hero rounded-xl flex items-center justify-center">
-                <Leaf className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <img 
+                src={funFarmLogo} 
+                alt="FUN FARM Web3" 
+                className="w-12 h-12 rounded-xl object-cover"
+              />
               <span className="font-display font-bold text-xl text-gradient-hero">
                 FUN FARM
               </span>
