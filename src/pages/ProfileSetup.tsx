@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Sparkles, ChevronRight, MapPin } from 'lucide-react';
-import { WELCOME_BONUS } from '@/lib/wagmi';
+import { WELCOME_BONUS } from '@/lib/constants';
 
 type ProfileType = 'farmer' | 'fisher' | 'eater' | 'restaurant' | 'distributor' | 'shipper';
 

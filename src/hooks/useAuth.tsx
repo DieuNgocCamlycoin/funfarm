@@ -2,7 +2,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useAccount, useDisconnect } from 'wagmi';
 
 interface Profile {
   id: string;
@@ -26,9 +25,6 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
-  isConnected: boolean;
-  walletAddress: string | undefined;
-  signInWithWallet: (walletAddress: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -41,9 +37,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const { address, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -97,49 +90,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithWallet = async (walletAddress: string) => {
-    try {
-      // Use wallet address as email (with a special domain) and a deterministic password
-      const email = `${walletAddress.toLowerCase()}@wallet.funfarm.web3`;
-      const password = `wallet_${walletAddress.toLowerCase()}_funfarm`;
-
-      // Try to sign in first
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInData.user) {
-        return { error: null };
-      }
-
-      // If sign in fails, try to sign up
-      if (signInError) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              wallet_address: walletAddress.toLowerCase(),
-              display_name: `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
-            },
-          },
-        });
-
-        if (signUpError) {
-          return { error: signUpError };
-        }
-
-        return { error: null };
-      }
-
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
-    }
-  };
-
   const signInWithGoogle = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -159,7 +109,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    disconnect();
     setProfile(null);
   };
 
@@ -170,9 +119,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         profile,
         isLoading,
-        isConnected,
-        walletAddress: address,
-        signInWithWallet,
         signInWithGoogle,
         signOut,
         refreshProfile,
