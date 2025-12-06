@@ -1,0 +1,76 @@
+{
+  "common": {
+    "appName": "FUN FARM Web3",
+    "slogan": "Farmers rich, Eaters happy",
+    "subSlogan": "Farm to Table, Fair & Fast. Free-Fee & Earn",
+    "connectWallet": "Connect Wallet",
+    "connect": "Connect",
+    "joinNow": "Join Now",
+    "disconnect": "Disconnect",
+    "camlyBalance": "CAMLY Balance"
+  },
+  "nav": {
+    "newsfeed": "Newsfeed",
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "earn": "Earn",
+    "community": "Community",
+    "home": "Home",
+    "myFeed": "My Feed",
+    "editProfile": "Edit Profile"
+  },
+  "auth": {
+    "title": "FUN FARM",
+    "welcomeTitle": "Welcome to FUN FARM Web3!",
+    "walletConnected": "Wallet Connected!",
+    "connectYourWallet": "Connect Your Wallet",
+    "welcomeBonusDesc": "Join FUN FARM Web3 and receive {bonus} CAMLY welcome bonus! 🎉",
+    "authenticating": "Authenticating...",
+    "allSet": "You're all set!",
+    "authFailed": "Authentication failed",
+    "welcomeMessage": "Welcome to FUN FARM Web3! 🌱",
+    "web3Login": "Web3 Login",
+    "web3LoginDesc": "No password needed. Your wallet is your identity.",
+    "earnCamly": "Earn CAMLY",
+    "earnCamlyDesc": "Get rewarded for every action you take.",
+    "zeroFees": "Zero Fees",
+    "zeroFeesDesc": "Direct P2P payments. No middleman."
+  },
+  "profile": {
+    "whoAreYou": "Who are you in FUN FARM? 🌱",
+    "chooseRole": "Choose your role to get started",
+    "completeProfile": "Complete Your Profile",
+    "tellUsMore": "Tell us a bit more about yourself",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "Your name or farm name",
+    "location": "Location",
+    "locationPlaceholder": "City, Province",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell buyers about your farm, products, or story...",
+    "welcomeBonus": "Your welcome bonus",
+    "continue": "Continue",
+    "back": "Back",
+    "completeAndClaim": "Complete & Claim Bonus",
+    "setupFailed": "Failed to complete setup",
+    "bonusReceived": "Welcome bonus: {bonus} CAMLY received! 🎉"
+  },
+  "roles": {
+    "farmer": "Farmer",
+    "farmerDesc": "I grow fresh produce",
+    "fisher": "Fisher",
+    "fisherDesc": "I catch seafood",
+    "eater": "Eater",
+    "eaterDesc": "I buy & enjoy fresh food",
+    "restaurant": "Restaurant",
+    "restaurantDesc": "I serve delicious meals",
+    "distributor": "Distributor",
+    "distributorDesc": "I connect farms & buyers",
+    "shipper": "Shipper",
+    "shipperDesc": "I deliver orders"
+  },
+  "language": {
+    "title": "Language",
+    "english": "English",
+    "vietnamese": "Tiếng Việt"
+  }
+}

@@ -1,6 +1,7 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,18 +15,10 @@ import { WELCOME_BONUS } from '@/lib/wagmi';
 
 type ProfileType = 'farmer' | 'fisher' | 'eater' | 'restaurant' | 'distributor' | 'shipper';
 
-const profileTypes: { type: ProfileType; emoji: string; title: string; description: string }[] = [
-  { type: 'farmer', emoji: '🧑‍🌾', title: 'Farmer', description: 'I grow fresh produce' },
-  { type: 'fisher', emoji: '🎣', title: 'Fisher', description: 'I catch seafood' },
-  { type: 'eater', emoji: '🍽️', title: 'Eater', description: 'I buy & enjoy fresh food' },
-  { type: 'restaurant', emoji: '👨‍🍳', title: 'Restaurant', description: 'I serve delicious meals' },
-  { type: 'distributor', emoji: '📦', title: 'Distributor', description: 'I connect farms & buyers' },
-  { type: 'shipper', emoji: '🚚', title: 'Shipper', description: 'I deliver orders' },
-];
-
 const ProfileSetup = () => {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<ProfileType | null>(null);
@@ -34,6 +27,15 @@ const ProfileSetup = () => {
     location: '',
     bio: '',
   });
+
+  const profileTypes: { type: ProfileType; emoji: string; titleKey: string; descKey: string }[] = [
+    { type: 'farmer', emoji: '🧑‍🌾', titleKey: 'roles.farmer', descKey: 'roles.farmerDesc' },
+    { type: 'fisher', emoji: '🎣', titleKey: 'roles.fisher', descKey: 'roles.fisherDesc' },
+    { type: 'eater', emoji: '🍽️', titleKey: 'roles.eater', descKey: 'roles.eaterDesc' },
+    { type: 'restaurant', emoji: '👨‍🍳', titleKey: 'roles.restaurant', descKey: 'roles.restaurantDesc' },
+    { type: 'distributor', emoji: '📦', titleKey: 'roles.distributor', descKey: 'roles.distributorDesc' },
+    { type: 'shipper', emoji: '🚚', titleKey: 'roles.shipper', descKey: 'roles.shipperDesc' },
+  ];
 
   const handleTypeSelect = (type: ProfileType) => {
     setSelectedType(type);
@@ -70,13 +72,13 @@ const ProfileSetup = () => {
       toast.success(
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-accent" />
-          <span>Welcome bonus: <strong>{WELCOME_BONUS.toLocaleString()} CAMLY</strong> received! 🎉</span>
+          <span>{t('profile.bonusReceived', { bonus: WELCOME_BONUS.toLocaleString() })}</span>
         </div>
       );
 
       navigate('/feed');
     } catch (error: any) {
-      toast.error('Failed to complete setup: ' + error.message);
+      toast.error(t('profile.setupFailed') + ': ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -101,15 +103,15 @@ const ProfileSetup = () => {
           <div className="animate-fade-in">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-display font-bold mb-2">
-                Who are you in FUN FARM? 🌱
+                {t('profile.whoAreYou')}
               </h1>
               <p className="text-muted-foreground">
-                Choose your role to get started
+                {t('profile.chooseRole')}
               </p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-              {profileTypes.map(({ type, emoji, title, description }) => (
+              {profileTypes.map(({ type, emoji, titleKey, descKey }) => (
                 <Card
                   key={type}
                   className={`cursor-pointer transition-all hover:scale-105 hover:shadow-glow ${
@@ -121,8 +123,8 @@ const ProfileSetup = () => {
                 >
                   <CardContent className="p-4 text-center">
                     <div className="text-4xl mb-2">{emoji}</div>
-                    <h3 className="font-display font-semibold">{title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{description}</p>
+                    <h3 className="font-display font-semibold">{t(titleKey)}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">{t(descKey)}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -133,7 +135,7 @@ const ProfileSetup = () => {
               disabled={!selectedType}
               className="w-full h-12 gradient-hero border-0 gap-2"
             >
-              Continue
+              {t('profile.continue')}
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -147,30 +149,30 @@ const ProfileSetup = () => {
                   {profileTypes.find(p => p.type === selectedType)?.emoji}
                 </div>
                 <CardTitle className="text-2xl font-display">
-                  Complete Your Profile
+                  {t('profile.completeProfile')}
                 </CardTitle>
                 <CardDescription>
-                  Tell us a bit more about yourself
+                  {t('profile.tellUsMore')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="display_name">Display Name</Label>
+                  <Label htmlFor="display_name">{t('profile.displayName')}</Label>
                   <Input
                     id="display_name"
-                    placeholder="Your name or farm name"
+                    placeholder={t('profile.displayNamePlaceholder')}
                     value={formData.display_name}
                     onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="location">{t('profile.location')}</Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="location"
-                      placeholder="City, Province"
+                      placeholder={t('profile.locationPlaceholder')}
                       className="pl-10"
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
@@ -179,10 +181,10 @@ const ProfileSetup = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="bio">{t('profile.bio')}</Label>
                   <Textarea
                     id="bio"
-                    placeholder="Tell buyers about your farm, products, or story..."
+                    placeholder={t('profile.bioPlaceholder')}
                     rows={3}
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
@@ -191,7 +193,7 @@ const ProfileSetup = () => {
 
                 {/* Welcome bonus preview */}
                 <div className="p-4 rounded-xl bg-accent/10 border border-accent/20 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">Your welcome bonus</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t('profile.welcomeBonus')}</p>
                   <p className="text-2xl font-display font-bold text-accent">
                     🎁 {WELCOME_BONUS.toLocaleString()} CAMLY
                   </p>
@@ -203,7 +205,7 @@ const ProfileSetup = () => {
                     onClick={() => setStep(1)}
                     className="flex-1"
                   >
-                    Back
+                    {t('profile.back')}
                   </Button>
                   <Button
                     onClick={handleSubmit}
@@ -215,7 +217,7 @@ const ProfileSetup = () => {
                     ) : (
                       <Sparkles className="w-4 h-4" />
                     )}
-                    Complete & Claim Bonus
+                    {t('profile.completeAndClaim')}
                   </Button>
                 </div>
               </CardContent>

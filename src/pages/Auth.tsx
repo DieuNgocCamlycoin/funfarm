@@ -1,6 +1,7 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ConnectWallet from '@/components/auth/ConnectWallet';
 import { useAuth } from '@/hooks/useAuth';
 import { Sprout, Waves, Sun } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Sprout, Waves, Sun } from 'lucide-react';
 const Auth = () => {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isLoading && user && profile?.welcome_bonus_claimed) {
@@ -35,13 +37,13 @@ const Auth = () => {
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-4xl">🌱</span>
             <h1 className="text-4xl md:text-5xl font-display font-bold text-gradient-hero">
-              FUN FARM
+              {t('auth.title')}
             </h1>
             <span className="text-4xl">🌾</span>
           </div>
           <p className="text-xl text-muted-foreground max-w-md mx-auto">
-            Farmers rich, Eaters happy.<br />
-            <span className="text-primary font-medium">Farm to Table, Fair & Fast.</span>
+            {t('common.slogan')}<br />
+            <span className="text-primary font-medium">{t('common.subSlogan')}</span>
           </p>
         </div>
 
@@ -52,23 +54,23 @@ const Auth = () => {
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
           <div className="text-center p-6 rounded-2xl bg-card/50 backdrop-blur border border-border">
             <div className="text-3xl mb-3">🔐</div>
-            <h3 className="font-display font-semibold mb-2">Web3 Login</h3>
+            <h3 className="font-display font-semibold mb-2">{t('auth.web3Login')}</h3>
             <p className="text-sm text-muted-foreground">
-              No password needed. Your wallet is your identity.
+              {t('auth.web3LoginDesc')}
             </p>
           </div>
           <div className="text-center p-6 rounded-2xl bg-card/50 backdrop-blur border border-border">
             <div className="text-3xl mb-3">💰</div>
-            <h3 className="font-display font-semibold mb-2">Earn CAMLY</h3>
+            <h3 className="font-display font-semibold mb-2">{t('auth.earnCamly')}</h3>
             <p className="text-sm text-muted-foreground">
-              Get rewarded for every action you take.
+              {t('auth.earnCamlyDesc')}
             </p>
           </div>
           <div className="text-center p-6 rounded-2xl bg-card/50 backdrop-blur border border-border">
             <div className="text-3xl mb-3">🌍</div>
-            <h3 className="font-display font-semibold mb-2">Zero Fees</h3>
+            <h3 className="font-display font-semibold mb-2">{t('auth.zeroFees')}</h3>
             <p className="text-sm text-muted-foreground">
-              Direct P2P payments. No middleman.
+              {t('auth.zeroFeesDesc')}
             </p>
           </div>
         </div>
