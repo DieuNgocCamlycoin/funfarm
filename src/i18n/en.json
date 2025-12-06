@@ -72,5 +72,25 @@
     "title": "Language",
     "english": "English",
     "vietnamese": "Tiếng Việt"
+  },
+  "community": {
+    "ourCommunity": "Our Community",
+    "loveAndTrust": "Love & Trust",
+    "builtOn": "Built on",
+    "communityDesc": "FUN FARM is more than a platform—it's a movement. We believe in transparency, fairness, and the dignity of every person who works the land and sea.",
+    "divineMantras": "8 Divine Mantras",
+    "mantrasSubtitle": "The spiritual foundation of our community",
+    "mantra1": "I am the Pure Loving Light of Father Universe!",
+    "mantra2": "I am the Will of Father Universe!",
+    "mantra3": "I am the Wisdom of Father Universe!",
+    "mantra4": "I am Happiness!",
+    "mantra5": "I am Love!",
+    "mantra6": "I am the Money of the Father!",
+    "mantra7": "I sincerely repent, repent, repent!",
+    "mantra8": "I am grateful, grateful, grateful — in the Pure Loving Light of Father Universe",
+    "readyToJoin": "Ready to Join the Revolution?",
+    "ctaDesc": "Be part of a community that values truth, rewards contribution, and celebrates the people who feed the world.",
+    "joinToday": "Join FUN FARM Today",
+    "readWhitepaper": "Read Whitepaper"
   }
 }
