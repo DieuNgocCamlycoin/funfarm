@@ -1,0 +1,80 @@
+// 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ConnectWallet from '@/components/auth/ConnectWallet';
+import { useAuth } from '@/hooks/useAuth';
+import { Sprout, Waves, Sun } from 'lucide-react';
+
+const Auth = () => {
+  const { user, profile, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && user && profile?.welcome_bonus_claimed) {
+      navigate('/feed');
+    }
+  }, [user, profile, isLoading, navigate]);
+
+  return (
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 gradient-glow opacity-50" />
+      <div className="absolute top-20 left-10 animate-float">
+        <Sprout className="w-12 h-12 text-primary/30" />
+      </div>
+      <div className="absolute top-40 right-20 animate-float-delayed">
+        <Sun className="w-16 h-16 text-accent/30" />
+      </div>
+      <div className="absolute bottom-20 left-1/4 animate-float">
+        <Waves className="w-14 h-14 text-secondary/30" />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-16">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-4xl">🌱</span>
+            <h1 className="text-4xl md:text-5xl font-display font-bold text-gradient-hero">
+              FUN FARM
+            </h1>
+            <span className="text-4xl">🌾</span>
+          </div>
+          <p className="text-xl text-muted-foreground max-w-md mx-auto">
+            Farmers rich, Eaters happy.<br />
+            <span className="text-primary font-medium">Farm to Table, Fair & Fast.</span>
+          </p>
+        </div>
+
+        {/* Wallet Connect Card */}
+        <ConnectWallet />
+
+        {/* Features */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <div className="text-center p-6 rounded-2xl bg-card/50 backdrop-blur border border-border">
+            <div className="text-3xl mb-3">🔐</div>
+            <h3 className="font-display font-semibold mb-2">Web3 Login</h3>
+            <p className="text-sm text-muted-foreground">
+              No password needed. Your wallet is your identity.
+            </p>
+          </div>
+          <div className="text-center p-6 rounded-2xl bg-card/50 backdrop-blur border border-border">
+            <div className="text-3xl mb-3">💰</div>
+            <h3 className="font-display font-semibold mb-2">Earn CAMLY</h3>
+            <p className="text-sm text-muted-foreground">
+              Get rewarded for every action you take.
+            </p>
+          </div>
+          <div className="text-center p-6 rounded-2xl bg-card/50 backdrop-blur border border-border">
+            <div className="text-3xl mb-3">🌍</div>
+            <h3 className="font-display font-semibold mb-2">Zero Fees</h3>
+            <p className="text-sm text-muted-foreground">
+              Direct P2P payments. No middleman.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Auth;
