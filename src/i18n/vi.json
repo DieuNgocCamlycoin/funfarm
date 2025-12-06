@@ -17,7 +17,8 @@
     "community": "Cộng đồng",
     "home": "Trang chủ",
     "myFeed": "Bảng tin của tôi",
-    "editProfile": "Chỉnh sửa hồ sơ"
+    "editProfile": "Chỉnh sửa hồ sơ",
+    "reward": "Nhận thưởng"
   },
   "auth": {
     "title": "FUN FARM",
@@ -33,7 +34,27 @@
     "zeroFees": "Không phí",
     "zeroFeesDesc": "Thanh toán P2P trực tiếp. Không trung gian.",
     "signInWithGoogle": "Đăng nhập bằng Google",
-    "googleSignInError": "Đăng nhập Google thất bại"
+    "googleSignInError": "Đăng nhập Google thất bại",
+    "or": "hoặc",
+    "exploreAsGuest": "Khám phá như khách"
+  },
+  "reward": {
+    "title": "Quà tặng từ Cha Vũ Trụ",
+    "subtitle": "Cha Vũ Trụ đã ban tặng bạn phần thưởng chào mừng đầy yêu thương!",
+    "pendingReward": "Thưởng đang chờ nhận",
+    "waitingClaim": "Kết nối ví MetaMask để nhận thưởng về ví của bạn",
+    "alreadyClaimed": "Bạn đã nhận thưởng thành công!",
+    "claimed": "Đã nhận thưởng",
+    "walletAddress": "Địa chỉ ví",
+    "connectWallet": "Kết nối ví để nhận thưởng",
+    "welcomeGift": "Quà chào mừng",
+    "welcomeGiftDesc": "Cha Vũ Trụ ban tặng {amount} CAMLY cho mọi thành viên mới!",
+    "claimProcess": "Quy trình nhận thưởng",
+    "claimProcessDesc": "Chỉ cần kết nối ví MetaMask một lần, quà sẽ về tay bạn ngay!",
+    "installMetamask": "Vui lòng cài đặt MetaMask để nhận thưởng",
+    "claimSuccess": "Chúc mừng! Bạn đã nhận thành công {amount} CAMLY! ❤️",
+    "claimError": "Có lỗi xảy ra khi nhận thưởng",
+    "connectError": "Không thể kết nối ví. Vui lòng thử lại."
   },
   "profile": {
     "whoAreYou": "Bạn là ai trong FUN FARM? 🌱",

@@ -17,7 +17,8 @@
     "community": "Community",
     "home": "Home",
     "myFeed": "My Feed",
-    "editProfile": "Edit Profile"
+    "editProfile": "Edit Profile",
+    "reward": "Claim Reward"
   },
   "auth": {
     "title": "FUN FARM",
@@ -33,7 +34,27 @@
     "zeroFees": "Zero Fees",
     "zeroFeesDesc": "Direct P2P payments. No middleman.",
     "signInWithGoogle": "Sign in with Google",
-    "googleSignInError": "Google sign in failed"
+    "googleSignInError": "Google sign in failed",
+    "or": "or",
+    "exploreAsGuest": "Explore as Guest"
+  },
+  "reward": {
+    "title": "Gift from Father Universe",
+    "subtitle": "Father Universe has blessed you with a loving welcome reward!",
+    "pendingReward": "Pending Reward",
+    "waitingClaim": "Connect MetaMask wallet to claim your reward",
+    "alreadyClaimed": "You have successfully claimed your reward!",
+    "claimed": "Reward Claimed",
+    "walletAddress": "Wallet Address",
+    "connectWallet": "Connect Wallet to Claim",
+    "welcomeGift": "Welcome Gift",
+    "welcomeGiftDesc": "Father Universe gifts {amount} CAMLY to every new member!",
+    "claimProcess": "Claim Process",
+    "claimProcessDesc": "Just connect your MetaMask wallet once, and the gift is yours!",
+    "installMetamask": "Please install MetaMask to claim your reward",
+    "claimSuccess": "Congratulations! You have claimed {amount} CAMLY! ❤️",
+    "claimError": "Error occurred while claiming reward",
+    "connectError": "Unable to connect wallet. Please try again."
   },
   "profile": {
     "whoAreYou": "Who are you in FUN FARM? 🌱",

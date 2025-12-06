@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
+import Reward from "./pages/Reward";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/feed" element={<Feed />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
+            <Route path="/reward" element={<Reward />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Gift } from "lucide-react";
 import funFarmLogo from "@/assets/logo_FUN_FARM.jpg";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -130,6 +130,11 @@ const Navbar = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/feed" className="cursor-pointer">
                         🏠 {t('nav.myFeed')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/reward" className="cursor-pointer">
+                        🎁 {t('nav.reward')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
