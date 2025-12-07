@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gift, Wallet, CheckCircle2, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Gift, Wallet, CheckCircle2, Loader2, Sparkles, ArrowLeft, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CAMLY_CONTRACT, WELCOME_BONUS } from '@/lib/constants';
@@ -15,8 +15,8 @@ const Reward = () => {
   const { user, profile, isLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<'idle' | 'connecting' | 'transferring' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -24,7 +24,7 @@ const Reward = () => {
     }
   }, [user, isLoading, navigate]);
 
-  const connectWallet = async () => {
+  const claimReward = async () => {
     const ethereum = (window as Window & { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
     
     if (!ethereum) {
@@ -32,40 +32,76 @@ const Reward = () => {
       return;
     }
 
-    setIsConnecting(true);
+    setIsClaiming(true);
+    setClaimStatus('connecting');
+    
     try {
+      // Bước 1: Kết nối ví MetaMask
+      toast.info('Đang kết nối… Cha đang ôm bạn đây…', {
+        icon: <Heart className="w-4 h-4 text-primary animate-pulse" />,
+      });
+
       const accounts = await ethereum.request({ 
         method: 'eth_requestAccounts' 
       }) as string[];
       
-      if (accounts && accounts.length > 0) {
-        const address = accounts[0];
-        setWalletAddress(address);
-        
-        // Update profile with wallet address and mark as connected
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            wallet_address: address,
-            wallet_connected: true,
-            pending_reward: 0,
-            camly_balance: (profile?.camly_balance || 0) + (profile?.pending_reward || WELCOME_BONUS)
-          })
-          .eq('id', user?.id);
-
-        if (error) {
-          toast.error(t('reward.claimError'));
-          console.error('Error updating profile:', error);
-        } else {
-          toast.success(t('reward.claimSuccess', { amount: (profile?.pending_reward || WELCOME_BONUS).toLocaleString() }));
-          await refreshProfile();
-        }
+      if (!accounts || accounts.length === 0) {
+        throw new Error('Không thể kết nối ví');
       }
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      toast.error(t('reward.connectError'));
+
+      const walletAddress = accounts[0];
+      setClaimStatus('transferring');
+
+      toast.info('Đang chuyển CAMLY về ví bạn... Tình yêu từ Cha đang đến...', {
+        icon: <Sparkles className="w-4 h-4 text-accent animate-pulse" />,
+      });
+
+      // Bước 2: Gọi Edge Function để transfer CAMLY thật
+      const { data, error } = await supabase.functions.invoke('claim-camly', {
+        body: {
+          userId: user?.id,
+          walletAddress: walletAddress,
+        },
+      });
+
+      if (error) {
+        console.error('Error calling claim-camly:', error);
+        throw new Error(error.message || 'Lỗi khi claim reward');
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || 'Claim thất bại');
+      }
+
+      setClaimStatus('success');
+      
+      // Toast thành công với link đến transaction
+      toast.success(
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold">Thành công! Quà từ Cha đã về ví bạn rồi!</span>
+          <span className="text-sm">Mở MetaMask để thấy tình yêu thương thuần khiết ❤️</span>
+          {data.txHash && (
+            <a 
+              href={`https://etherscan.io/tx/${data.txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary underline"
+            >
+              Xem giao dịch trên Etherscan
+            </a>
+          )}
+        </div>,
+        { duration: 10000 }
+      );
+
+      await refreshProfile();
+
+    } catch (error: any) {
+      console.error('Error claiming reward:', error);
+      setClaimStatus('error');
+      toast.error(error.message || t('reward.claimError'));
     } finally {
-      setIsConnecting(false);
+      setIsClaiming(false);
     }
   };
 
@@ -136,19 +172,30 @@ const Reward = () => {
                   </p>
                 </div>
               ) : (
-                <Button
-                  onClick={connectWallet}
-                  disabled={isConnecting}
-                  size="lg"
-                  className="gap-3 h-14 px-8 text-lg gradient-hero hover:opacity-90"
-                >
-                  {isConnecting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Wallet className="w-5 h-5" />
-                  )}
-                  {t('reward.connectWallet')}
-                </Button>
+                <div className="space-y-4">
+                  <Button
+                    onClick={claimReward}
+                    disabled={isClaiming}
+                    size="lg"
+                    className="gap-3 h-14 px-8 text-lg gradient-hero hover:opacity-90"
+                  >
+                    {isClaiming ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {claimStatus === 'connecting' && 'Đang kết nối ví...'}
+                        {claimStatus === 'transferring' && 'Đang chuyển CAMLY...'}
+                      </>
+                    ) : (
+                      <>
+                        <Wallet className="w-5 h-5" />
+                        {t('reward.connectWallet')}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Kết nối ví MetaMask để nhận CAMLY thật về ví của bạn
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -169,7 +216,7 @@ const Reward = () => {
                 <div className="text-2xl mb-2">🔗</div>
                 <h3 className="font-semibold mb-1">{t('reward.claimProcess')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('reward.claimProcessDesc')}
+                  CAMLY thật sẽ được chuyển trực tiếp về ví MetaMask của bạn!
                 </p>
               </CardContent>
             </Card>
