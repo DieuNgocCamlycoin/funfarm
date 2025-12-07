@@ -56,19 +56,7 @@ const Reward = () => {
 
       const walletAddress = accounts[0].toLowerCase();
 
-      // Kiểm tra xem ví này đã được sử dụng bởi user khác chưa
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('wallet_address', walletAddress)
-        .neq('id', user.id)
-        .maybeSingle();
-
-      if (existingProfile) {
-        throw new Error('Địa chỉ ví này đã được kết nối với tài khoản khác. Vui lòng sử dụng ví khác hoặc đăng nhập bằng tài khoản đã liên kết.');
-      }
-
-      // Lưu wallet address vào profile (không claim)
+      // Lưu wallet address vào profile (không claim) - cho phép nhiều tài khoản dùng chung ví
       const { error } = await supabase
         .from('profiles')
         .update({ 
