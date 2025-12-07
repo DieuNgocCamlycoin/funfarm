@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
     }
 
     const contractAddress = '0x0910320181889feFDE0BB1Ca63962b0A8882e413';
-    const provider = new ethers.JsonRpcProvider('https://rpc.ankr.com/eth');
+    // Use free public RPC that doesn't require API key
+    const provider = new ethers.JsonRpcProvider('https://eth.llamarpc.com');
     const wallet = new ethers.Wallet(privateKey, provider);
     const abi = ['function transfer(address to, uint256 amount) public returns (bool)'];
     const contract = new ethers.Contract(contractAddress, abi, wallet);
