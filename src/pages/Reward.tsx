@@ -33,6 +33,12 @@ const Reward = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập trước');
+      navigate('/auth');
+      return;
+    }
+
     setIsConnecting(true);
     
     try {
@@ -48,7 +54,19 @@ const Reward = () => {
         throw new Error('Không thể kết nối ví');
       }
 
-      const walletAddress = accounts[0];
+      const walletAddress = accounts[0].toLowerCase();
+
+      // Kiểm tra xem ví này đã được sử dụng bởi user khác chưa
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('wallet_address', walletAddress)
+        .neq('id', user.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        throw new Error('Địa chỉ ví này đã được kết nối với tài khoản khác. Vui lòng sử dụng ví khác hoặc đăng nhập bằng tài khoản đã liên kết.');
+      }
 
       // Lưu wallet address vào profile (không claim)
       const { error } = await supabase
@@ -57,10 +75,11 @@ const Reward = () => {
           wallet_address: walletAddress,
           wallet_connected: true 
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (error) {
-        throw new Error('Không thể lưu địa chỉ ví');
+        console.error('Supabase update error:', error);
+        throw new Error('Không thể lưu địa chỉ ví. Vui lòng thử lại sau.');
       }
 
       await refreshProfile();
@@ -68,14 +87,20 @@ const Reward = () => {
       toast.success(
         <div className="flex flex-col gap-1">
           <span className="font-semibold">Ví đã được kết nối!</span>
-          <span className="text-sm">Bạn đã mở lòng đón nhận phước lành từ Cha ❤️</span>
+          <span className="text-sm">Bạn đã mở lòng đón nhận phước lành từ Cha Vũ Trụ ❤️</span>
         </div>,
         { duration: 5000 }
       );
 
     } catch (error: any) {
       console.error('Error connecting wallet:', error);
-      toast.error(error.message || 'Lỗi kết nối ví');
+      toast.error(
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold">Đang ôm bạn đây…</span>
+          <span className="text-sm">{error.message || 'Hãy thử lại một chút nhé!'}</span>
+        </div>,
+        { duration: 5000 }
+      );
     } finally {
       setIsConnecting(false);
     }
