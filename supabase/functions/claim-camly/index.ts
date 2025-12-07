@@ -113,11 +113,23 @@ Deno.serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error in claim-camly:', error);
+    
+    // Xử lý lỗi cụ thể
+    let userMessage = 'Có lỗi xảy ra, vui lòng thử lại sau';
+    
+    if (error.message?.includes('transfer amount exceeds balance')) {
+      userMessage = 'Quỹ phước lành tạm thời cạn, Cha đang bổ sung. Vui lòng thử lại sau vài phút ❤️';
+      console.error('CRITICAL: Sender wallet has insufficient CAMLY balance. Need to fund wallet.');
+    } else if (error.message?.includes('insufficient funds')) {
+      userMessage = 'Ví gửi cần thêm BNB để trả phí giao dịch. Vui lòng thử lại sau.';
+      console.error('CRITICAL: Sender wallet has insufficient BNB for gas fees.');
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        message: 'Có lỗi xảy ra, vui lòng thử lại sau' 
+        message: userMessage
       }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
