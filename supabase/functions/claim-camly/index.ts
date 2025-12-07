@@ -68,8 +68,10 @@ Deno.serve(async (req) => {
     }
 
     const contractAddress = '0x0910320181889feFDE0BB1Ca63962b0A8882e413';
-    // Use free public RPC that doesn't require API key
-    const provider = new ethers.JsonRpcProvider('https://eth.llamarpc.com');
+    // Try BSC mainnet - many tokens are on BSC
+    const provider = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org/');
+    
+    console.log('Using BSC mainnet RPC');
     const wallet = new ethers.Wallet(privateKey, provider);
     const abi = ['function transfer(address to, uint256 amount) public returns (bool)'];
     const contract = new ethers.Contract(contractAddress, abi, wallet);
