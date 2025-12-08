@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CommentSection from "./CommentSection";
 import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
+import { toast } from "sonner";
 import { 
   Heart, 
   MessageCircle, 
@@ -18,7 +19,8 @@ import {
   Clock,
   Package,
   UserPlus,
-  Send
+  Send,
+  Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -219,7 +221,7 @@ const FeedPost = ({ post }: FeedPostProps) => {
 
       {/* Images */}
       {post.images.length > 0 && (
-        <div className="relative">
+        <div className="relative group">
           <div className="aspect-[4/3] overflow-hidden">
             <img 
               src={post.images[currentImageIndex]} 
@@ -227,6 +229,32 @@ const FeedPost = ({ post }: FeedPostProps) => {
               className="w-full h-full object-cover"
             />
           </div>
+          
+          {/* Download button */}
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch(post.images[currentImageIndex]);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `image_${currentImageIndex + 1}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                toast.success('Đã tải ảnh về thiết bị!');
+              } catch (error) {
+                toast.error('Có lỗi khi tải ảnh');
+              }
+            }}
+            className="absolute top-3 left-3 w-9 h-9 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+            title="Tải ảnh về"
+          >
+            <Download className="w-4 h-4 text-foreground" />
+          </button>
+          
           {post.images.length > 1 && (
             <>
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
@@ -350,19 +378,7 @@ const FeedPost = ({ post }: FeedPostProps) => {
             <MessageCircle className={cn("w-5 h-5", showComments && "fill-primary/20")} />
             <span>{formatNumber(post.comments)}</span>
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={cn(
-              "gap-2",
-              showComments && "text-primary"
-            )}
-            onClick={() => setShowComments(!showComments)}
-          >
-            <MessageCircle className={cn("w-5 h-5", showComments && "fill-primary/20")} />
-            <span>{formatNumber(post.comments)}</span>
-          </Button>
-          <Button 
+          <Button
             variant="ghost" 
             size="sm" 
             className="gap-2"
