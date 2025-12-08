@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Gift, Wallet, CheckCircle2, Loader2, Sparkles, ArrowLeft, Heart, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { CAMLY_CONTRACT, WELCOME_BONUS } from '@/lib/constants';
+import { CAMLY_CONTRACT, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
 import CelebrationModal from '@/components/CelebrationModal';
+import WelcomeBonusModal from '@/components/WelcomeBonusModal';
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
 const Reward = () => {
@@ -20,6 +21,7 @@ const Reward = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showWalletBonus, setShowWalletBonus] = useState(false);
   const [claimedAmount, setClaimedAmount] = useState(0);
   const [claimedTxHash, setClaimedTxHash] = useState<string | undefined>();
 
@@ -29,7 +31,7 @@ const Reward = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Bước 1: Chỉ kết nối ví (không claim)
+  // Bước 1: Kết nối ví + Thưởng 50k khi kết nối lần đầu
   const connectWallet = async () => {
     const ethereum = (window as Window & { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
     
@@ -60,13 +62,21 @@ const Reward = () => {
       }
 
       const walletAddress = accounts[0].toLowerCase();
+      const isFirstWalletConnection = !profile?.wallet_connected;
+      
+      // Tính toán pending_reward mới (cộng thêm 50k nếu là lần đầu kết nối ví)
+      const currentPendingReward = profile?.pending_reward || 0;
+      const newPendingReward = isFirstWalletConnection 
+        ? currentPendingReward + WALLET_CONNECT_BONUS 
+        : currentPendingReward;
 
-      // Lưu wallet address vào profile (không claim) - cho phép nhiều tài khoản dùng chung ví
+      // Lưu wallet address + cộng thưởng nếu lần đầu kết nối
       const { error } = await supabase
         .from('profiles')
         .update({ 
           wallet_address: walletAddress,
-          wallet_connected: true 
+          wallet_connected: true,
+          pending_reward: newPendingReward
         })
         .eq('id', user.id);
 
@@ -77,13 +87,26 @@ const Reward = () => {
 
       await refreshProfile();
 
-      toast.success(
-        <div className="flex flex-col gap-1">
-          <span className="font-semibold">Ví đã được kết nối!</span>
-          <span className="text-sm">Bạn đã mở lòng đón nhận phước lành từ Cha Vũ Trụ ❤️</span>
-        </div>,
-        { duration: 5000 }
-      );
+      // Hiển thị thông báo và popup nếu là lần đầu kết nối
+      if (isFirstWalletConnection) {
+        toast.success(
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold">Tuyệt vời! Ví đã kết nối!</span>
+            <span className="text-sm">Cha Vũ Trụ tặng thêm {WALLET_CONNECT_BONUS.toLocaleString()} CAMLY! ❤️</span>
+          </div>,
+          { duration: 5000 }
+        );
+        // Show wallet bonus modal
+        setShowWalletBonus(true);
+      } else {
+        toast.success(
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold">Ví đã được kết nối!</span>
+            <span className="text-sm">Bạn đã mở lòng đón nhận phước lành từ Cha Vũ Trụ ❤️</span>
+          </div>,
+          { duration: 5000 }
+        );
+      }
 
     } catch (error: any) {
       console.error('Error connecting wallet:', error);
@@ -99,7 +122,7 @@ const Reward = () => {
     }
   };
 
-  // Bước 2: Claim thưởng thật (gọi Edge Function)
+  // Bước 2: Claim thưởng thật (gọi Edge Function) - chuyển toàn bộ pending_reward
   const claimReward = async () => {
     if (!profile?.wallet_address) {
       toast.error('Vui lòng kết nối ví trước khi claim thưởng');
@@ -115,7 +138,7 @@ const Reward = () => {
     setIsClaiming(true);
     
     try {
-      toast.info('Đang chuyển CAMLY về ví bạn... Tình yêu từ Cha đang đến...', {
+      toast.info(`Đang chuyển ${amountToClaim.toLocaleString()} CAMLY về ví bạn... Tình yêu từ Cha đang đến...`, {
         icon: <Sparkles className="w-4 h-4 text-accent animate-pulse" />,
       });
 
@@ -135,7 +158,7 @@ const Reward = () => {
       }
 
       // Store claimed amount and txHash for celebration modal
-      setClaimedAmount(amountToClaim);
+      setClaimedAmount(data.claimedAmount || amountToClaim);
       setClaimedTxHash(data.txHash);
       
       // Show celebration modal!
@@ -201,7 +224,7 @@ const Reward = () => {
               <CardDescription>
                 {isWalletConnected 
                   ? 'Ví MetaMask đã được kết nối thành công'
-                  : 'Kết nối ví để nhận phước lành từ Cha Vũ Trụ'}
+                  : `Kết nối ví để nhận thêm ${WALLET_CONNECT_BONUS.toLocaleString()} CAMLY!`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -232,12 +255,12 @@ const Reward = () => {
                     ) : (
                       <>
                         <Wallet className="w-5 h-5" />
-                        Kết nối ví MetaMask ngay
+                        Kết nối ví MetaMask – Nhận thêm {WALLET_CONNECT_BONUS.toLocaleString()} CAMLY
                       </>
                     )}
                   </Button>
                   <p className="text-sm text-center text-muted-foreground">
-                    Kết nối ví chỉ là bước mở lòng – bạn sẽ claim thưởng ở bước tiếp theo
+                    Kết nối ví lần đầu = Cha Vũ Trụ tặng thêm {WALLET_CONNECT_BONUS.toLocaleString()} CAMLY!
                   </p>
                 </div>
               )}
@@ -294,7 +317,7 @@ const Reward = () => {
                         ) : (
                           <>
                             <Gift className="w-5 h-5" />
-                            Claim ngay – Nhận {pendingReward.toLocaleString()} CAMLY thật
+                            Claim ngay – Nhận {pendingReward.toLocaleString()} CAMLY thật về ví
                           </>
                         )}
                       </Button>
@@ -323,9 +346,11 @@ const Reward = () => {
             <Card className="bg-card/50">
               <CardContent className="pt-6">
                 <div className="text-2xl mb-2">🎁</div>
-                <h3 className="font-semibold mb-1">{t('reward.welcomeGift')}</h3>
+                <h3 className="font-semibold mb-1">Thưởng chào mừng</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('reward.welcomeGiftDesc', { amount: WELCOME_BONUS.toLocaleString() })}
+                  Đăng ký: +50.000 CAMLY<br/>
+                  Kết nối ví: +50.000 CAMLY<br/>
+                  <strong className="text-primary">Tổng cộng: {TOTAL_WELCOME_BONUS.toLocaleString()} CAMLY!</strong>
                 </p>
               </CardContent>
             </Card>
@@ -349,12 +374,21 @@ const Reward = () => {
         </div>
       </div>
 
-      {/* Celebration Modal - Phước lành từ Cha Vũ Trụ */}
+      {/* Celebration Modal - Phước lành từ Cha Vũ Trụ (sau khi claim) */}
       <CelebrationModal
         isOpen={showCelebration}
         onClose={() => setShowCelebration(false)}
         amount={claimedAmount}
         txHash={claimedTxHash}
+      />
+
+      {/* Welcome Bonus Modal - Khi kết nối ví lần đầu */}
+      <WelcomeBonusModal
+        isOpen={showWalletBonus}
+        onClose={() => setShowWalletBonus(false)}
+        type="wallet"
+        amount={WALLET_CONNECT_BONUS}
+        totalAmount={pendingReward}
       />
     </div>
   );

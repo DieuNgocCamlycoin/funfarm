@@ -96,13 +96,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!profile || profile.pending_reward < 50000) {
-      console.log('Insufficient pending reward:', profile?.pending_reward);
+    // Lấy toàn bộ pending_reward để claim
+    const pendingReward = profile?.pending_reward || 0;
+    
+    if (!profile || pendingReward <= 0) {
+      console.log('No pending reward:', pendingReward);
       return new Response(
-        JSON.stringify({ success: false, message: 'Không đủ thưởng chờ nhận' }), 
+        JSON.stringify({ success: false, message: 'Không có thưởng chờ nhận' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Pending reward to claim:', pendingReward);
 
     const privateKey = Deno.env.get('CAMLY_PRIVATE_KEY');
     
@@ -158,7 +163,8 @@ Deno.serve(async (req) => {
     const formattedBalance = ethers.formatUnits(senderBalance, decimals);
     console.log('Sender CAMLY balance:', formattedBalance);
     
-    const amount = ethers.parseUnits('50000', decimals);
+    // Chuyển toàn bộ pending_reward (không chỉ 50k)
+    const amount = ethers.parseUnits(pendingReward.toString(), decimals);
     console.log('Amount to transfer:', ethers.formatUnits(amount, decimals));
     
     if (senderBalance < amount) {
@@ -173,21 +179,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Initiating transfer of 50000 CAMLY to:', walletAddress);
+    console.log(`Initiating transfer of ${pendingReward} CAMLY to:`, walletAddress);
     const tx = await contract.transfer(walletAddress, amount);
     console.log('Transaction sent:', tx.hash);
     
     await tx.wait();
     console.log('Transaction confirmed:', tx.hash);
 
-    // Cập nhật database: trừ pending_reward, cộng vào camly_balance
+    // Cập nhật database: reset pending_reward về 0, cộng vào camly_balance
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
         pending_reward: 0,
         wallet_address: walletAddress,
         wallet_connected: true,
-        camly_balance: (profile.camly_balance || 0) + 50000
+        welcome_bonus_claimed: true,
+        camly_balance: (profile.camly_balance || 0) + pendingReward
       })
       .eq('id', userId);
 
@@ -195,13 +202,14 @@ Deno.serve(async (req) => {
       console.error('Error updating profile after transfer:', updateError);
     }
 
-    console.log('Claim completed successfully for user:', userId);
+    console.log(`Claim completed successfully for user: ${userId}, amount: ${pendingReward} CAMLY`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         txHash: tx.hash,
-        message: 'Cha Vũ Trụ đã ban tặng 50.000 CAMLY thật về ví bạn!' 
+        claimedAmount: pendingReward,
+        message: `Cha Vũ Trụ đã ban tặng ${pendingReward.toLocaleString()} CAMLY thật về ví bạn!` 
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
