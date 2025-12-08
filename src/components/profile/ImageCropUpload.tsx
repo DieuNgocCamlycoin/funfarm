@@ -165,7 +165,7 @@ export const ImageCropUpload = ({ type, currentImage, userId, onUploadComplete }
         <Button 
           variant="secondary" 
           size="sm" 
-          className="absolute bottom-4 right-4 gap-2 bg-background/80 backdrop-blur-sm"
+          className="gap-2 bg-background/80 backdrop-blur-sm hover:bg-background/90 shadow-lg"
           onClick={() => inputRef.current?.click()}
         >
           <Camera className="w-4 h-4" />
