@@ -1,14 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
+import CreatePostModal from "@/components/feed/CreatePostModal";
+import StoryBar from "@/components/feed/StoryBar";
+import FloatingCreateButton from "@/components/feed/FloatingCreateButton";
 import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
 import { mockPosts, trendingHashtags, suggestedFarms } from "@/data/mockFeed";
+import { Post } from "@/types/feed";
+import { toast } from "sonner";
 
 const Feed = () => {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (
+      window.innerHeight + document.documentElement.scrollTop >=
+      document.documentElement.offsetHeight - 500
+    ) {
+      if (!isLoadingMore && hasMore) {
+        loadMorePosts();
+      }
+    }
+  }, [isLoadingMore, hasMore]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  const loadMorePosts = async () => {
+    setIsLoadingMore(true);
+    // Simulate loading more posts
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // In real app, fetch from API
+    if (posts.length >= mockPosts.length * 3) {
+      setHasMore(false);
+    } else {
+      setPosts((prev) => [...prev, ...mockPosts.map((p, i) => ({
+        ...p,
+        id: `${p.id}-${prev.length + i}`,
+      }))]);
+    }
+    setIsLoadingMore(false);
+  };
+
+  const handleNewPost = (newPost: any) => {
+    toast.success("Đăng bài thành công! 🌱");
+    // In real app, would create full Post object from API response
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,7 +71,7 @@ const Feed = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="font-display text-2xl font-bold text-foreground">
-                    Newsfeed
+                    Bảng Tin
                   </h1>
                   <p className="text-muted-foreground mt-1">
                     Khám phá sản phẩm tươi ngon từ nông trại & biển cả
@@ -31,28 +79,44 @@ const Feed = () => {
                 </div>
               </div>
 
+              {/* Story Bar */}
+              <StoryBar />
+
               {/* Filters */}
               <FeedFilters 
                 activeFilter={activeFilter} 
                 onFilterChange={setActiveFilter} 
               />
 
-              {/* Create Post */}
-              <CreatePost />
+              {/* Create Post (Desktop inline) */}
+              <div className="hidden lg:block">
+                <CreatePost />
+              </div>
 
               {/* Posts */}
               <div className="space-y-6">
-                {mockPosts.map((post) => (
+                {posts.map((post) => (
                   <FeedPost key={post.id} post={post} />
                 ))}
               </div>
 
-              {/* Load More */}
-              <div className="text-center pt-4">
-                <button className="text-primary hover:text-primary/80 font-medium transition-colors">
-                  Tải thêm bài viết...
-                </button>
-              </div>
+              {/* Loading indicator */}
+              {isLoadingMore && (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <span>Đang tải thêm...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* End of feed */}
+              {!hasMore && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-lg">🌱 Bạn đã xem hết bảng tin rồi!</p>
+                  <p className="text-sm mt-1">Quay lại sau để xem thêm bài mới nhé</p>
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -69,6 +133,16 @@ const Feed = () => {
       </main>
 
       <Footer />
+
+      {/* Floating Create Button */}
+      <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onPost={handleNewPost}
+      />
     </div>
   );
 };

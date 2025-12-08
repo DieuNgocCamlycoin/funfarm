@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Post } from "@/types/feed";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import CommentSection from "./CommentSection";
 import { 
   Heart, 
   MessageCircle, 
@@ -14,7 +15,9 @@ import {
   Radio,
   Leaf,
   Clock,
-  Package
+  Package,
+  UserPlus,
+  Send
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +66,8 @@ const timeAgo = (dateString: string): string => {
 const FeedPost = ({ post }: FeedPostProps) => {
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [isSaved, setIsSaved] = useState(post.isSaved);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -73,6 +78,20 @@ const FeedPost = ({ post }: FeedPostProps) => {
 
   const handleSave = () => {
     setIsSaved(!isSaved);
+  };
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: post.author.name,
+        text: post.content.substring(0, 100),
+        url: window.location.href,
+      });
+    }
   };
 
   return (
@@ -114,6 +133,18 @@ const FeedPost = ({ post }: FeedPostProps) => {
           <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
             ⭐ {post.author.reputationScore}
           </Badge>
+          <Button
+            variant={isFollowing ? "secondary" : "outline"}
+            size="sm"
+            onClick={handleFollow}
+            className={cn(
+              "gap-1 text-xs",
+              isFollowing && "bg-primary/10 text-primary"
+            )}
+          >
+            <UserPlus className="w-3 h-3" />
+            {isFollowing ? "Đang follow" : "Follow"}
+          </Button>
           <Button variant="ghost" size="icon" className="text-muted-foreground">
             <MoreHorizontal className="w-5 h-5" />
           </Button>
@@ -241,20 +272,43 @@ const FeedPost = ({ post }: FeedPostProps) => {
             size="sm" 
             onClick={handleLike}
             className={cn(
-              "gap-2 transition-colors",
+              "gap-2 transition-all duration-300",
               isLiked && "text-destructive"
             )}
           >
-            <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
+            <Heart className={cn(
+              "w-5 h-5 transition-transform",
+              isLiked && "fill-current scale-110"
+            )} />
             <span>{formatNumber(likes)}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="gap-2">
-            <MessageCircle className="w-5 h-5" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn(
+              "gap-2",
+              showComments && "text-primary"
+            )}
+            onClick={() => setShowComments(!showComments)}
+          >
+            <MessageCircle className={cn("w-5 h-5", showComments && "fill-primary/20")} />
             <span>{formatNumber(post.comments)}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleShare}
+          >
             <Share2 className="w-5 h-5" />
             <span>{formatNumber(post.shares)}</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-2 hidden sm:flex"
+          >
+            <Send className="w-5 h-5" />
           </Button>
         </div>
         <Button 
@@ -262,13 +316,19 @@ const FeedPost = ({ post }: FeedPostProps) => {
           size="sm" 
           onClick={handleSave}
           className={cn(
-            "transition-colors",
+            "transition-all duration-300",
             isSaved && "text-accent"
           )}
         >
-          <Bookmark className={cn("w-5 h-5", isSaved && "fill-current")} />
+          <Bookmark className={cn(
+            "w-5 h-5 transition-transform",
+            isSaved && "fill-current scale-110"
+          )} />
         </Button>
       </div>
+
+      {/* Comments Section */}
+      <CommentSection postId={post.id} isOpen={showComments} />
     </article>
   );
 };
