@@ -102,13 +102,6 @@ const Navbar = () => {
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user && profile ? (
               <div className="flex items-center gap-3">
-                {/* CAMLY Balance */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20">
-                  <Coins className="w-4 h-4 text-accent" />
-                  <span className="font-medium text-sm">
-                    {profile.camly_balance.toLocaleString()}
-                  </span>
-                </div>
 
                 {/* Avatar - Click to go to profile (like Facebook) */}
                 <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
