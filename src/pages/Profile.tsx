@@ -193,22 +193,31 @@ const Profile = () => {
       <main className="pt-16">
         {/* Cover Photo */}
         <div className="relative h-48 md:h-72 lg:h-80 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30">
-          <div 
-            className="absolute inset-0 bg-cover bg-center opacity-60" 
-            style={{ 
-              backgroundImage: `url('${coverUrl || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop'}')` 
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          
-          {/* Change Cover Button */}
-          {user?.id && (
-            <ImageCropUpload 
-              type="cover" 
-              currentImage={coverUrl} 
-              userId={user.id} 
-              onUploadComplete={handleCoverUpload} 
+          {coverUrl ? (
+            <img 
+              src={coverUrl} 
+              alt="Cover" 
+              className="absolute inset-0 w-full h-full object-cover"
             />
+          ) : (
+            <img 
+              src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop" 
+              alt="Default cover" 
+              className="absolute inset-0 w-full h-full object-cover opacity-60"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
+          
+          {/* Change Cover Button - z-50 để nằm trên overlay */}
+          {user?.id && (
+            <div className="absolute bottom-4 right-4 z-50">
+              <ImageCropUpload 
+                type="cover" 
+                currentImage={coverUrl} 
+                userId={user.id} 
+                onUploadComplete={handleCoverUpload} 
+              />
+            </div>
           )}
         </div>
 
