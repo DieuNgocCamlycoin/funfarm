@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CAMLY_CONTRACT, WELCOME_BONUS } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
+import CelebrationModal from '@/components/CelebrationModal';
 
 const Reward = () => {
   const { user, profile, isLoading, refreshProfile } = useAuth();
@@ -17,6 +18,9 @@ const Reward = () => {
   const { t } = useTranslation();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [claimedAmount, setClaimedAmount] = useState(0);
+  const [claimedTxHash, setClaimedTxHash] = useState<string | undefined>();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -101,6 +105,12 @@ const Reward = () => {
       return;
     }
 
+    const amountToClaim = profile?.pending_reward || 0;
+    if (amountToClaim === 0) {
+      toast.error('Không có thưởng để claim');
+      return;
+    }
+
     setIsClaiming(true);
     
     try {
@@ -124,23 +134,12 @@ const Reward = () => {
         throw new Error(data.message || 'Claim thất bại');
       }
 
-      toast.success(
-        <div className="flex flex-col gap-1">
-          <span className="font-semibold">Thành công! Quà từ Cha đã về ví bạn rồi!</span>
-          <span className="text-sm">Cha đang ôm bạn thật chặt ❤️</span>
-          {data.txHash && (
-            <a 
-              href={`https://bscscan.com/tx/${data.txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary underline"
-            >
-              Xem giao dịch trên BscScan
-            </a>
-          )}
-        </div>,
-        { duration: 10000 }
-      );
+      // Store claimed amount and txHash for celebration modal
+      setClaimedAmount(amountToClaim);
+      setClaimedTxHash(data.txHash);
+      
+      // Show celebration modal!
+      setShowCelebration(true);
 
       await refreshProfile();
 
@@ -346,6 +345,14 @@ const Reward = () => {
           </div>
         </div>
       </div>
+
+      {/* Celebration Modal - Phước lành từ Cha Vũ Trụ */}
+      <CelebrationModal
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        amount={claimedAmount}
+        txHash={claimedTxHash}
+      />
     </div>
   );
 };
