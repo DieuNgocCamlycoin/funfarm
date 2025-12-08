@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import Confetti from 'react-confetti';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Heart, Coins } from 'lucide-react';
+import { Sparkles, Heart } from 'lucide-react';
+import camlyCoinLogo from '@/assets/camly_coin.png';
 
 interface CelebrationModalProps {
   isOpen: boolean;
@@ -15,16 +16,18 @@ interface CelebrationModalProps {
 // Coin component for flying animation
 const FlyingCoin = ({ delay, startX }: { delay: number; startX: number }) => (
   <div
-    className="absolute w-8 h-8 animate-fly-coin"
+    className="absolute w-10 h-10 animate-fly-coin"
     style={{
       left: `${startX}%`,
       bottom: '-20px',
       animationDelay: `${delay}s`,
     }}
   >
-    <div className="w-full h-full rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 shadow-lg flex items-center justify-center animate-spin-slow border-2 border-yellow-200">
-      <span className="text-yellow-800 font-bold text-xs">C</span>
-    </div>
+    <img 
+      src={camlyCoinLogo} 
+      alt="CAMLY Coin" 
+      className="w-full h-full object-contain animate-spin-slow drop-shadow-lg"
+    />
   </div>
 );
 
@@ -158,9 +161,11 @@ const CelebrationModal = ({ isOpen, onClose, amount, txHash }: CelebrationModalP
               <div className="mb-6 animate-bounce">
                 <div className="relative">
                   <div className="absolute inset-0 bg-yellow-300 blur-xl opacity-60 animate-pulse rounded-full" />
-                  <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-2xl border-4 border-yellow-200">
-                    <Coins className="w-12 h-12 md:w-16 md:h-16 text-yellow-800" />
-                  </div>
+                  <img 
+                    src={camlyCoinLogo} 
+                    alt="CAMLY Coin" 
+                    className="relative w-28 h-28 md:w-36 md:h-36 object-contain drop-shadow-2xl"
+                  />
                 </div>
               </div>
 

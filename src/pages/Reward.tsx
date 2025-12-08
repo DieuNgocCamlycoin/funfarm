@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CAMLY_CONTRACT, WELCOME_BONUS } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
 import CelebrationModal from '@/components/CelebrationModal';
+import camlyCoinLogo from '@/assets/camly_coin.png';
 
 const Reward = () => {
   const { user, profile, isLoading, refreshProfile } = useAuth();
@@ -180,8 +181,8 @@ const Reward = () => {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 mb-4">
-              <Gift className="w-10 h-10 text-primary" />
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 mb-4 p-2">
+              <img src={camlyCoinLogo} alt="CAMLY Coin" className="w-full h-full object-contain drop-shadow-lg" />
             </div>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-gradient-hero mb-2">
               {t('reward.title')}
@@ -258,8 +259,11 @@ const Reward = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <div className="text-5xl md:text-6xl font-display font-bold text-primary mb-2">
-                {pendingReward.toLocaleString()}
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <img src={camlyCoinLogo} alt="CAMLY" className="w-12 h-12 object-contain" />
+                <div className="text-5xl md:text-6xl font-display font-bold text-primary">
+                  {pendingReward.toLocaleString()}
+                </div>
               </div>
               <div className="text-lg text-muted-foreground mb-6">CAMLY đang chờ claim</div>
 
