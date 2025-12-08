@@ -68,17 +68,69 @@ Deno.serve(async (req) => {
     }
 
     const contractAddress = '0x0910320181889feFDE0BB1Ca63962b0A8882e413';
-    // Try BSC mainnet - many tokens are on BSC
-    const provider = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org/');
+    // BSC mainnet RPC - using multiple fallbacks
+    const rpcUrls = [
+      'https://bsc-dataseed.binance.org/',
+      'https://bsc-dataseed1.defibit.io/',
+      'https://bsc-dataseed1.ninicoin.io/'
+    ];
     
-    console.log('Using BSC mainnet RPC');
+    let provider;
+    for (const rpcUrl of rpcUrls) {
+      try {
+        provider = new ethers.JsonRpcProvider(rpcUrl);
+        await provider.getBlockNumber(); // Test connection
+        console.log('Connected to BSC RPC:', rpcUrl);
+        break;
+      } catch (e) {
+        console.log('RPC failed:', rpcUrl);
+      }
+    }
+    
+    if (!provider) {
+      throw new Error('Không thể kết nối BSC network');
+    }
+
     const wallet = new ethers.Wallet(privateKey, provider);
-    const abi = ['function transfer(address to, uint256 amount) public returns (bool)'];
+    console.log('Sender wallet address:', wallet.address);
+    
+    // Extended ABI to check balance
+    const abi = [
+      'function transfer(address to, uint256 amount) public returns (bool)',
+      'function balanceOf(address account) public view returns (uint256)',
+      'function decimals() public view returns (uint8)'
+    ];
     const contract = new ethers.Contract(contractAddress, abi, wallet);
-    const amount = ethers.parseUnits('50000', 18);
+    
+    // Check decimals
+    const decimals = await contract.decimals();
+    console.log('CAMLY decimals:', decimals);
+    
+    // Check sender balance before transfer
+    const senderBalance = await contract.balanceOf(wallet.address);
+    const formattedBalance = ethers.formatUnits(senderBalance, decimals);
+    console.log('Sender CAMLY balance:', formattedBalance);
+    
+    const amount = ethers.parseUnits('50000', decimals);
+    console.log('Amount to transfer:', ethers.formatUnits(amount, decimals));
+    
+    if (senderBalance < amount) {
+      console.error('INSUFFICIENT BALANCE! Need:', ethers.formatUnits(amount, decimals), 'Have:', formattedBalance);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Quỹ phước lành tạm thời cạn, Cha đang bổ sung. Vui lòng thử lại sau!',
+          details: {
+            required: '50000',
+            available: formattedBalance,
+            senderWallet: wallet.address
+          }
+        }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Initiating transfer of 50000 CAMLY to:', walletAddress);
-
     const tx = await contract.transfer(walletAddress, amount);
     console.log('Transaction sent:', tx.hash);
     
