@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,11 +26,15 @@ import {
   Smile,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPost?: (post: any) => void;
+  initialTab?: string;
 }
 
 const postTypes = [
@@ -40,15 +44,21 @@ const postTypes = [
   { id: "story", label: "Story 24h", icon: Clock, color: "text-purple-500" },
 ];
 
-const CreatePostModal = ({ isOpen, onClose, onPost }: CreatePostModalProps) => {
+const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: CreatePostModalProps) => {
+  const { user } = useAuth();
   const [content, setContent] = useState("");
-  const [postType, setPostType] = useState("post");
+  const [postType, setPostType] = useState(initialTab);
   const [images, setImages] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [newHashtag, setNewHashtag] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset postType when initialTab changes
+  useEffect(() => {
+    setPostType(initialTab);
+  }, [initialTab]);
 
   const handleAddImage = () => {
     // Simulate adding image - in real app would open file picker
@@ -78,27 +88,36 @@ const CreatePostModal = ({ isOpen, onClose, onPost }: CreatePostModalProps) => {
   };
 
   const handlePost = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() || !user?.id) return;
 
     setIsPosting(true);
     
-    // Simulate posting
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          author_id: user.id,
+          content: content.trim(),
+          images: images.length > 0 ? images : null,
+          location: location || null,
+          hashtags: hashtags.length > 0 ? hashtags : null,
+          post_type: postType,
+        })
+        .select()
+        .single();
 
-    const newPost = {
-      id: Date.now().toString(),
-      content,
-      images,
-      location,
-      hashtags,
-      postType,
-      createdAt: new Date().toISOString(),
-    };
+      if (error) throw error;
 
-    onPost?.(newPost);
-    setIsPosting(false);
-    handleReset();
-    onClose();
+      toast.success("Đã đăng bài viết thành công!");
+      onPost?.(data);
+      handleReset();
+      onClose();
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast.error("Có lỗi khi đăng bài. Vui lòng thử lại!");
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const handleReset = () => {
