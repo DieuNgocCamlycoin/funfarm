@@ -110,16 +110,24 @@ const Navbar = () => {
                   </span>
                 </div>
 
-                {/* User Dropdown */}
+                {/* Avatar - Click to go to profile (like Facebook) */}
+                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <span className="text-sm font-medium hidden lg:block">
+                    {profile.display_name || 'FUN Farmer'}
+                  </span>
+                  <Avatar className="h-10 w-10 border-2 border-primary/20 cursor-pointer">
+                    <AvatarImage src={profile.avatar_url || undefined} />
+                    <AvatarFallback className="bg-primary/10 text-lg">
+                      {profileTypeEmojis[profile.profile_type] || '🌱'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+
+                {/* Settings Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                      <Avatar className="h-10 w-10 border-2 border-primary/20">
-                        <AvatarImage src={profile.avatar_url || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-lg">
-                          {profileTypeEmojis[profile.profile_type] || '🌱'}
-                        </AvatarFallback>
-                      </Avatar>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-muted">
+                      <Menu className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 bg-popover z-50" align="end" forceMount>
@@ -137,11 +145,6 @@ const Navbar = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/" className="cursor-pointer">
                         🏠 Trang Chủ
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/profile" className="cursor-pointer">
-                        👤 Trang cá nhân
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
