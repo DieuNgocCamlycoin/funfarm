@@ -1,5 +1,5 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Sparkles, ChevronRight, MapPin } from 'lucide-react';
-import { WELCOME_BONUS } from '@/lib/constants';
+import { WELCOME_BONUS, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS } from '@/lib/constants';
+import WelcomeBonusModal from '@/components/WelcomeBonusModal';
 
 type ProfileType = 'farmer' | 'fisher' | 'eater' | 'restaurant' | 'distributor' | 'shipper';
 
@@ -22,6 +23,7 @@ const ProfileSetup = () => {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<ProfileType | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || '',
     location: '',
@@ -52,7 +54,7 @@ const ProfileSetup = () => {
 
     setIsLoading(true);
     try {
-      // Update profile with selected type and claim welcome bonus
+      // Update profile with selected type (không cần claim welcome bonus ở đây vì đã được trigger tự động)
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -60,7 +62,6 @@ const ProfileSetup = () => {
           display_name: formData.display_name || profile?.display_name,
           location: formData.location,
           bio: formData.bio,
-          camly_balance: WELCOME_BONUS,
           welcome_bonus_claimed: true,
         })
         .eq('id', user.id);
@@ -69,19 +70,25 @@ const ProfileSetup = () => {
 
       await refreshProfile();
       
-      toast.success(
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-accent" />
-          <span>{t('profile.bonusReceived', { bonus: WELCOME_BONUS.toLocaleString() })}</span>
-        </div>
-      );
+      // Show welcome modal
+      setShowWelcomeModal(true);
 
-      navigate('/feed');
     } catch (error: any) {
       toast.error(t('profile.setupFailed') + ': ' + error.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleWelcomeModalClose = () => {
+    setShowWelcomeModal(false);
+    toast.success(
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-5 h-5 text-accent" />
+        <span>Chúc mừng bạn đã gia nhập FUN FARM! +{WELCOME_BONUS.toLocaleString()} CAMLY</span>
+      </div>
+    );
+    navigate('/feed');
   };
 
   if (!user) {
@@ -193,9 +200,12 @@ const ProfileSetup = () => {
 
                 {/* Welcome bonus preview */}
                 <div className="p-4 rounded-xl bg-accent/10 border border-accent/20 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">{t('profile.welcomeBonus')}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Phước lành chào mừng</p>
                   <p className="text-2xl font-display font-bold text-accent">
                     🎁 {WELCOME_BONUS.toLocaleString()} CAMLY
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    + Kết nối ví sẽ nhận thêm {WALLET_CONNECT_BONUS.toLocaleString()} CAMLY!
                   </p>
                 </div>
 
@@ -225,6 +235,14 @@ const ProfileSetup = () => {
           </div>
         )}
       </div>
+
+      {/* Welcome Bonus Modal - sau khi đăng ký xong */}
+      <WelcomeBonusModal
+        isOpen={showWelcomeModal}
+        onClose={handleWelcomeModalClose}
+        type="registration"
+        amount={WELCOME_BONUS}
+      />
     </div>
   );
 };
