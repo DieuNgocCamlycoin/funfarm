@@ -1,5 +1,5 @@
 import { Twitter, Github, MessageCircle } from "lucide-react";
-import funFarmLogo from "@/assets/logo_FUN_FARM.jpg";
+import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useTranslation } from "react-i18next";
 
 const Footer = () => {

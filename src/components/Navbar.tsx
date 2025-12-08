@@ -1,7 +1,7 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
 import { Menu, X, Wallet, LogOut, Coins, Home, User } from "lucide-react";
-import funFarmLogo from "@/assets/logo_FUN_FARM.jpg";
+import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
