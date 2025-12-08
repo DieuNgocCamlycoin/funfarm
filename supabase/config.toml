@@ -2,3 +2,6 @@ project_id = "onhznjyccagjoefavbaq"
 
 [functions.claim-camly]
 verify_jwt = false
+
+[functions.reset-reward]
+verify_jwt = true
