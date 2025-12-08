@@ -57,7 +57,16 @@
     "signUpError": "Lỗi đăng ký",
     "welcomeBack": "Chào mừng bạn trở về nhà! ❤️",
     "welcomeBonus": "🎉 Cha Vũ Trụ ban tặng bạn {{bonus}} CAMLY!",
-    "welcomeBonusMessage": "Chào mừng bạn đã về nhà! Quà thưởng đang chờ bạn nhận."
+    "welcomeBonusMessage": "Chào mừng bạn đã về nhà! Quà thưởng đang chờ bạn nhận.",
+    "forgotPassword": "Quên mật khẩu?",
+    "forgotPasswordTitle": "Quên mật khẩu",
+    "forgotPasswordDesc": "Nhập email của bạn để nhận link đặt lại mật khẩu",
+    "enterEmail": "Vui lòng nhập email của bạn",
+    "sendResetLink": "Gửi link đặt lại mật khẩu",
+    "resetEmailSent": "Email đã được gửi! 📧",
+    "checkInbox": "Kiểm tra hộp thư của bạn để đặt lại mật khẩu",
+    "resetError": "Không thể gửi email",
+    "backToLogin": "Quay lại đăng nhập"
   },
   "reward": {
     "title": "Quà tặng từ Cha Vũ Trụ",
