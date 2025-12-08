@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Image,
@@ -24,6 +25,8 @@ import {
   Hash,
   Users,
   Smile,
+  Loader2,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,14 +48,16 @@ const postTypes = [
 ];
 
 const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: CreatePostModalProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [content, setContent] = useState("");
   const [postType, setPostType] = useState(initialTab);
   const [images, setImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState<File[]>([]);
   const [location, setLocation] = useState("");
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [newHashtag, setNewHashtag] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset postType when initialTab changes
@@ -60,20 +65,69 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
     setPostType(initialTab);
   }, [initialTab]);
 
-  const handleAddImage = () => {
-    // Simulate adding image - in real app would open file picker
-    const sampleImages = [
-      "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=800&h=600&fit=crop",
-    ];
-    if (images.length < 10) {
-      setImages([...images, sampleImages[images.length % sampleImages.length]]);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !user?.id) return;
+
+    setIsUploading(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length && images.length + newImages.length < 10; i++) {
+        const file = files[i];
+        const fileName = `post_${Date.now()}_${i}.${file.name.split('.').pop()}`;
+        const filePath = `${user.id}/posts/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('user-uploads')
+          .upload(filePath, file, {
+            contentType: file.type,
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('user-uploads')
+          .getPublicUrl(filePath);
+
+        newImages.push(publicUrl);
+      }
+
+      setImages([...images, ...newImages]);
+      toast.success(`Đã tải lên ${newImages.length} ảnh/video!`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Có lỗi khi tải ảnh lên. Vui lòng thử lại!');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleRemoveImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+  };
+
+  const handleDownloadImage = async (imageUrl: string, index: number) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `image_${index + 1}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Đã tải ảnh về thiết bị!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Có lỗi khi tải ảnh');
+    }
   };
 
   const handleAddHashtag = () => {
@@ -168,6 +222,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 content={content}
                 setContent={setContent}
                 placeholder="Kể chuyện nông trại của bạn hôm nay... 🌱"
+                profile={profile}
               />
             </TabsContent>
 
@@ -176,6 +231,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 content={content}
                 setContent={setContent}
                 placeholder="Chia sẻ hình ảnh sản phẩm tươi ngon... 📸"
+                profile={profile}
               />
             </TabsContent>
 
@@ -196,6 +252,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 content={content}
                 setContent={setContent}
                 placeholder="Mô tả livestream của bạn..."
+                profile={profile}
               />
             </TabsContent>
 
@@ -213,6 +270,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 content={content}
                 setContent={setContent}
                 placeholder="Viết caption cho story..."
+                profile={profile}
               />
             </TabsContent>
           </Tabs>
@@ -238,26 +296,54 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                       alt={`Upload ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    <button
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-2 right-2 w-6 h-6 bg-foreground/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-4 h-4 text-background" />
-                    </button>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleDownloadImage(img, index)}
+                        className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        title="Tải về"
+                      >
+                        <Download className="w-4 h-4 text-foreground" />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        title="Xóa"
+                      >
+                        <X className="w-4 h-4 text-foreground" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
             <Button
               variant="outline"
               size="sm"
-              onClick={handleAddImage}
-              disabled={images.length >= 10}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={images.length >= 10 || isUploading}
               className="w-full border-dashed border-2 gap-2 hover:border-primary hover:bg-primary/5"
             >
-              <Plus className="w-4 h-4" />
-              Thêm ảnh/video
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Đang tải lên...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Thêm ảnh/video từ thiết bị
+                </>
+              )}
             </Button>
           </div>
 
@@ -360,18 +446,21 @@ const PostContent = ({
   content,
   setContent,
   placeholder,
+  profile,
 }: {
   content: string;
   setContent: (value: string) => void;
   placeholder: string;
+  profile: any;
 }) => (
   <div className="flex gap-3">
     <div className="relative flex-shrink-0">
-      <img
-        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
-        alt="Your avatar"
-        className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20"
-      />
+      <Avatar className="w-12 h-12 ring-2 ring-primary/20">
+        <AvatarImage src={profile?.avatar_url || undefined} />
+        <AvatarFallback>
+          {profile?.display_name?.[0] || '🌱'}
+        </AvatarFallback>
+      </Avatar>
       <span className="absolute -bottom-1 -right-1 text-sm">🌱</span>
     </div>
     <Textarea
