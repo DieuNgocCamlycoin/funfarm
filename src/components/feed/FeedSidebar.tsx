@@ -8,6 +8,7 @@ import {
   Flame,
   Users
 } from "lucide-react";
+import camlyCoinLogo from '@/assets/camly_coin.png';
 
 interface FeedSidebarProps {
   trendingHashtags: { tag: string; count: number }[];
@@ -119,7 +120,7 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
       {/* Earn Info Card */}
       <div className="bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl border border-border p-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-2xl">💰</span>
+          <img src={camlyCoinLogo} alt="CAMLY Coin" className="w-8 h-8 object-contain" />
           <h3 className="font-display font-semibold text-foreground">Free-Fee & Earn</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">

@@ -1,6 +1,7 @@
-import { Gift, Rocket, TrendingUp, Coins, ArrowRight } from "lucide-react";
+import { Gift, Rocket, TrendingUp, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import camlyCoinLogo from '@/assets/camly_coin.png';
 
 const EarnSection = () => {
   const { t } = useTranslation();
@@ -39,7 +40,7 @@ const EarnSection = () => {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-2 mb-6">
-            <Coins className="w-4 h-4 text-accent" />
+            <img src={camlyCoinLogo} alt="CAMLY" className="w-5 h-5 object-contain" />
             <span className="text-sm font-medium text-accent">{t('earn.badge')}</span>
           </div>
           <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 text-foreground">
@@ -90,7 +91,7 @@ const EarnSection = () => {
                 </p>
 
                 <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-accent" />
+                  <img src={camlyCoinLogo} alt="CAMLY" className="w-6 h-6 object-contain" />
                   <span className="font-semibold text-accent">{t(method.rewardKey)}</span>
                 </div>
               </div>
@@ -121,9 +122,11 @@ const EarnSection = () => {
               </div>
             </div>
             <div className="relative min-h-[250px] bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center">
-              <div className="w-32 h-32 gradient-earth rounded-full flex items-center justify-center shadow-lg animate-pulse-glow">
-                <span className="font-display font-bold text-3xl text-primary-foreground">C</span>
-              </div>
+              <img 
+                src={camlyCoinLogo} 
+                alt="CAMLY Coin" 
+                className="w-36 h-36 object-contain drop-shadow-xl animate-pulse-glow"
+              />
               <div className="absolute top-8 right-8 w-8 h-8 bg-accent/30 rounded-full animate-float" />
               <div className="absolute bottom-12 left-12 w-6 h-6 bg-accent/20 rounded-full animate-float-delayed" />
             </div>
