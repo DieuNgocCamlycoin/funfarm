@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Post } from "@/types/feed";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CommentSection from "./CommentSection";
+import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
 import { 
   Heart, 
   MessageCircle, 
@@ -65,16 +66,56 @@ const timeAgo = (dateString: string): string => {
 
 const FeedPost = ({ post }: FeedPostProps) => {
   const [isLiked, setIsLiked] = useState(post.isLiked);
+  const [currentReaction, setCurrentReaction] = useState<Reaction | null>(null);
   const [isSaved, setIsSaved] = useState(post.isSaved);
   const [isFollowing, setIsFollowing] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const likeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(isLiked ? likes - 1 : likes + 1);
+  const handleLikeClick = () => {
+    if (currentReaction) {
+      setCurrentReaction(null);
+      setIsLiked(false);
+      setLikes(likes - 1);
+    } else {
+      setCurrentReaction(reactions[0]); // Default to "Thích"
+      setIsLiked(true);
+      setLikes(likes + 1);
+    }
   };
+
+  const handleLongPressStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setShowReactionPicker(true);
+    }, 500);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleReactionSelect = (reaction: Reaction) => {
+    if (!currentReaction) {
+      setLikes(likes + 1);
+    }
+    setCurrentReaction(reaction);
+    setIsLiked(true);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
 
   const handleSave = () => {
     setIsSaved(!isSaved);
@@ -267,20 +308,47 @@ const FeedPost = ({ post }: FeedPostProps) => {
       {/* Actions */}
       <div className="px-4 py-3 border-t border-border flex items-center justify-between">
         <div className="flex items-center gap-1">
+          <div className="relative">
+            <Button 
+              ref={likeButtonRef}
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLikeClick}
+              onMouseDown={handleLongPressStart}
+              onMouseUp={handleLongPressEnd}
+              onMouseLeave={handleLongPressEnd}
+              onTouchStart={handleLongPressStart}
+              onTouchEnd={handleLongPressEnd}
+              className={cn(
+                "gap-2 transition-all duration-300",
+                currentReaction && currentReaction.color
+              )}
+            >
+              {currentReaction ? (
+                <span className="text-xl">{currentReaction.emoji}</span>
+              ) : (
+                <Heart className="w-5 h-5" />
+              )}
+              <span>{formatNumber(likes)}</span>
+            </Button>
+            
+            <ReactionPicker
+              isOpen={showReactionPicker}
+              onClose={() => setShowReactionPicker(false)}
+              onSelect={handleReactionSelect}
+            />
+          </div>
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={handleLike}
             className={cn(
-              "gap-2 transition-all duration-300",
-              isLiked && "text-destructive"
+              "gap-2",
+              showComments && "text-primary"
             )}
+            onClick={() => setShowComments(!showComments)}
           >
-            <Heart className={cn(
-              "w-5 h-5 transition-transform",
-              isLiked && "fill-current scale-110"
-            )} />
-            <span>{formatNumber(likes)}</span>
+            <MessageCircle className={cn("w-5 h-5", showComments && "fill-primary/20")} />
+            <span>{formatNumber(post.comments)}</span>
           </Button>
           <Button 
             variant="ghost" 

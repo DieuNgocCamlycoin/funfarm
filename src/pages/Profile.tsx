@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FeedPost from "@/components/feed/FeedPost";
+import { ProfileCreatePost } from "@/components/profile/ProfileCreatePost";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -137,6 +138,22 @@ const Profile = () => {
   const handleCoverUpload = (url: string) => {
     setCoverUrl(url);
   };
+
+  // Refresh posts after creating a new one
+  const handlePostCreated = useCallback(async () => {
+    if (!user?.id) return;
+    
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('author_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (postsData) {
+      setPosts(postsData);
+      setStats(prev => ({ ...prev, postsCount: postsData.length }));
+    }
+  }, [user?.id]);
 
   // Transform posts for FeedPost component
   const transformedPosts = posts.map(post => ({
@@ -335,6 +352,14 @@ const Profile = () => {
             </TabsList>
 
             <TabsContent value="posts" className="mt-6 space-y-6">
+              {/* Create Post Box */}
+              <ProfileCreatePost 
+                avatarUrl={avatarUrl}
+                displayName={profile?.display_name || undefined}
+                profileEmoji={roleInfo.emoji}
+                onPostCreated={handlePostCreated}
+              />
+
               {isLoading ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
