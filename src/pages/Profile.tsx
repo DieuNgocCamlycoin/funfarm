@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Camera, 
   MapPin, 
   Calendar, 
   Edit, 
@@ -18,10 +17,12 @@ import {
   Image as ImageIcon,
   Gift,
   BadgeCheck,
-  Wallet
+  Wallet,
+  Loader2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { mockPosts } from "@/data/mockFeed";
+import { supabase } from "@/integrations/supabase/client";
+import { ImageCropUpload } from "@/components/profile/ImageCropUpload";
 
 const profileTypeLabels: Record<string, { emoji: string; label: string }> = {
   farmer: { emoji: '🧑‍🌾', label: 'Nông dân' },
@@ -32,12 +33,141 @@ const profileTypeLabels: Record<string, { emoji: string; label: string }> = {
   shipper: { emoji: '🚚', label: 'Shipper' },
 };
 
-const Profile = () => {
-  const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState("posts");
+interface Post {
+  id: string;
+  content: string;
+  images: string[] | null;
+  video_url: string | null;
+  post_type: string;
+  location: string | null;
+  hashtags: string[] | null;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  created_at: string;
+  author_id: string;
+}
 
-  const userPosts = mockPosts.slice(0, 3);
+interface Stats {
+  postsCount: number;
+  followersCount: number;
+  followingCount: number;
+}
+
+const Profile = () => {
+  const { profile, user, refreshProfile } = useAuth();
+  const [activeTab, setActiveTab] = useState("posts");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [stats, setStats] = useState<Stats>({ postsCount: 0, followersCount: 0, followingCount: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
   const roleInfo = profileTypeLabels[profile?.profile_type || 'farmer'];
+
+  // Fetch real stats and posts
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user?.id) return;
+      
+      setIsLoading(true);
+      try {
+        // Fetch user's posts
+        const { data: postsData, error: postsError } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('author_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (postsError) throw postsError;
+        setPosts(postsData || []);
+
+        // Fetch followers count
+        const { count: followersCount, error: followersError } = await supabase
+          .from('followers')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', user.id);
+
+        if (followersError) throw followersError;
+
+        // Fetch following count
+        const { count: followingCount, error: followingError } = await supabase
+          .from('followers')
+          .select('*', { count: 'exact', head: true })
+          .eq('follower_id', user.id);
+
+        if (followingError) throw followingError;
+
+        setStats({
+          postsCount: postsData?.length || 0,
+          followersCount: followersCount || 0,
+          followingCount: followingCount || 0,
+        });
+
+        // Fetch cover_url from profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('cover_url')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileData?.cover_url) {
+          setCoverUrl(profileData.cover_url);
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.id]);
+
+  // Update avatar when profile changes
+  useEffect(() => {
+    setAvatarUrl(profile?.avatar_url);
+  }, [profile?.avatar_url]);
+
+  const handleAvatarUpload = (url: string) => {
+    setAvatarUrl(url);
+    refreshProfile();
+  };
+
+  const handleCoverUpload = (url: string) => {
+    setCoverUrl(url);
+  };
+
+  // Transform posts for FeedPost component
+  const transformedPosts = posts.map(post => ({
+    id: post.id,
+    author: {
+      id: user?.id || '',
+      name: profile?.display_name || 'FUN Farmer',
+      username: profile?.display_name || 'funfarmer',
+      avatar: avatarUrl || '',
+      type: 'farm' as const,
+      verified: profile?.is_verified || false,
+      reputationScore: profile?.reputation_score || 0,
+      location: profile?.location || '',
+      followers: stats.followersCount,
+      following: stats.followingCount,
+    },
+    content: post.content || '',
+    images: post.images || [],
+    video: post.video_url || undefined,
+    likes: post.likes_count,
+    comments: post.comments_count,
+    shares: post.shares_count,
+    saves: 0,
+    createdAt: post.created_at,
+    isLiked: false,
+    isSaved: false,
+    location: post.location || undefined,
+    hashtags: post.hashtags || [],
+  }));
+
+  const totalCamly = (profile?.camly_balance || 0) + (profile?.pending_reward || 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,18 +176,23 @@ const Profile = () => {
       <main className="pt-16">
         {/* Cover Photo */}
         <div className="relative h-48 md:h-72 lg:h-80 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop')] bg-cover bg-center opacity-60" />
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-60" 
+            style={{ 
+              backgroundImage: `url('${coverUrl || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=400&fit=crop'}')` 
+            }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           
           {/* Change Cover Button */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="absolute bottom-4 right-4 gap-2 bg-background/80 backdrop-blur-sm"
-          >
-            <Camera className="w-4 h-4" />
-            <span className="hidden sm:inline">Đổi ảnh bìa</span>
-          </Button>
+          {user?.id && (
+            <ImageCropUpload 
+              type="cover" 
+              currentImage={coverUrl} 
+              userId={user.id} 
+              onUploadComplete={handleCoverUpload} 
+            />
+          )}
         </div>
 
         {/* Profile Info Section */}
@@ -67,14 +202,19 @@ const Profile = () => {
               {/* Avatar */}
               <div className="relative">
                 <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-background shadow-xl">
-                  <AvatarImage src={profile?.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop"} />
+                  <AvatarImage src={avatarUrl || undefined} />
                   <AvatarFallback className="text-4xl bg-primary/10">
                     {roleInfo.emoji}
                   </AvatarFallback>
                 </Avatar>
-                <button className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-                  <Camera className="w-4 h-4" />
-                </button>
+                {user?.id && (
+                  <ImageCropUpload 
+                    type="avatar" 
+                    currentImage={avatarUrl} 
+                    userId={user.id} 
+                    onUploadComplete={handleAvatarUpload} 
+                  />
+                )}
               </div>
 
               {/* Name & Info */}
@@ -93,7 +233,7 @@ const Profile = () => {
                   <span className="font-medium">{roleInfo.label}</span>
                 </div>
 
-                {profile?.wallet_connected && (
+                {profile?.wallet_connected && profile.wallet_address && (
                   <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground font-mono">
                     <Wallet className="w-4 h-4" />
                     {profile.wallet_address.slice(0, 6)}...{profile.wallet_address.slice(-4)}
@@ -125,19 +265,25 @@ const Profile = () => {
             {/* Stats */}
             <div className="flex items-center gap-6 mt-4 py-4 border-y border-border">
               <div className="text-center">
-                <div className="text-xl font-bold text-foreground">{userPosts.length}</div>
+                <div className="text-xl font-bold text-foreground">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : stats.postsCount}
+                </div>
                 <div className="text-sm text-muted-foreground">Bài viết</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold text-foreground">1.2K</div>
+                <div className="text-xl font-bold text-foreground">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : stats.followersCount}
+                </div>
                 <div className="text-sm text-muted-foreground">Người theo dõi</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold text-foreground">89</div>
+                <div className="text-xl font-bold text-foreground">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : stats.followingCount}
+                </div>
                 <div className="text-sm text-muted-foreground">Đang theo dõi</div>
               </div>
               <div className="text-center ml-auto">
-                <div className="text-xl font-bold text-accent">{profile?.camly_balance?.toLocaleString() || 0}</div>
+                <div className="text-xl font-bold text-accent">{totalCamly.toLocaleString()}</div>
                 <div className="text-sm text-muted-foreground">CAMLY</div>
               </div>
             </div>
@@ -150,51 +296,58 @@ const Profile = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0">
+            <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0 overflow-x-auto">
               <TabsTrigger 
                 value="posts" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 md:px-6 py-3 gap-2"
               >
                 <Grid3X3 className="w-4 h-4" />
-                Bài viết
+                <span className="hidden sm:inline">Bài viết</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="about" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 md:px-6 py-3 gap-2"
               >
                 <User className="w-4 h-4" />
-                Giới thiệu
+                <span className="hidden sm:inline">Giới thiệu</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="friends" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 md:px-6 py-3 gap-2"
               >
                 <Users className="w-4 h-4" />
-                Bạn bè
+                <span className="hidden sm:inline">Bạn bè</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="photos" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 md:px-6 py-3 gap-2"
               >
                 <ImageIcon className="w-4 h-4" />
-                Ảnh
+                <span className="hidden sm:inline">Ảnh</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="rewards" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 md:px-6 py-3 gap-2"
               >
                 <Gift className="w-4 h-4" />
-                Nhận thưởng
+                <span className="hidden sm:inline">Nhận thưởng</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="posts" className="mt-6 space-y-6">
-              {userPosts.map((post) => (
-                <FeedPost key={post.id} post={post} />
-              ))}
-              {userPosts.length === 0 && (
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : transformedPosts.length > 0 ? (
+                transformedPosts.map((post) => (
+                  <FeedPost key={post.id} post={post} />
+                ))
+              ) : (
                 <div className="text-center py-12 text-muted-foreground">
+                  <Grid3X3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>Chưa có bài viết nào</p>
+                  <p className="text-sm mt-1">Hãy chia sẻ câu chuyện đầu tiên của bạn!</p>
                 </div>
               )}
             </TabsContent>
@@ -233,15 +386,27 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="photos" className="mt-6">
-              <div className="grid grid-cols-3 gap-2">
-                {userPosts.filter(p => p.images?.length).map((post) => (
-                  post.images?.map((img, i) => (
-                    <div key={`${post.id}-${i}`} className="aspect-square rounded-lg overflow-hidden">
-                      <img src={img} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer" />
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {posts.filter(p => p.images?.length).flatMap((post) => (
+                    post.images?.map((img, i) => (
+                      <div key={`${post.id}-${i}`} className="aspect-square rounded-lg overflow-hidden">
+                        <img src={img} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer" />
+                      </div>
+                    ))
+                  ))}
+                  {posts.filter(p => p.images?.length).length === 0 && (
+                    <div className="col-span-3 text-center py-12 text-muted-foreground">
+                      <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>Chưa có ảnh nào</p>
                     </div>
-                  ))
-                ))}
-              </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="rewards" className="mt-6">
@@ -251,10 +416,15 @@ const Profile = () => {
                   <h3 className="font-semibold text-lg">Phần thưởng của bạn</h3>
                   <div className="mt-4 p-4 rounded-xl bg-accent/10 inline-block">
                     <div className="text-3xl font-bold text-accent">
-                      {profile?.camly_balance?.toLocaleString() || 0} CAMLY
+                      {totalCamly.toLocaleString()} CAMLY
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">Số dư hiện tại</div>
                   </div>
+                  {profile?.pending_reward && profile.pending_reward > 0 && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      (Bao gồm {profile.pending_reward.toLocaleString()} CAMLY chờ nhận)
+                    </div>
+                  )}
                   <div className="mt-4">
                     <Link to="/reward">
                       <Button className="gradient-hero border-0 gap-2">
