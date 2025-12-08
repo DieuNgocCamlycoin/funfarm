@@ -121,7 +121,6 @@ const Reward = () => {
 
       const { data, error } = await supabase.functions.invoke('claim-camly', {
         body: {
-          userId: user?.id,
           walletAddress: profile.wallet_address,
         },
       });
