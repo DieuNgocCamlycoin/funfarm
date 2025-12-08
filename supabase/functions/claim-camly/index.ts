@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Validation helpers
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
+const isValidEthAddress = (str: string): boolean => {
+  const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+  return ethAddressRegex.test(str);
+};
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,22 +28,58 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, walletAddress } = await req.json();
-    
-    if (!userId || !walletAddress) {
-      console.log('Missing data - userId:', userId, 'walletAddress:', walletAddress);
+    // Extract and validate JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('Missing or invalid authorization header');
       return new Response(
-        JSON.stringify({ success: false, message: 'Thiếu thông tin userId hoặc walletAddress' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, message: 'Không được phép - thiếu xác thực' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Processing claim for user:', userId, 'wallet:', walletAddress);
-
+    // Create Supabase client with service role for admin operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // Verify the JWT and get the authenticated user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.log('Invalid token or user not found:', authError?.message);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Token không hợp lệ hoặc đã hết hạn' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get wallet address from request body
+    const { walletAddress } = await req.json();
+    
+    // Use authenticated user's ID - don't trust client-provided userId
+    const userId = user.id;
+    
+    if (!walletAddress) {
+      console.log('Missing walletAddress');
+      return new Response(
+        JSON.stringify({ success: false, message: 'Thiếu thông tin walletAddress' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate wallet address format
+    if (!isValidEthAddress(walletAddress)) {
+      console.log('Invalid wallet address format:', walletAddress);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Địa chỉ ví không hợp lệ' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Processing claim for authenticated user:', userId, 'wallet:', walletAddress);
 
     // Kiểm tra user có đủ pending_reward không
     const { data: profile, error: profileError } = await supabase
@@ -115,16 +162,12 @@ Deno.serve(async (req) => {
     console.log('Amount to transfer:', ethers.formatUnits(amount, decimals));
     
     if (senderBalance < amount) {
-      console.error('INSUFFICIENT BALANCE! Need:', ethers.formatUnits(amount, decimals), 'Have:', formattedBalance);
+      // Log details server-side only - don't expose wallet info to client
+      console.error('INSUFFICIENT BALANCE! Need:', ethers.formatUnits(amount, decimals), 'Have:', formattedBalance, 'Sender:', wallet.address);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'Quỹ phước lành tạm thời cạn, Cha đang bổ sung. Vui lòng thử lại sau!',
-          details: {
-            required: '50000',
-            available: formattedBalance,
-            senderWallet: wallet.address
-          }
+          message: 'Quỹ phước lành tạm thời cạn, Cha đang bổ sung. Vui lòng thử lại sau!'
         }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
