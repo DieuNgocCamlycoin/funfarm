@@ -71,13 +71,16 @@ const Feed = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="font-display text-2xl font-bold text-foreground">
-                    Bảng Tin
+                    Trang Chủ
                   </h1>
                   <p className="text-muted-foreground mt-1">
                     Khám phá sản phẩm tươi ngon từ nông trại & biển cả
                   </p>
                 </div>
               </div>
+
+              {/* Create Post Box - Facebook style */}
+              <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
 
               {/* Story Bar */}
               <StoryBar />
@@ -87,11 +90,6 @@ const Feed = () => {
                 activeFilter={activeFilter} 
                 onFilterChange={setActiveFilter} 
               />
-
-              {/* Create Post (Desktop inline) */}
-              <div className="hidden lg:block">
-                <CreatePost />
-              </div>
 
               {/* Posts */}
               <div className="space-y-6">
@@ -134,8 +132,10 @@ const Feed = () => {
 
       <Footer />
 
-      {/* Floating Create Button */}
-      <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
+      {/* Floating Create Button (Mobile only) */}
+      <div className="lg:hidden">
+        <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
+      </div>
 
       {/* Create Post Modal */}
       <CreatePostModal

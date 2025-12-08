@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Gift } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Home, User } from "lucide-react";
 import funFarmLogo from "@/assets/logo_FUN_FARM.jpg";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -30,7 +30,8 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const isHome = location.pathname === "/";
+  const isWelcomePage = location.pathname === "/welcome";
+  const isHomePage = location.pathname === "/";
   const { user, profile, signOut, isLoading } = useAuth();
   const { t } = useTranslation();
 
@@ -57,10 +58,16 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/feed" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-              {t('nav.newsfeed')}
+            <Link 
+              to="/" 
+              className={`flex items-center gap-2 transition-colors font-medium ${
+                isHomePage ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              Trang Chủ
             </Link>
-            {isHome ? (
+            {isWelcomePage ? (
               <>
                 <a href="#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
                   {t('nav.features')}
@@ -77,10 +84,10 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link to="/#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
+                <Link to="/welcome#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
                   {t('nav.features')}
                 </Link>
-                <Link to="/#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium">
+                <Link to="/welcome#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium">
                   {t('nav.earn')}
                 </Link>
               </>
@@ -128,8 +135,13 @@ const Navbar = () => {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/feed" className="cursor-pointer">
-                        🏠 {t('nav.myFeed')}
+                      <Link to="/" className="cursor-pointer">
+                        🏠 Trang Chủ
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="cursor-pointer">
+                        👤 Trang cá nhân
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -205,13 +217,24 @@ const Navbar = () => {
               )}
               
               <Link 
-                to="/feed" 
-                className="text-muted-foreground hover:text-primary transition-colors font-medium"
+                to="/" 
+                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-medium"
                 onClick={() => setIsOpen(false)}
               >
-                {t('nav.newsfeed')}
+                <Home className="w-4 h-4" />
+                Trang Chủ
               </Link>
-              {isHome ? (
+              {user && profile && (
+                <Link 
+                  to="/profile" 
+                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <User className="w-4 h-4" />
+                  Trang cá nhân
+                </Link>
+              )}
+              {isWelcomePage ? (
                 <>
                   <a href="#features" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
                     {t('nav.features')}
@@ -227,8 +250,8 @@ const Navbar = () => {
                   </a>
                 </>
               ) : (
-                <Link to="/" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                  {t('nav.home')}
+                <Link to="/welcome" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
+                  Giới thiệu
                 </Link>
               )}
               <div className="flex gap-3 pt-4">

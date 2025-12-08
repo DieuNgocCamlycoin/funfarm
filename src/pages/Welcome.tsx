@@ -6,7 +6,7 @@ import EarnSection from "@/components/EarnSection";
 import CommunitySection from "@/components/CommunitySection";
 import Footer from "@/components/Footer";
 
-const Index = () => {
+const Welcome = () => {
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
@@ -20,4 +20,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Welcome;
