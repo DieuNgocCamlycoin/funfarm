@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift } from 'lucide-react';
+import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift, ArrowLeft, KeyRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ const ConnectWallet = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -73,10 +75,38 @@ const ConnectWallet = () => {
     setIsLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast.error(t('auth.enterEmail'));
+      return;
+    }
+
+    setIsLoading(true);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?reset=true`,
+    });
+    
+    if (error) {
+      toast.error(t('auth.resetError') + ': ' + error.message);
+    } else {
+      toast.success(t('auth.resetEmailSent'), {
+        description: t('auth.checkInbox'),
+        duration: 8000,
+      });
+      setIsForgotPassword(false);
+    }
+    
+    setIsLoading(false);
+  };
+
   const handleExploreAsGuest = () => {
     navigate('/');
   };
 
+  // Signed in user view
   if (user) {
     return (
       <Card className="w-full max-w-md mx-auto border-primary/20 shadow-glow">
@@ -100,6 +130,73 @@ const ConnectWallet = () => {
               <LogOut className="w-4 h-4" />
               {t('common.disconnect')}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Forgot Password view
+  if (isForgotPassword) {
+    return (
+      <Card className="w-full max-w-md mx-auto border-border shadow-card">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+            <KeyRound className="w-8 h-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-display">
+            {t('auth.forgotPasswordTitle')}
+          </CardTitle>
+          <CardDescription>
+            {t('auth.forgotPasswordDesc')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                {t('auth.emailLabel')}
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={t('auth.emailPlaceholder')}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-12"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full gap-3 h-14 text-base gradient-hero hover:opacity-90"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Mail className="w-5 h-5" />
+              )}
+              {t('auth.sendResetLink')}
+            </Button>
+          </form>
+
+          {/* Back to Login */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsForgotPassword(false)}
+              className="text-primary font-medium hover:underline inline-flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t('auth.backToLogin')}
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -148,9 +245,20 @@ const ConnectWallet = () => {
 
           {/* Password Field */}
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium">
-              {t('auth.passwordLabel')}
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-sm font-medium">
+                {t('auth.passwordLabel')}
+              </Label>
+              {isLoginMode && (
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {t('auth.forgotPassword')}
+                </button>
+              )}
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input

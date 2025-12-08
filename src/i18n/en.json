@@ -57,7 +57,16 @@
     "signUpError": "Sign up error",
     "welcomeBack": "Welcome back home! ❤️",
     "welcomeBonus": "🎉 Father Universe gifts you {{bonus}} CAMLY!",
-    "welcomeBonusMessage": "Welcome home! Your reward is waiting."
+    "welcomeBonusMessage": "Welcome home! Your reward is waiting.",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordDesc": "Enter your email to receive a password reset link",
+    "enterEmail": "Please enter your email",
+    "sendResetLink": "Send Reset Link",
+    "resetEmailSent": "Email sent! 📧",
+    "checkInbox": "Check your inbox to reset your password",
+    "resetError": "Unable to send email",
+    "backToLogin": "Back to login"
   },
   "reward": {
     "title": "Gift from Father Universe",
