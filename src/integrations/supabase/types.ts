@@ -14,11 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followers_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followers_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          comments_count: number
+          content: string | null
+          created_at: string
+          hashtags: string[] | null
+          id: string
+          images: string[] | null
+          likes_count: number
+          location: string | null
+          post_type: string
+          shares_count: number
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          author_id: string
+          comments_count?: number
+          content?: string | null
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          images?: string[] | null
+          likes_count?: number
+          location?: string | null
+          post_type?: string
+          shares_count?: number
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          author_id?: string
+          comments_count?: number
+          content?: string | null
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          images?: string[] | null
+          likes_count?: number
+          location?: string | null
+          post_type?: string
+          shares_count?: number
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
           camly_balance: number
+          cover_url: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -37,6 +130,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           camly_balance?: number
+          cover_url?: string | null
           created_at?: string
           display_name?: string | null
           id: string
@@ -55,6 +149,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           camly_balance?: number
+          cover_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
