@@ -258,70 +258,70 @@ const FeedPost = ({ post }: FeedPostProps) => {
   return (
     <article className="bg-card rounded-2xl shadow-card border border-border overflow-hidden transition-all duration-300 hover:shadow-soft">
       {/* Header */}
-      <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <div className="p-3 sm:p-4 flex items-start sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <div className="relative flex-shrink-0">
             <img 
               src={post.author.avatar} 
               alt={post.author.name}
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-primary/20"
             />
-            <span className="absolute -bottom-1 -right-1 text-sm">
+            <span className="absolute -bottom-1 -right-1 text-xs sm:text-sm">
               {getUserTypeIcon(post.author.type)}
             </span>
             {post.isLive && (
-              <span className="absolute -top-1 -left-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
-                <Radio className="w-3 h-3" />
+              <span className="absolute -top-1 -left-1 bg-destructive text-destructive-foreground text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full flex items-center gap-0.5 sm:gap-1 animate-pulse">
+                <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 LIVE
               </span>
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-display font-semibold text-foreground">{post.author.name}</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+              <h3 className="font-display font-semibold text-foreground text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">{post.author.name}</h3>
               {post.author.verified && (
-                <CheckCircle2 className="w-4 h-4 text-primary fill-primary/20" />
+                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary fill-primary/20 flex-shrink-0" />
               )}
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 hidden xs:inline-flex">
+                ⭐ {post.author.reputationScore}
+              </Badge>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>@{post.author.username}</span>
+            <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+              <span className="truncate max-w-[80px] sm:max-w-none">@{post.author.username}</span>
               <span>•</span>
-              <span>{timeAgo(post.createdAt)}</span>
+              <span className="flex-shrink-0">{timeAgo(post.createdAt)}</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
-            ⭐ {post.author.reputationScore}
-          </Badge>
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <Button
             variant={isFollowing ? "secondary" : "outline"}
             size="sm"
             onClick={handleFollow}
             className={cn(
-              "gap-1 text-xs",
+              "gap-0.5 sm:gap-1 text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3",
               isFollowing && "bg-primary/10 text-primary"
             )}
           >
             <UserPlus className="w-3 h-3" />
-            {isFollowing ? "Đang follow" : "Follow"}
+            <span className="hidden sm:inline">{isFollowing ? "Đang follow" : "Follow"}</span>
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <MoreHorizontal className="w-5 h-5" />
+          <Button variant="ghost" size="icon" className="text-muted-foreground w-7 h-7 sm:w-8 sm:h-8">
+            <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-4 pb-3">
-        <p className="text-foreground whitespace-pre-line leading-relaxed">{post.content}</p>
+      <div className="px-3 sm:px-4 pb-3">
+        <p className="text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base">{post.content}</p>
         
         {/* Hashtags */}
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
           {post.hashtags.map((tag) => (
             <span 
               key={tag} 
-              className="text-primary hover:text-primary/80 cursor-pointer text-sm font-medium"
+              className="text-primary hover:text-primary/80 cursor-pointer text-xs sm:text-sm font-medium"
             >
               #{tag}
             </span>
@@ -330,8 +330,8 @@ const FeedPost = ({ post }: FeedPostProps) => {
 
         {/* Location */}
         {post.location && (
-          <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
-            <MapPin className="w-4 h-4" />
+          <div className="flex items-center gap-1 mt-2 text-xs sm:text-sm text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>{post.location}</span>
           </div>
         )}
