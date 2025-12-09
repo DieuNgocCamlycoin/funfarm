@@ -401,6 +401,7 @@ export type Database = {
         Args: { amount: number; user_id: string }
         Returns: undefined
       }
+      calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
