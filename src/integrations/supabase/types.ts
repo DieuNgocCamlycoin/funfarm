@@ -360,7 +360,6 @@ export type Database = {
           id: string | null
           is_verified: boolean | null
           location: string | null
-          phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"] | null
           reputation_score: number | null
           updated_at: string | null
@@ -374,7 +373,6 @@ export type Database = {
           id?: string | null
           is_verified?: boolean | null
           location?: string | null
-          phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"] | null
           reputation_score?: number | null
           updated_at?: string | null
@@ -388,7 +386,6 @@ export type Database = {
           id?: string | null
           is_verified?: boolean | null
           location?: string | null
-          phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"] | null
           reputation_score?: number | null
           updated_at?: string | null
