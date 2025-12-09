@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import CommentSection from "./CommentSection";
 import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Heart, 
   MessageCircle, 
@@ -67,26 +69,88 @@ const timeAgo = (dateString: string): string => {
 };
 
 const FeedPost = ({ post }: FeedPostProps) => {
-  const [isLiked, setIsLiked] = useState(post.isLiked);
+  const { user, refreshProfile } = useAuth();
+  const [isLiked, setIsLiked] = useState(false);
   const [currentReaction, setCurrentReaction] = useState<Reaction | null>(null);
   const [isSaved, setIsSaved] = useState(post.isSaved);
   const [isFollowing, setIsFollowing] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [likes, setLikes] = useState(post.likes);
+  const [shares, setShares] = useState(post.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const likeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const handleLikeClick = () => {
-    if (currentReaction) {
-      setCurrentReaction(null);
-      setIsLiked(false);
-      setLikes(likes - 1);
-    } else {
-      setCurrentReaction(reactions[0]); // Default to "Thích"
-      setIsLiked(true);
-      setLikes(likes + 1);
+  // Check if user already liked this post
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('post_likes')
+        .select('id, reaction_type')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setIsLiked(true);
+        const foundReaction = reactions.find(r => r.id === data.reaction_type);
+        setCurrentReaction(foundReaction || reactions[0]);
+      }
+    };
+    checkLikeStatus();
+  }, [post.id, user?.id]);
+
+  const handleLikeClick = async () => {
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để thích bài viết');
+      return;
+    }
+
+    try {
+      if (currentReaction) {
+        // Unlike - remove from database
+        await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+        
+        setCurrentReaction(null);
+        setIsLiked(false);
+        setLikes(prev => Math.max(0, prev - 1));
+      } else {
+        // Like - add to database (trigger will add CAMLY reward)
+        await supabase
+          .from('post_likes')
+          .insert({
+            post_id: post.id,
+            user_id: user.id,
+            reaction_type: 'like'
+          });
+        
+        setCurrentReaction(reactions[0]);
+        setIsLiked(true);
+        setLikes(prev => prev + 1);
+        
+        // Show reward notification
+        const currentLikes = likes + 1;
+        if (currentLikes <= 3) {
+          toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
+        } else {
+          toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
+        }
+      }
+      refreshProfile();
+    } catch (error: any) {
+      if (error.code === '23505') {
+        // Already liked, just update UI
+        setIsLiked(true);
+      } else {
+        console.error('Error toggling like:', error);
+        toast.error('Có lỗi xảy ra');
+      }
     }
   };
 
@@ -103,12 +167,44 @@ const FeedPost = ({ post }: FeedPostProps) => {
     }
   };
 
-  const handleReactionSelect = (reaction: Reaction) => {
-    if (!currentReaction) {
-      setLikes(likes + 1);
+  const handleReactionSelect = async (reaction: Reaction) => {
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để thả cảm xúc');
+      return;
     }
-    setCurrentReaction(reaction);
-    setIsLiked(true);
+
+    try {
+      if (!currentReaction) {
+        // New reaction
+        await supabase
+          .from('post_likes')
+          .insert({
+            post_id: post.id,
+            user_id: user.id,
+            reaction_type: reaction.id
+          });
+        setLikes(prev => prev + 1);
+        
+        const currentLikes = likes + 1;
+        if (currentLikes <= 3) {
+          toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
+        } else {
+          toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
+        }
+        refreshProfile();
+      } else {
+        // Update existing reaction
+        await supabase
+          .from('post_likes')
+          .update({ reaction_type: reaction.id })
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+      }
+      setCurrentReaction(reaction);
+      setIsLiked(true);
+    } catch (error) {
+      console.error('Error setting reaction:', error);
+    }
   };
 
   useEffect(() => {
@@ -127,13 +223,35 @@ const FeedPost = ({ post }: FeedPostProps) => {
     setIsFollowing(!isFollowing);
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: post.author.name,
-        text: post.content.substring(0, 100),
-        url: window.location.href,
-      });
+  const handleShare = async () => {
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để chia sẻ');
+      return;
+    }
+
+    try {
+      // Record share in database (trigger will add +20,000 CAMLY)
+      await supabase
+        .from('post_shares')
+        .insert({
+          post_id: post.id,
+          user_id: user.id
+        });
+
+      setShares(prev => prev + 1);
+      toast.success('+20.000 CAMLY cho bạn! 🎉', { duration: 3000 });
+      refreshProfile();
+
+      // Also try native share
+      if (navigator.share) {
+        navigator.share({
+          title: post.author.name,
+          text: post.content.substring(0, 100),
+          url: window.location.href,
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
     }
   };
 
@@ -385,7 +503,7 @@ const FeedPost = ({ post }: FeedPostProps) => {
             onClick={handleShare}
           >
             <Share2 className="w-5 h-5" />
-            <span>{formatNumber(post.shares)}</span>
+            <span>{formatNumber(shares)}</span>
           </Button>
           <Button 
             variant="ghost" 
