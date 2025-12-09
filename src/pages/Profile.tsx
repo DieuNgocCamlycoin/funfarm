@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageCropUpload } from "@/components/profile/ImageCropUpload";
+import { CoverPhotoEditor } from "@/components/profile/CoverPhotoEditor";
 
 const profileTypeLabels: Record<string, { emoji: string; label: string }> = {
   farmer: { emoji: '🧑‍🌾', label: 'Nông dân' },
@@ -191,13 +192,20 @@ const Profile = () => {
       <Navbar />
       
       <main className="pt-16">
-        {/* Cover Photo */}
-        <div className="relative h-48 md:h-72 lg:h-80 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30">
+        {/* Cover Photo - Facebook Style với chiều cao lớn hơn */}
+        <div className="relative h-64 md:h-80 lg:h-96 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 overflow-hidden">
           {coverUrl ? (
             <img 
-              src={coverUrl} 
+              src={coverUrl.split('?')[0]} 
               alt="Cover" 
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute w-full h-auto min-h-full object-cover"
+              style={{
+                top: '50%',
+                transform: `translateY(-${(() => {
+                  const match = coverUrl.match(/pos=(\d+(?:\.\d+)?)/);
+                  return match ? parseFloat(match[1]) : 50;
+                })()}%)`,
+              }}
             />
           ) : (
             <img 
@@ -208,11 +216,10 @@ const Profile = () => {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
           
-          {/* Change Cover Button - z-50 để nằm trên overlay */}
+          {/* Cover Photo Editor Button */}
           {user?.id && (
             <div className="absolute bottom-4 right-4 z-50">
-              <ImageCropUpload 
-                type="cover" 
+              <CoverPhotoEditor 
                 currentImage={coverUrl} 
                 userId={user.id} 
                 onUploadComplete={handleCoverUpload} 

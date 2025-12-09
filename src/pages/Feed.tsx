@@ -8,16 +8,209 @@ import FloatingCreateButton from "@/components/feed/FloatingCreateButton";
 import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
-import { mockPosts, trendingHashtags, suggestedFarms } from "@/data/mockFeed";
+import { trendingHashtags, suggestedFarms } from "@/data/mockFeed";
 import { Post } from "@/types/feed";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 const Feed = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const POSTS_PER_PAGE = 10;
+
+  // Fetch posts from database
+  const fetchPosts = useCallback(async (pageNum: number, append: boolean = false) => {
+    try {
+      const { data: postsData, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          content,
+          images,
+          video_url,
+          post_type,
+          location,
+          hashtags,
+          likes_count,
+          comments_count,
+          shares_count,
+          created_at,
+          author_id,
+          profiles:author_id (
+            id,
+            display_name,
+            avatar_url,
+            profile_type,
+            is_verified,
+            reputation_score,
+            location
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(pageNum * POSTS_PER_PAGE, (pageNum + 1) * POSTS_PER_PAGE - 1);
+
+      if (error) throw error;
+
+      // Transform database posts to Post type
+      const transformedPosts: Post[] = (postsData || []).map((post: any) => ({
+        id: post.id,
+        author: {
+          id: post.author_id,
+          name: post.profiles?.display_name || 'FUN Farmer',
+          username: post.profiles?.display_name || 'funfarmer',
+          avatar: post.profiles?.avatar_url || '',
+          type: mapProfileTypeToUserType(post.profiles?.profile_type || 'farmer'),
+          verified: post.profiles?.is_verified || false,
+          reputationScore: post.profiles?.reputation_score || 0,
+          location: post.profiles?.location || '',
+          followers: 0,
+          following: 0,
+        },
+        content: post.content || '',
+        images: post.images || [],
+        video: post.video_url || undefined,
+        likes: post.likes_count || 0,
+        comments: post.comments_count || 0,
+        shares: post.shares_count || 0,
+        saves: 0,
+        createdAt: post.created_at,
+        isLiked: false,
+        isSaved: false,
+        location: post.location || undefined,
+        hashtags: post.hashtags || [],
+      }));
+
+      if (append) {
+        setPosts(prev => [...prev, ...transformedPosts]);
+      } else {
+        setPosts(transformedPosts);
+      }
+
+      setHasMore(transformedPosts.length === POSTS_PER_PAGE);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      toast.error('Có lỗi khi tải bài viết');
+    }
+  }, []);
+
+  // Map profile_type to UserType
+  const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer' => {
+    const mapping: Record<string, 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer'> = {
+      'farmer': 'farm',
+      'fisher': 'fisher',
+      'eater': 'buyer',
+      'restaurant': 'restaurant',
+      'distributor': 'distributor',
+      'shipper': 'shipper',
+    };
+    return mapping[profileType] || 'farm';
+  };
+
+  // Initial load
+  useEffect(() => {
+    const loadInitialPosts = async () => {
+      setIsLoading(true);
+      await fetchPosts(0);
+      setIsLoading(false);
+    };
+    loadInitialPosts();
+  }, [fetchPosts]);
+
+  // Realtime subscription for new posts
+  useEffect(() => {
+    const channel = supabase
+      .channel('feed-posts')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'posts'
+        },
+        async (payload) => {
+          // Fetch the new post with profile data
+          const { data: newPostData, error } = await supabase
+            .from('posts')
+            .select(`
+              id,
+              content,
+              images,
+              video_url,
+              post_type,
+              location,
+              hashtags,
+              likes_count,
+              comments_count,
+              shares_count,
+              created_at,
+              author_id,
+              profiles:author_id (
+                id,
+                display_name,
+                avatar_url,
+                profile_type,
+                is_verified,
+                reputation_score,
+                location
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error || !newPostData) return;
+
+          const transformedPost: Post = {
+            id: newPostData.id,
+            author: {
+              id: newPostData.author_id,
+              name: newPostData.profiles?.display_name || 'FUN Farmer',
+              username: newPostData.profiles?.display_name || 'funfarmer',
+              avatar: newPostData.profiles?.avatar_url || '',
+              type: mapProfileTypeToUserType(newPostData.profiles?.profile_type || 'farmer'),
+              verified: newPostData.profiles?.is_verified || false,
+              reputationScore: newPostData.profiles?.reputation_score || 0,
+              location: newPostData.profiles?.location || '',
+              followers: 0,
+              following: 0,
+            },
+            content: newPostData.content || '',
+            images: newPostData.images || [],
+            video: newPostData.video_url || undefined,
+            likes: newPostData.likes_count || 0,
+            comments: newPostData.comments_count || 0,
+            shares: newPostData.shares_count || 0,
+            saves: 0,
+            createdAt: newPostData.created_at,
+            isLiked: false,
+            isSaved: false,
+            location: newPostData.location || undefined,
+            hashtags: newPostData.hashtags || [],
+          };
+
+          // Add new post to the beginning of the list
+          setPosts(prev => {
+            // Avoid duplicates
+            if (prev.some(p => p.id === transformedPost.id)) return prev;
+            return [transformedPost, ...prev];
+          });
+
+          toast.success('Có bài viết mới! 🌱', {
+            description: `${transformedPost.author.name} vừa đăng bài`,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Infinite scroll handler
   const handleScroll = useCallback(() => {
@@ -25,11 +218,11 @@ const Feed = () => {
       window.innerHeight + document.documentElement.scrollTop >=
       document.documentElement.offsetHeight - 500
     ) {
-      if (!isLoadingMore && hasMore) {
+      if (!isLoadingMore && hasMore && !isLoading) {
         loadMorePosts();
       }
     }
-  }, [isLoadingMore, hasMore]);
+  }, [isLoadingMore, hasMore, isLoading]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll);
@@ -38,24 +231,16 @@ const Feed = () => {
 
   const loadMorePosts = async () => {
     setIsLoadingMore(true);
-    // Simulate loading more posts
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // In real app, fetch from API
-    if (posts.length >= mockPosts.length * 3) {
-      setHasMore(false);
-    } else {
-      setPosts((prev) => [...prev, ...mockPosts.map((p, i) => ({
-        ...p,
-        id: `${p.id}-${prev.length + i}`,
-      }))]);
-    }
+    const nextPage = page + 1;
+    await fetchPosts(nextPage, true);
+    setPage(nextPage);
     setIsLoadingMore(false);
   };
 
-  const handleNewPost = (newPost: any) => {
-    toast.success("Đăng bài thành công! 🌱");
-    // In real app, would create full Post object from API response
+  const handleNewPost = async () => {
+    // Refetch posts to get the latest
+    setPage(0);
+    await fetchPosts(0);
   };
 
   return (
@@ -92,11 +277,25 @@ const Feed = () => {
               />
 
               {/* Posts */}
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <FeedPost key={post.id} post={post} />
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <span>Đang tải bài viết...</span>
+                  </div>
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="text-center py-12 bg-card rounded-xl border border-border">
+                  <p className="text-lg text-muted-foreground">🌱 Chưa có bài viết nào!</p>
+                  <p className="text-sm mt-1 text-muted-foreground">Hãy là người đầu tiên chia sẻ câu chuyện của bạn</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {posts.map((post) => (
+                    <FeedPost key={post.id} post={post} />
+                  ))}
+                </div>
+              )}
 
               {/* Loading indicator */}
               {isLoadingMore && (
@@ -109,7 +308,7 @@ const Feed = () => {
               )}
 
               {/* End of feed */}
-              {!hasMore && (
+              {!hasMore && posts.length > 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p className="text-lg">🌱 Bạn đã xem hết bảng tin rồi!</p>
                   <p className="text-sm mt-1">Quay lại sau để xem thêm bài mới nhé</p>
