@@ -14,6 +14,19 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
+// Map profile_type to UserType - defined outside component to avoid hook issues
+const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer' => {
+  const mapping: Record<string, 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer'> = {
+    'farmer': 'farm',
+    'fisher': 'fisher',
+    'eater': 'buyer',
+    'restaurant': 'restaurant',
+    'distributor': 'distributor',
+    'shipper': 'shipper',
+  };
+  return mapping[profileType] || 'farm';
+};
+
 const Feed = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -98,19 +111,6 @@ const Feed = () => {
       toast.error('Có lỗi khi tải bài viết');
     }
   }, []);
-
-  // Map profile_type to UserType
-  const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer' => {
-    const mapping: Record<string, 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer'> = {
-      'farmer': 'farm',
-      'fisher': 'fisher',
-      'eater': 'buyer',
-      'restaurant': 'restaurant',
-      'distributor': 'distributor',
-      'shipper': 'shipper',
-    };
-    return mapping[profileType] || 'farm';
-  };
 
   // Initial load
   useEffect(() => {
