@@ -110,13 +110,44 @@
     @apply border-border;
   }
 
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-foreground antialiased;
     font-family: 'DM Sans', sans-serif;
+    background: hsl(var(--background)) url('/background-farm.jpg') no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100vh;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
+  }
+
+  /* Page wrapper với overlay để chữ dễ đọc */
+  .page-wrapper {
+    background: hsl(var(--background) / 0.92);
+    min-height: 100vh;
+    backdrop-filter: blur(2px);
+  }
+
+  /* Main content với glass effect */
+  .main-content {
+    background: hsl(var(--card) / 0.88);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px hsl(150 30% 10% / 0.08);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Card với glass effect */
+  .glass-card {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 }
 
