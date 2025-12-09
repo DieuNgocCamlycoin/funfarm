@@ -162,7 +162,8 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
 
       if (error) throw error;
 
-      toast.success("Đã đăng bài viết thành công!");
+      // Trigger adds +10,000 CAMLY to pending_reward
+      toast.success("Đã đăng bài viết thành công! +10.000 CAMLY 🎉", { duration: 3000 });
       onPost?.(data);
       handleReset();
       onClose();

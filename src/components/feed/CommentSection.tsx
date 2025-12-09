@@ -145,6 +145,9 @@ const CommentSection = ({ postId, isOpen }: CommentSectionProps) => {
         .update({ comments_count: comments.length + 1 })
         .eq('id', postId);
 
+      // Show reward notification (+5,000 CAMLY for commenter via trigger)
+      toast.success('+5.000 CAMLY cho bạn! 💬', { duration: 2000 });
+
     } catch (error) {
       console.error('Error adding comment:', error);
       toast.error('Có lỗi khi gửi bình luận');

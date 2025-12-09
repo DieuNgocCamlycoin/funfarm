@@ -116,6 +116,67 @@ export type Database = {
           },
         ]
       }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_shares: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_shares_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
@@ -193,6 +254,7 @@ export type Database = {
           pending_reward: number
           phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"]
+          referral_code: string | null
           reputation_score: number
           updated_at: string
           wallet_address: string
@@ -212,6 +274,7 @@ export type Database = {
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
+          referral_code?: string | null
           reputation_score?: number
           updated_at?: string
           wallet_address: string
@@ -231,11 +294,39 @@ export type Database = {
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
+          referral_code?: string | null
           reputation_score?: number
           updated_at?: string
           wallet_address?: string
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          bonus_claimed: boolean
+          created_at: string
+          id: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          bonus_claimed?: boolean
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          bonus_claimed?: boolean
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string
         }
         Relationships: []
       }
@@ -306,6 +397,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_camly_reward: {
+        Args: { amount: number; user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
