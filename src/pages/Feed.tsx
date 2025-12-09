@@ -40,64 +40,66 @@ const Feed = () => {
   // Fetch posts from database
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = false) => {
     try {
-      const { data: postsData, error } = await supabase
+      // Fetch posts first
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          id,
-          content,
-          images,
-          video_url,
-          post_type,
-          location,
-          hashtags,
-          likes_count,
-          comments_count,
-          shares_count,
-          created_at,
-          author_id,
-          public_profiles:author_id (
-            id,
-            display_name,
-            avatar_url,
-            profile_type,
-            is_verified,
-            reputation_score,
-            location
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .range(pageNum * POSTS_PER_PAGE, (pageNum + 1) * POSTS_PER_PAGE - 1);
 
-      if (error) throw error;
+      if (postsError) throw postsError;
+
+      if (!postsData || postsData.length === 0) {
+        if (!append) setPosts([]);
+        setHasMore(false);
+        return;
+      }
+
+      // Get unique author IDs
+      const authorIds = [...new Set(postsData.map(p => p.author_id))];
+      
+      // Fetch profiles for all authors
+      const { data: profilesData } = await supabase
+        .from('public_profiles')
+        .select('id, display_name, avatar_url, profile_type, is_verified, reputation_score, location')
+        .in('id', authorIds);
+
+      // Create a map for quick lookup
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.id, p])
+      );
 
       // Transform database posts to Post type
-      const transformedPosts: Post[] = (postsData || []).map((post: any) => ({
-        id: post.id,
-        author: {
-          id: post.author_id,
-          name: post.public_profiles?.display_name || 'FUN Farmer',
-          username: post.public_profiles?.display_name?.toLowerCase().replace(/\s+/g, '') || 'funfarmer',
-          avatar: post.public_profiles?.avatar_url || '',
-          type: mapProfileTypeToUserType(post.public_profiles?.profile_type || 'farmer'),
-          verified: post.public_profiles?.is_verified || false,
-          reputationScore: post.public_profiles?.reputation_score || 0,
-          location: post.public_profiles?.location || '',
-          followers: 0,
-          following: 0,
-        },
-        content: post.content || '',
-        images: post.images || [],
-        video: post.video_url || undefined,
-        likes: post.likes_count || 0,
-        comments: post.comments_count || 0,
-        shares: post.shares_count || 0,
-        saves: 0,
-        createdAt: post.created_at,
-        isLiked: false,
-        isSaved: false,
-        location: post.location || undefined,
-        hashtags: post.hashtags || [],
-      }));
+      const transformedPosts: Post[] = postsData.map((post: any) => {
+        const profile = profilesMap.get(post.author_id);
+        return {
+          id: post.id,
+          author: {
+            id: post.author_id,
+            name: profile?.display_name || 'FUN Farmer',
+            username: (profile?.display_name || 'funfarmer').toLowerCase().replace(/\s+/g, ''),
+            avatar: profile?.avatar_url || '',
+            type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
+            verified: profile?.is_verified || false,
+            reputationScore: profile?.reputation_score || 0,
+            location: profile?.location || '',
+            followers: 0,
+            following: 0,
+          },
+          content: post.content || '',
+          images: post.images || [],
+          video: post.video_url || undefined,
+          likes: post.likes_count || 0,
+          comments: post.comments_count || 0,
+          shares: post.shares_count || 0,
+          saves: 0,
+          createdAt: post.created_at,
+          isLiked: false,
+          isSaved: false,
+          location: post.location || undefined,
+          hashtags: post.hashtags || [],
+        };
+      });
 
       if (append) {
         setPosts(prev => [...prev, ...transformedPosts]);
@@ -134,63 +136,41 @@ const Feed = () => {
           table: 'posts'
         },
         async (payload) => {
-          // Fetch the new post with profile data
-          const { data: newPostData, error } = await supabase
-            .from('posts')
-            .select(`
-              id,
-              content,
-              images,
-              video_url,
-              post_type,
-              location,
-              hashtags,
-              likes_count,
-              comments_count,
-              shares_count,
-              created_at,
-              author_id,
-              public_profiles:author_id (
-                id,
-                display_name,
-                avatar_url,
-                profile_type,
-                is_verified,
-                reputation_score,
-                location
-              )
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (error || !newPostData) return;
+          const newPost = payload.new as any;
+          
+          // Fetch the author profile
+          const { data: profile } = await supabase
+            .from('public_profiles')
+            .select('id, display_name, avatar_url, profile_type, is_verified, reputation_score, location')
+            .eq('id', newPost.author_id)
+            .maybeSingle();
 
           const transformedPost: Post = {
-            id: newPostData.id,
+            id: newPost.id,
             author: {
-              id: newPostData.author_id,
-              name: newPostData.public_profiles?.display_name || 'FUN Farmer',
-              username: newPostData.public_profiles?.display_name?.toLowerCase().replace(/\s+/g, '') || 'funfarmer',
-              avatar: newPostData.public_profiles?.avatar_url || '',
-              type: mapProfileTypeToUserType(newPostData.public_profiles?.profile_type || 'farmer'),
-              verified: newPostData.public_profiles?.is_verified || false,
-              reputationScore: newPostData.public_profiles?.reputation_score || 0,
-              location: newPostData.public_profiles?.location || '',
+              id: newPost.author_id,
+              name: profile?.display_name || 'FUN Farmer',
+              username: (profile?.display_name || 'funfarmer').toLowerCase().replace(/\s+/g, ''),
+              avatar: profile?.avatar_url || '',
+              type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
+              verified: profile?.is_verified || false,
+              reputationScore: profile?.reputation_score || 0,
+              location: profile?.location || '',
               followers: 0,
               following: 0,
             },
-            content: newPostData.content || '',
-            images: newPostData.images || [],
-            video: newPostData.video_url || undefined,
-            likes: newPostData.likes_count || 0,
-            comments: newPostData.comments_count || 0,
-            shares: newPostData.shares_count || 0,
+            content: newPost.content || '',
+            images: newPost.images || [],
+            video: newPost.video_url || undefined,
+            likes: newPost.likes_count || 0,
+            comments: newPost.comments_count || 0,
+            shares: newPost.shares_count || 0,
             saves: 0,
-            createdAt: newPostData.created_at,
+            createdAt: newPost.created_at,
             isLiked: false,
             isSaved: false,
-            location: newPostData.location || undefined,
-            hashtags: newPostData.hashtags || [],
+            location: newPost.location || undefined,
+            hashtags: newPost.hashtags || [],
           };
 
           // Add new post to the beginning of the list
