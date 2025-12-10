@@ -55,15 +55,13 @@ const Feed = () => {
         return;
       }
 
-      // Get unique author IDs and fetch their public profiles
+      // Get unique author IDs and fetch their public profiles using RPC function
       const authorIds = [...new Set(postsData.map(p => p.author_id))];
       const { data: profilesData } = await supabase
-        .from('public_profiles')
-        .select('id, display_name, avatar_url, profile_type, is_verified, reputation_score, location')
-        .in('id', authorIds);
+        .rpc('get_public_profiles', { user_ids: authorIds });
 
       // Create a map for quick profile lookup
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || []);
 
       // Transform database posts to Post type
       const transformedPosts: Post[] = postsData.map((post: any) => {
@@ -135,12 +133,10 @@ const Feed = () => {
         async (payload) => {
           const newPost = payload.new as any;
           
-          // Fetch the author profile
-          const { data: profile } = await supabase
-            .from('public_profiles')
-            .select('id, display_name, avatar_url, profile_type, is_verified, reputation_score, location')
-            .eq('id', newPost.author_id)
-            .maybeSingle();
+          // Fetch the author profile using RPC function
+          const { data: profilesData } = await supabase
+            .rpc('get_public_profiles', { user_ids: [newPost.author_id] });
+          const profile = profilesData?.[0];
 
           const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
           const transformedPost: Post = {
