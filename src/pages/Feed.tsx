@@ -72,13 +72,14 @@ const Feed = () => {
       // Transform database posts to Post type
       const transformedPosts: Post[] = postsData.map((post: any) => {
         const profile = profilesMap.get(post.author_id);
+        const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
         return {
           id: post.id,
           author: {
             id: post.author_id,
-            name: profile?.display_name || 'FUN Farmer',
-            username: (profile?.display_name || 'funfarmer').toLowerCase().replace(/\s+/g, ''),
-            avatar: profile?.avatar_url || '',
+            name: displayName,
+            username: displayName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
+            avatar: profile?.avatar_url || '/logo_fun_farm_web3.png',
             type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
             verified: profile?.is_verified || false,
             reputationScore: profile?.reputation_score || 0,
@@ -145,13 +146,14 @@ const Feed = () => {
             .eq('id', newPost.author_id)
             .maybeSingle();
 
+          const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
           const transformedPost: Post = {
             id: newPost.id,
             author: {
               id: newPost.author_id,
-              name: profile?.display_name || 'FUN Farmer',
-              username: (profile?.display_name || 'funfarmer').toLowerCase().replace(/\s+/g, ''),
-              avatar: profile?.avatar_url || '',
+              name: displayName,
+              username: displayName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
+              avatar: profile?.avatar_url || '/logo_fun_farm_web3.png',
               type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
               verified: profile?.is_verified || false,
               reputationScore: profile?.reputation_score || 0,
