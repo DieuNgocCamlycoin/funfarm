@@ -40,10 +40,10 @@ const Feed = () => {
   // Fetch posts from database
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = false) => {
     try {
-      // Fetch posts with joined profiles data
+      // Fetch posts first
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('*, profiles:author_id(id, display_name, avatar_url, profile_type, is_verified, reputation_score, location)')
+        .select('*')
         .order('created_at', { ascending: false })
         .range(pageNum * POSTS_PER_PAGE, (pageNum + 1) * POSTS_PER_PAGE - 1);
 
@@ -55,9 +55,19 @@ const Feed = () => {
         return;
       }
 
+      // Get unique author IDs and fetch their public profiles
+      const authorIds = [...new Set(postsData.map(p => p.author_id))];
+      const { data: profilesData } = await supabase
+        .from('public_profiles')
+        .select('id, display_name, avatar_url, profile_type, is_verified, reputation_score, location')
+        .in('id', authorIds);
+
+      // Create a map for quick profile lookup
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
       // Transform database posts to Post type
       const transformedPosts: Post[] = postsData.map((post: any) => {
-        const profile = post.profiles;
+        const profile = profilesMap.get(post.author_id);
         const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
         return {
           id: post.id,
