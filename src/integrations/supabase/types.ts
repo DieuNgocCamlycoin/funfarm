@@ -399,6 +399,22 @@ export type Database = {
         Returns: undefined
       }
       calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
+      get_public_profiles: {
+        Args: { user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          bio: string
+          cover_url: string
+          created_at: string
+          display_name: string
+          id: string
+          is_verified: boolean
+          location: string
+          profile_type: Database["public"]["Enums"]["profile_type"]
+          reputation_score: number
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
