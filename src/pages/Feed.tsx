@@ -58,7 +58,7 @@ const Feed = () => {
       // Transform database posts to Post type
       const transformedPosts: Post[] = postsData.map((post: any) => {
         const profile = post.profiles;
-        const displayName = profile?.display_name || 'Nông dân FUN';
+        const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
         return {
           id: post.id,
           author: {
