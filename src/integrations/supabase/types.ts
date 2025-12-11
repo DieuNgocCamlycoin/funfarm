@@ -431,6 +431,30 @@ export type Database = {
         }
         Relationships: []
       }
+      shipper_locations: {
+        Row: {
+          id: string
+          lat: number
+          lng: number
+          shipper_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lat: number
+          lng: number
+          shipper_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lat?: number
+          lng?: number
+          shipper_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -495,11 +519,19 @@ export type Database = {
       }
     }
     Functions: {
+      accept_order: {
+        Args: { p_order_id: string; p_shipper_id: string }
+        Returns: boolean
+      }
       add_camly_reward: {
         Args: { amount: number; user_id: string }
         Returns: undefined
       }
       calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
+      complete_delivery: {
+        Args: { p_order_id: string; p_shipper_id: string }
+        Returns: boolean
+      }
       get_public_profiles: {
         Args: { user_ids: string[] }
         Returns: {
@@ -541,7 +573,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "shipper"
       profile_type:
         | "farmer"
         | "fisher"
@@ -676,7 +708,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "shipper"],
       profile_type: [
         "farmer",
         "fisher",

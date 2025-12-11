@@ -12,6 +12,8 @@ import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import Reward from "./pages/Reward";
+import ShipperDashboard from "./pages/ShipperDashboard";
+import ShipperRegister from "./pages/ShipperRegister";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/reward" element={<Reward />} />
+            <Route path="/shipper" element={<ShipperDashboard />} />
+            <Route path="/shipper/register" element={<ShipperRegister />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
