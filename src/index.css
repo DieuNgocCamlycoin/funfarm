@@ -119,9 +119,21 @@
   body {
     @apply text-foreground antialiased;
     font-family: 'DM Sans', sans-serif;
-    background: 
-      url('/background-farm.jpg') center center / cover no-repeat fixed;
     min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background với hiệu ứng gió nhẹ đung đưa */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -5%;
+    left: -5%;
+    right: -5%;
+    bottom: -5%;
+    background: url('/background-farm.jpg') center center / cover no-repeat;
+    z-index: -1;
+    animation: gentle-breeze 15s ease-in-out infinite;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -152,6 +164,22 @@
     background: hsl(var(--card) / 0.92);
     backdrop-filter: blur(8px);
     border: 1px solid hsl(var(--border) / 0.5);
+  }
+}
+
+/* Hiệu ứng gió nhẹ đung đưa cho background */
+@keyframes gentle-breeze {
+  0%, 100% {
+    transform: scale(1.05) translateX(0) translateY(0);
+  }
+  25% {
+    transform: scale(1.05) translateX(0.5%) translateY(-0.3%);
+  }
+  50% {
+    transform: scale(1.05) translateX(-0.3%) translateY(0.2%);
+  }
+  75% {
+    transform: scale(1.05) translateX(0.2%) translateY(-0.2%);
   }
 }
 
