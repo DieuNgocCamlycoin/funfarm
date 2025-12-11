@@ -10,6 +10,7 @@ import { Camera, Loader2, Move, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { uploadToR2 } from '@/lib/r2Upload';
 
 interface CoverPhotoEditorProps {
   currentImage?: string | null;
@@ -118,21 +119,15 @@ export const CoverPhotoEditor = ({ currentImage, userId, onUploadComplete }: Cov
       if (imageSrc.startsWith('data:')) {
         const response = await fetch(imageSrc);
         const blob = await response.blob();
-        const fileName = `cover_${Date.now()}.jpg`;
-        const filePath = `${userId}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('user-uploads')
-          .upload(filePath, blob, {
-            contentType: 'image/jpeg',
-            upsert: true,
-          });
+        // Upload to R2 via edge function
+        const result = await uploadToR2(blob, 'covers');
+        
+        if (!result.success || !result.url) {
+          throw new Error(result.error || 'Upload failed');
+        }
 
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('user-uploads')
-          .getPublicUrl(filePath);
+        const publicUrl = result.url;
 
         // Update profile with new cover URL and position
         const { error: updateError } = await supabase
