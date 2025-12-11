@@ -41,7 +41,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-md border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-[9999] bg-white/95 backdrop-blur-md border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -186,7 +186,7 @@ const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-border">
+          <div className="md:hidden py-4 border-t border-border bg-white/95 relative z-[9999]">
             <div className="flex flex-col gap-4">
               {/* Language Switcher for Mobile */}
               <div className="flex items-center justify-between pb-4 border-b border-border">
@@ -250,22 +250,22 @@ const Navbar = () => {
                   Giới thiệu
                 </Link>
               )}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 relative z-[99999]">
                 {user ? (
-                  <Button variant="outline" className="flex-1 gap-2" onClick={handleSignOut}>
+                  <Button variant="outline" className="flex-1 gap-2 relative z-[99999]" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4" />
                     {t('common.disconnect')}
                   </Button>
                 ) : (
                   <>
-                    <Link to="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                      <Button variant="ghost" className="w-full gap-2">
+                    <Link to="/auth" className="flex-1 relative z-[99999]" onClick={() => setIsOpen(false)}>
+                      <Button variant="ghost" className="w-full gap-2 relative z-[99999]">
                         <Wallet className="w-4 h-4" />
                         {t('common.connect')}
                       </Button>
                     </Link>
-                    <Link to="/auth" className="flex-1" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full gradient-hero border-0">{t('common.joinNow')}</Button>
+                    <Link to="/auth" className="flex-1 relative z-[99999]" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full gradient-hero border-0 relative z-[99999]">{t('common.joinNow')}</Button>
                     </Link>
                   </>
                 )}
