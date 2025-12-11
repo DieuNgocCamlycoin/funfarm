@@ -207,7 +207,7 @@ const Feed = () => {
       
       <main className="pt-20 pb-16">
         <div className="container max-w-7xl mx-auto px-4">
-          <div className="bg-white/94 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+          <div className="rounded-2xl p-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Main Feed */}
               <div className="lg:col-span-2 space-y-6">
