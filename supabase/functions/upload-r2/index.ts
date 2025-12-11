@@ -31,17 +31,27 @@ serve(async (req) => {
     
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header provided");
       return new Response(JSON.stringify({ error: "No authorization header" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Extract JWT token from Bearer header
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      console.error("No token found in authorization header");
+      return new Response(JSON.stringify({ error: "Invalid authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Use getUser with the token directly
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
       console.error("Auth error:", userError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
