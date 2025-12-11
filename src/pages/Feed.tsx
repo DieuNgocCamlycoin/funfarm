@@ -93,7 +93,18 @@ const Feed = () => {
           isLiked: false,
           isSaved: false,
           location: post.location || undefined,
-          hashtags: post.hashtags || []
+          hashtags: post.hashtags || [],
+          // Product post fields
+          is_product_post: post.is_product_post || false,
+          product_name: post.product_name || undefined,
+          price_camly: post.price_camly || undefined,
+          price_vnd: post.price_vnd || undefined,
+          quantity_kg: post.quantity_kg || undefined,
+          location_address: post.location_address || undefined,
+          location_lat: post.location_lat || undefined,
+          location_lng: post.location_lng || undefined,
+          delivery_options: post.delivery_options || [],
+          commitments: post.commitments || []
         };
       });
       if (append) {
@@ -160,7 +171,18 @@ const Feed = () => {
         isLiked: false,
         isSaved: false,
         location: newPost.location || undefined,
-        hashtags: newPost.hashtags || []
+        hashtags: newPost.hashtags || [],
+        // Product post fields
+        is_product_post: newPost.is_product_post || false,
+        product_name: newPost.product_name || undefined,
+        price_camly: newPost.price_camly || undefined,
+        price_vnd: newPost.price_vnd || undefined,
+        quantity_kg: newPost.quantity_kg || undefined,
+        location_address: newPost.location_address || undefined,
+        location_lat: newPost.location_lat || undefined,
+        location_lng: newPost.location_lng || undefined,
+        delivery_options: newPost.delivery_options || [],
+        commitments: newPost.commitments || []
       };
 
       // Add new post to the beginning of the list
