@@ -181,14 +181,24 @@ export type Database = {
         Row: {
           author_id: string
           comments_count: number
+          commitments: string[] | null
           content: string | null
           created_at: string
+          delivery_options: string[] | null
           hashtags: string[] | null
           id: string
           images: string[] | null
+          is_product_post: boolean
           likes_count: number
           location: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
           post_type: string
+          price_camly: number | null
+          price_vnd: number | null
+          product_name: string | null
+          quantity_kg: number | null
           shares_count: number
           updated_at: string
           video_url: string | null
@@ -196,14 +206,24 @@ export type Database = {
         Insert: {
           author_id: string
           comments_count?: number
+          commitments?: string[] | null
           content?: string | null
           created_at?: string
+          delivery_options?: string[] | null
           hashtags?: string[] | null
           id?: string
           images?: string[] | null
+          is_product_post?: boolean
           likes_count?: number
           location?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           post_type?: string
+          price_camly?: number | null
+          price_vnd?: number | null
+          product_name?: string | null
+          quantity_kg?: number | null
           shares_count?: number
           updated_at?: string
           video_url?: string | null
@@ -211,14 +231,24 @@ export type Database = {
         Update: {
           author_id?: string
           comments_count?: number
+          commitments?: string[] | null
           content?: string | null
           created_at?: string
+          delivery_options?: string[] | null
           hashtags?: string[] | null
           id?: string
           images?: string[] | null
+          is_product_post?: boolean
           likes_count?: number
           location?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           post_type?: string
+          price_camly?: number | null
+          price_vnd?: number | null
+          product_name?: string | null
+          quantity_kg?: number | null
           shares_count?: number
           updated_at?: string
           video_url?: string | null

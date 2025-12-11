@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CommentSection from "./CommentSection";
 import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
+import ProductPostCard from "./ProductPostCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -413,8 +414,26 @@ const FeedPost = ({ post }: FeedPostProps) => {
         </div>
       )}
 
-      {/* Product Card */}
-      {post.product && (
+      {/* Product Post Card - FUN FARM Marketplace */}
+      {post.is_product_post && post.product_name && (
+        <div className="px-4">
+          <ProductPostCard
+            productName={post.product_name}
+            priceCamly={post.price_camly}
+            priceVnd={post.price_vnd}
+            quantityKg={post.quantity_kg}
+            locationAddress={post.location_address}
+            deliveryOptions={post.delivery_options}
+            commitments={post.commitments}
+            onBuyClick={() => {
+              toast.success("Tính năng mua hàng sẽ sớm ra mắt! 🌾");
+            }}
+          />
+        </div>
+      )}
+
+      {/* Legacy Product Card - for old posts */}
+      {post.product && !post.is_product_post && (
         <div className="mx-4 my-3 p-4 bg-muted/50 rounded-xl border border-border">
           <div className="flex items-start justify-between mb-3">
             <div>

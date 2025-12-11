@@ -42,6 +42,17 @@ export interface Post {
   hashtags: string[];
   location?: string;
   isLive?: boolean;
+  // Product post fields (FUN FARM marketplace)
+  is_product_post?: boolean;
+  product_name?: string;
+  price_camly?: number;
+  price_vnd?: number;
+  quantity_kg?: number;
+  location_address?: string;
+  location_lat?: number;
+  location_lng?: number;
+  delivery_options?: string[];
+  commitments?: string[];
 }
 
 export interface Comment {

@@ -27,12 +27,14 @@ import {
   Smile,
   Loader2,
   Download,
+  Leaf,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { uploadToR2 } from "@/lib/r2Upload";
+import ProductPostForm from "./ProductPostForm";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -43,9 +45,9 @@ interface CreatePostModalProps {
 
 const postTypes = [
   { id: "post", label: "Bài viết", icon: Sparkles, color: "text-primary" },
+  { id: "product", label: "Bán nông sản", icon: Leaf, color: "text-green-600" },
   { id: "photo", label: "Ảnh/Video", icon: Image, color: "text-blue-500" },
   { id: "live", label: "Livestream", icon: Radio, color: "text-destructive" },
-  { id: "story", label: "Story 24h", icon: Clock, color: "text-purple-500" },
 ];
 
 const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: CreatePostModalProps) => {
@@ -220,6 +222,21 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
               />
             </TabsContent>
 
+            {/* Product Post - Bán nông sản */}
+            <TabsContent value="product" className="mt-4">
+              {user?.id && (
+                <ProductPostForm
+                  userId={user.id}
+                  onSuccess={() => {
+                    onPost?.({});
+                    handleReset();
+                    onClose();
+                  }}
+                  onCancel={onClose}
+                />
+              )}
+            </TabsContent>
+
             <TabsContent value="photo" className="space-y-4 mt-4">
               <PostContent
                 content={content}
@@ -246,24 +263,6 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 content={content}
                 setContent={setContent}
                 placeholder="Mô tả livestream của bạn..."
-                profile={profile}
-              />
-            </TabsContent>
-
-            <TabsContent value="story" className="space-y-4 mt-4">
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-6 text-center">
-                <Clock className="w-12 h-12 mx-auto text-purple-500 mb-3" />
-                <h3 className="font-display font-semibold text-lg text-foreground mb-2">
-                  Story 24 giờ
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  Chia sẻ khoảnh khắc thoáng qua từ nông trại, biển cả!
-                </p>
-              </div>
-              <PostContent
-                content={content}
-                setContent={setContent}
-                placeholder="Viết caption cho story..."
                 profile={profile}
               />
             </TabsContent>
@@ -390,46 +389,50 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-              <Tag className="w-4 h-4" />
-              Gắn sản phẩm
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-              <Users className="w-4 h-4" />
-              Tag bạn bè
-            </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-              <Smile className="w-4 h-4" />
-              Cảm xúc
-            </Button>
-          </div>
+          {/* Quick Actions - hide for product tab */}
+          {postType !== "product" && (
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+              <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+                <Tag className="w-4 h-4" />
+                Gắn sản phẩm
+              </Button>
+              <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+                <Users className="w-4 h-4" />
+                Tag bạn bè
+              </Button>
+              <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+                <Smile className="w-4 h-4" />
+                Cảm xúc
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="p-6 pt-0 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button
-            onClick={handlePost}
-            disabled={!content.trim() || isPosting}
-            className="gradient-hero border-0 gap-2 min-w-[140px]"
-          >
-            {isPosting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Đang đăng...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Đăng bài
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Footer - hide for product tab (has its own buttons) */}
+        {postType !== "product" && (
+          <div className="p-6 pt-0 flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handlePost}
+              disabled={!content.trim() || isPosting}
+              className="gradient-hero border-0 gap-2 min-w-[140px]"
+            >
+              {isPosting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Đang đăng...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Đăng bài
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
