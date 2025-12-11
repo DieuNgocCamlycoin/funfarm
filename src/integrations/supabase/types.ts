@@ -116,6 +116,77 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          delivery_address: string | null
+          delivery_lat: number | null
+          delivery_lng: number | null
+          delivery_option: string
+          id: string
+          post_id: string
+          price_per_kg_camly: number
+          price_per_kg_vnd: number | null
+          product_name: string
+          quantity_kg: number
+          seller_id: string
+          shipper_id: string | null
+          status: string
+          total_camly: number
+          total_vnd: number | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          delivery_address?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          delivery_option: string
+          id?: string
+          post_id: string
+          price_per_kg_camly: number
+          price_per_kg_vnd?: number | null
+          product_name: string
+          quantity_kg: number
+          seller_id: string
+          shipper_id?: string | null
+          status?: string
+          total_camly: number
+          total_vnd?: number | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          delivery_address?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          delivery_option?: string
+          id?: string
+          post_id?: string
+          price_per_kg_camly?: number
+          price_per_kg_vnd?: number | null
+          product_name?: string
+          quantity_kg?: number
+          seller_id?: string
+          shipper_id?: string | null
+          status?: string
+          total_camly?: number
+          total_vnd?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_likes: {
         Row: {
           created_at: string
@@ -451,6 +522,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      process_order: {
+        Args: {
+          p_buyer_id: string
+          p_delivery_address?: string
+          p_delivery_lat?: number
+          p_delivery_lng?: number
+          p_delivery_option: string
+          p_post_id: string
+          p_price_per_kg_camly: number
+          p_price_per_kg_vnd: number
+          p_product_name: string
+          p_quantity_kg: number
+          p_seller_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

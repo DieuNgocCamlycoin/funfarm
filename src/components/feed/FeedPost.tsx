@@ -6,6 +6,7 @@ import CommentSection from "./CommentSection";
 import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
 import ProductPostCard from "./ProductPostCard";
 import EditPostModal from "./EditPostModal";
+import BuyProductModal from "./BuyProductModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -103,6 +104,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [showComments, setShowComments] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [shares, setShares] = useState(post.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -454,8 +456,30 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
             deliveryOptions={post.delivery_options}
             commitments={post.commitments}
             onBuyClick={() => {
-              toast.success("Tính năng mua hàng sẽ sớm ra mắt! 🌾");
+              if (!user) {
+                toast.error("Vui lòng đăng nhập để mua hàng");
+                return;
+              }
+              if (user.id === post.author.id) {
+                toast.error("Bạn không thể mua sản phẩm của chính mình");
+                return;
+              }
+              setShowBuyModal(true);
             }}
+          />
+          
+          {/* Buy Product Modal */}
+          <BuyProductModal
+            open={showBuyModal}
+            onOpenChange={setShowBuyModal}
+            postId={post.id}
+            sellerId={post.author.id}
+            productName={post.product_name}
+            priceCamly={post.price_camly || 0}
+            priceVnd={post.price_vnd}
+            maxQuantity={post.quantity_kg || 0}
+            deliveryOptions={post.delivery_options || ["self_pickup"]}
+            locationAddress={post.location_address}
           />
         </div>
       )}
