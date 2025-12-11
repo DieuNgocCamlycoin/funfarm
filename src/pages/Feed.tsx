@@ -218,85 +218,87 @@ const Feed = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Navbar />
       
       <main className="pt-20 pb-16">
         <div className="container max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Feed */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Page Title */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="font-display text-2xl font-bold text-foreground">
-                    Trang Chủ
-                  </h1>
-                  <p className="text-muted-foreground mt-1">
-                    Khám phá sản phẩm tươi ngon từ nông trại & biển cả
-                  </p>
+          <div className="bg-white/94 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Main Feed */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Page Title */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="font-display text-2xl font-bold text-foreground">
+                      Trang Chủ
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                      Khám phá sản phẩm tươi ngon từ nông trại & biển cả
+                    </p>
+                  </div>
                 </div>
+
+                {/* Create Post Box - Facebook style */}
+                <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
+
+                {/* Story Bar */}
+                <StoryBar />
+
+                {/* Filters */}
+                <FeedFilters 
+                  activeFilter={activeFilter} 
+                  onFilterChange={setActiveFilter} 
+                />
+
+                {/* Posts */}
+                {isLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <span>Đang tải bài viết...</span>
+                    </div>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="text-center py-12 bg-card rounded-xl border border-border">
+                    <p className="text-lg text-muted-foreground">🌱 Chưa có bài viết nào!</p>
+                    <p className="text-sm mt-1 text-muted-foreground">Hãy là người đầu tiên chia sẻ câu chuyện của bạn</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {posts.map((post) => (
+                      <FeedPost key={post.id} post={post} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Loading indicator */}
+                {isLoadingMore && (
+                  <div className="flex justify-center py-8">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      <span>Đang tải thêm...</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* End of feed */}
+                {!hasMore && posts.length > 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-lg">🌱 Bạn đã xem hết bảng tin rồi!</p>
+                    <p className="text-sm mt-1">Quay lại sau để xem thêm bài mới nhé</p>
+                  </div>
+                )}
               </div>
 
-              {/* Create Post Box - Facebook style */}
-              <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
-
-              {/* Story Bar */}
-              <StoryBar />
-
-              {/* Filters */}
-              <FeedFilters 
-                activeFilter={activeFilter} 
-                onFilterChange={setActiveFilter} 
-              />
-
-              {/* Posts */}
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span>Đang tải bài viết...</span>
-                  </div>
+              {/* Sidebar */}
+              <div className="hidden lg:block">
+                <div className="sticky top-24">
+                  <FeedSidebar 
+                    trendingHashtags={trendingHashtags}
+                    suggestedFarms={suggestedFarms}
+                  />
                 </div>
-              ) : posts.length === 0 ? (
-                <div className="text-center py-12 bg-card rounded-xl border border-border">
-                  <p className="text-lg text-muted-foreground">🌱 Chưa có bài viết nào!</p>
-                  <p className="text-sm mt-1 text-muted-foreground">Hãy là người đầu tiên chia sẻ câu chuyện của bạn</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {posts.map((post) => (
-                    <FeedPost key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
-
-              {/* Loading indicator */}
-              {isLoadingMore && (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    <span>Đang tải thêm...</span>
-                  </div>
-                </div>
-              )}
-
-              {/* End of feed */}
-              {!hasMore && posts.length > 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-lg">🌱 Bạn đã xem hết bảng tin rồi!</p>
-                  <p className="text-sm mt-1">Quay lại sau để xem thêm bài mới nhé</p>
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="hidden lg:block">
-              <div className="sticky top-24">
-                <FeedSidebar 
-                  trendingHashtags={trendingHashtags}
-                  suggestedFarms={suggestedFarms}
-                />
               </div>
             </div>
           </div>
