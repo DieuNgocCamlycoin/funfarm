@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
@@ -22,29 +21,16 @@ interface LocationPickerProps {
   onLocationChange: (lat: number, lng: number, address: string) => void;
 }
 
-function MapClickHandler({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click: (e) => {
-      onLocationSelect(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
-function MapController({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, 15);
-  }, [center, map]);
-  return null;
-}
-
 export default function LocationPicker({
   initialLat,
   initialLng,
   initialAddress = "",
   onLocationChange,
 }: LocationPickerProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  
   const [position, setPosition] = useState<[number, number] | null>(
     initialLat && initialLng ? [initialLat, initialLng] : null
   );
@@ -52,14 +38,60 @@ export default function LocationPicker({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const mapRef = useRef<L.Map | null>(null);
 
   // Default center: Vietnam
   const defaultCenter: [number, number] = [14.0583, 108.2772];
 
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current).setView(
+      position || defaultCenter,
+      position ? 15 : 6
+    );
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    // Click handler
+    map.on("click", (e) => {
+      handleLocationSelect(e.latlng.lat, e.latlng.lng);
+    });
+
+    mapRef.current = map;
+
+    // Add initial marker if position exists
+    if (position) {
+      markerRef.current = L.marker(position).addTo(map);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update marker when position changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (position) {
+      if (markerRef.current) {
+        markerRef.current.setLatLng(position);
+      } else {
+        markerRef.current = L.marker(position).addTo(mapRef.current);
+      }
+      mapRef.current.setView(position, 15);
+    }
+  }, [position]);
+
   const handleLocationSelect = async (lat: number, lng: number) => {
     setPosition([lat, lng]);
-    
+
     // Reverse geocoding using Nominatim
     try {
       const response = await fetch(
@@ -108,10 +140,11 @@ export default function LocationPicker({
         { headers: { "Accept-Language": "vi" } }
       );
       const data = await response.json();
-      
+
       if (data.length > 0) {
         const { lat, lon, display_name } = data[0];
-        setPosition([parseFloat(lat), parseFloat(lon)]);
+        const newPos: [number, number] = [parseFloat(lat), parseFloat(lon)];
+        setPosition(newPos);
         setAddress(display_name);
         onLocationChange(parseFloat(lat), parseFloat(lon), display_name);
       } else {
@@ -138,9 +171,9 @@ export default function LocationPicker({
             className="pl-9"
           />
         </div>
-        <Button 
-          type="button" 
-          variant="outline" 
+        <Button
+          type="button"
+          variant="outline"
           onClick={searchLocation}
           disabled={isSearching}
         >
@@ -170,26 +203,10 @@ export default function LocationPicker({
       </Button>
 
       {/* Map */}
-      <div className="h-[250px] rounded-xl overflow-hidden border border-border">
-        <MapContainer
-          center={position || defaultCenter}
-          zoom={position ? 15 : 6}
-          style={{ height: "100%", width: "100%" }}
-          ref={(map) => { if (map) mapRef.current = map; }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MapClickHandler onLocationSelect={handleLocationSelect} />
-          {position && (
-            <>
-              <Marker position={position} />
-              <MapController center={position} />
-            </>
-          )}
-        </MapContainer>
-      </div>
+      <div
+        ref={mapContainerRef}
+        className="h-[250px] rounded-xl overflow-hidden border border-border"
+      />
 
       {/* Selected address */}
       {position && (

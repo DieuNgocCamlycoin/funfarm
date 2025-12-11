@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useState, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPin, Navigation } from "lucide-react";
@@ -41,16 +40,17 @@ export default function LocationDisplay({
   productName,
   showDistance = true,
 }: LocationDisplayProps) {
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
 
+  // Get user location for distance
   useEffect(() => {
     if (showDistance && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const userLat = pos.coords.latitude;
           const userLng = pos.coords.longitude;
-          setUserLocation({ lat: userLat, lng: userLng });
           setDistance(calculateDistance(userLat, userLng, lat, lng));
         },
         () => {
@@ -60,6 +60,33 @@ export default function LocationDisplay({
       );
     }
   }, [lat, lng, showDistance]);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      scrollWheelZoom: false,
+      dragging: false,
+      zoomControl: false,
+    }).setView([lat, lng], 14);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    }).addTo(map);
+
+    const marker = L.marker([lat, lng]).addTo(map);
+    marker.bindPopup(`<div class="text-sm"><p class="font-medium">${productName || "Vị trí sản phẩm"}</p>${address ? `<p class="text-xs mt-1">${address}</p>` : ""}</div>`);
+
+    mapRef.current = map;
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [lat, lng, address, productName]);
 
   const formatDistance = (km: number): string => {
     if (km < 1) {
@@ -81,29 +108,10 @@ export default function LocationDisplay({
       )}
 
       {/* Mini map */}
-      <div className="h-[150px] rounded-lg overflow-hidden border border-border">
-        <MapContainer
-          center={[lat, lng]}
-          zoom={14}
-          style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom={false}
-          dragging={false}
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={[lat, lng]}>
-            <Popup>
-              <div className="text-sm">
-                <p className="font-medium">{productName || "Vị trí sản phẩm"}</p>
-                {address && <p className="text-muted-foreground text-xs mt-1">{address}</p>}
-              </div>
-            </Popup>
-          </Marker>
-        </MapContainer>
-      </div>
+      <div
+        ref={mapContainerRef}
+        className="h-[150px] rounded-lg overflow-hidden border border-border"
+      />
 
       {/* Address */}
       {address && (
