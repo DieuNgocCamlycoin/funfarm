@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import CommentSection from "./CommentSection";
 import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
 import ProductPostCard from "./ProductPostCard";
+import EditPostModal from "./EditPostModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,9 +24,16 @@ import {
   Package,
   UserPlus,
   Send,
-  Download
+  Download,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface FeedPostProps {
   post: Post;
@@ -85,19 +93,23 @@ const timeAgo = (dateString: string): string => {
   });
 };
 
-const FeedPost = ({ post }: FeedPostProps) => {
+const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const { user, refreshProfile } = useAuth();
+  const [post, setPost] = useState(initialPost);
   const [isLiked, setIsLiked] = useState(false);
   const [currentReaction, setCurrentReaction] = useState<Reaction | null>(null);
   const [isSaved, setIsSaved] = useState(post.isSaved);
   const [isFollowing, setIsFollowing] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [shares, setShares] = useState(post.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const likeButtonRef = useRef<HTMLButtonElement>(null);
+
+  const isOwner = user?.id === post.author.id;
 
   // Check if user already liked this post
   useEffect(() => {
@@ -323,9 +335,25 @@ const FeedPost = ({ post }: FeedPostProps) => {
             <UserPlus className="w-3 h-3" />
             <span className="hidden sm:inline">{isFollowing ? "Đang follow" : "Follow"}</span>
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground w-7 h-7 sm:w-8 sm:h-8">
-            <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-muted-foreground w-7 h-7 sm:w-8 sm:h-8">
+                <MoreHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isOwner && (
+                <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Chỉnh sửa bài viết
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem>
+                <Bookmark className="w-4 h-4 mr-2" />
+                Lưu bài viết
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -566,6 +594,22 @@ const FeedPost = ({ post }: FeedPostProps) => {
 
       {/* Comments Section */}
       <CommentSection postId={post.id} isOpen={showComments} />
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        post={post}
+        onUpdate={(updatedPost) => {
+          setPost(prev => ({
+            ...prev,
+            content: updatedPost.content,
+            images: updatedPost.images || [],
+            location: updatedPost.location || "",
+            hashtags: updatedPost.hashtags || [],
+          }));
+        }}
+      />
     </article>
   );
 };
