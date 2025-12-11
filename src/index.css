@@ -128,20 +128,16 @@
     font-family: 'Space Grotesk', sans-serif;
   }
 
-  /* Page wrapper với overlay trắng tinh ở trung tâm */
+  /* Page wrapper với overlay trắng nhẹ ở trung tâm - thấy rõ background */
   .page-wrapper {
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      hsl(0 0% 100% / 0.97) 8%,
-      hsl(0 0% 100% / 0.99) 15%,
-      hsl(0 0% 100% / 1) 25%,
-      hsl(0 0% 100% / 1) 75%,
-      hsl(0 0% 100% / 0.99) 85%,
-      hsl(0 0% 100% / 0.97) 92%,
-      transparent 100%
-    );
+    background: transparent;
     min-height: 100vh;
+  }
+
+  /* Content area với overlay trắng nhẹ để đọc chữ */
+  .content-overlay {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(2px);
   }
 
   /* Main content với glass effect */
