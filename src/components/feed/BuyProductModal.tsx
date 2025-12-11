@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import LocationPicker from "@/components/map/LocationPicker";
 import { 
   ShoppingCart, 
   Package, 
@@ -21,7 +23,8 @@ import {
   TreeDeciduous,
   Sparkles,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  MapPin
 } from "lucide-react";
 import camlyIcon from "@/assets/camly_coin.png";
 
@@ -58,9 +61,12 @@ export default function BuyProductModal({
 }: BuyProductModalProps) {
   const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState<string>("1");
   const [deliveryOption, setDeliveryOption] = useState<string>(deliveryOptions[0] || "self_pickup");
   const [deliveryAddress, setDeliveryAddress] = useState<string>("");
+  const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
+  const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -121,6 +127,8 @@ export default function BuyProductModal({
         p_price_per_kg_vnd: priceVnd || 0,
         p_delivery_option: deliveryOption,
         p_delivery_address: deliveryOption === "nationwide" ? deliveryAddress : locationAddress || null,
+        p_delivery_lat: deliveryOption === "nationwide" ? deliveryLat : null,
+        p_delivery_lng: deliveryOption === "nationwide" ? deliveryLng : null,
       });
 
       if (error) throw error;
@@ -129,16 +137,20 @@ export default function BuyProductModal({
       await refreshProfile();
       
       toast({
-        title: "🎉 Đặt hàng thành công!",
-        description: `Bạn đã mua ${quantityNum} kg ${productName}`,
+        title: "🎉 Chúc mừng! Đặt hàng thành công!",
+        description: `Bạn đã trừ ${formatNumber(totalCamly)} CAMLY – Phước lành đang trên đường đến!`,
       });
 
+      // Redirect to feed after success
       setTimeout(() => {
         onOpenChange(false);
         setIsSuccess(false);
         setQuantity("1");
         setDeliveryAddress("");
-      }, 2000);
+        setDeliveryLat(null);
+        setDeliveryLng(null);
+        navigate('/feed');
+      }, 2500);
 
     } catch (error: any) {
       console.error("Order error:", error);
@@ -286,16 +298,20 @@ export default function BuyProductModal({
             </RadioGroup>
           </div>
 
-          {/* Delivery address (if nationwide) */}
+          {/* Delivery address with map (if nationwide) */}
           {deliveryOption === "nationwide" && (
             <div className="space-y-2">
-              <Label htmlFor="address">Địa chỉ giao hàng</Label>
-              <Textarea
-                id="address"
-                placeholder="Nhập địa chỉ đầy đủ (số nhà, đường, quận/huyện, tỉnh/thành phố)"
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                rows={3}
+              <Label className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-red-500" />
+                Chọn địa chỉ giao hàng trên bản đồ
+              </Label>
+              <LocationPicker
+                initialAddress={deliveryAddress}
+                onLocationChange={(lat, lng, addr) => {
+                  setDeliveryLat(lat);
+                  setDeliveryLng(lng);
+                  setDeliveryAddress(addr);
+                }}
               />
             </div>
           )}
