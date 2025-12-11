@@ -119,8 +119,8 @@
   body {
     @apply text-foreground antialiased;
     font-family: 'DM Sans', sans-serif;
-    background: hsl(var(--background)) url('/background-farm.jpg') no-repeat center center fixed;
-    background-size: cover;
+    background: 
+      url('/background-farm.jpg') center center / cover no-repeat fixed;
     min-height: 100vh;
   }
 
@@ -128,27 +128,55 @@
     font-family: 'Space Grotesk', sans-serif;
   }
 
-  /* Page wrapper với overlay để chữ dễ đọc */
+  /* Page wrapper với overlay trắng tinh ở trung tâm */
   .page-wrapper {
-    background: hsl(var(--background) / 0.92);
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      hsl(0 0% 100% / 0.97) 8%,
+      hsl(0 0% 100% / 0.99) 15%,
+      hsl(0 0% 100% / 1) 25%,
+      hsl(0 0% 100% / 1) 75%,
+      hsl(0 0% 100% / 0.99) 85%,
+      hsl(0 0% 100% / 0.97) 92%,
+      transparent 100%
+    );
     min-height: 100vh;
-    backdrop-filter: blur(2px);
   }
 
   /* Main content với glass effect */
   .main-content {
-    background: hsl(var(--card) / 0.88);
+    background: hsl(var(--card) / 0.95);
     border-radius: 1rem;
     box-shadow: 0 8px 32px hsl(150 30% 10% / 0.08);
-    backdrop-filter: blur(8px);
   }
 
   /* Card với glass effect */
   .glass-card {
-    background: hsl(var(--card) / 0.85);
-    backdrop-filter: blur(12px);
+    background: hsl(var(--card) / 0.92);
+    backdrop-filter: blur(8px);
     border: 1px solid hsl(var(--border) / 0.5);
   }
+}
+
+/* Hiệu ứng lá cây đu đưa trong gió */
+@keyframes sway-gentle {
+  0%, 100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateX(-1px) rotate(-0.3deg);
+  }
+  75% {
+    transform: translateX(1px) rotate(0.2deg);
+  }
+}
+
+.animate-sway {
+  animation: sway-gentle 8s ease-in-out infinite;
 }
 
 @layer components {
