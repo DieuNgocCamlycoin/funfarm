@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { 
   Leaf, 
   Heart, 
@@ -8,11 +9,14 @@ import {
   Truck,
   TreeDeciduous,
   ShoppingCart,
-  BadgeCheck
+  BadgeCheck,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import LocationDisplay from "@/components/map/LocationDisplay";
 import camlyIcon from "@/assets/camly_coin.png";
 
 interface ProductPostCardProps {
@@ -21,6 +25,8 @@ interface ProductPostCardProps {
   priceVnd?: number | null;
   quantityKg?: number | null;
   locationAddress?: string | null;
+  locationLat?: number | null;
+  locationLng?: number | null;
   deliveryOptions?: string[] | null;
   commitments?: string[] | null;
   onBuyClick?: () => void;
@@ -65,10 +71,14 @@ export default function ProductPostCard({
   priceVnd,
   quantityKg,
   locationAddress,
+  locationLat,
+  locationLng,
   deliveryOptions,
   commitments,
   onBuyClick,
 }: ProductPostCardProps) {
+  const [showMap, setShowMap] = useState(false);
+  const hasValidLocation = locationLat && locationLng;
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('vi-VN').format(num);
   };
@@ -153,11 +163,42 @@ export default function ProductPostCard({
         </div>
       )}
 
-      {/* Location */}
-      {locationAddress && (
-        <div className="flex items-start gap-2 mb-4 p-2 bg-white/50 rounded-lg">
-          <MapPin className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-gray-700">{locationAddress}</p>
+      {/* Location with Map */}
+      {(locationAddress || hasValidLocation) && (
+        <div className="mb-4">
+          {hasValidLocation ? (
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowMap(!showMap)}
+                className="flex items-center justify-between w-full p-2 bg-white/50 rounded-lg hover:bg-white/80 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-red-500 flex-shrink-0" />
+                  <p className="text-sm text-gray-700 text-left line-clamp-1">{locationAddress}</p>
+                </div>
+                {showMap ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              
+              {showMap && (
+                <LocationDisplay
+                  lat={locationLat}
+                  lng={locationLng}
+                  address={locationAddress || undefined}
+                  productName={productName}
+                  showDistance={true}
+                />
+              )}
+            </div>
+          ) : locationAddress ? (
+            <div className="flex items-start gap-2 p-2 bg-white/50 rounded-lg">
+              <MapPin className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-gray-700">{locationAddress}</p>
+            </div>
+          ) : null}
         </div>
       )}
 

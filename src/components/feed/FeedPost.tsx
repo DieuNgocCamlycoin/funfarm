@@ -453,6 +453,8 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
             priceVnd={post.price_vnd}
             quantityKg={post.quantity_kg}
             locationAddress={post.location_address}
+            locationLat={post.location_lat}
+            locationLng={post.location_lng}
             deliveryOptions={post.delivery_options}
             commitments={post.commitments}
             onBuyClick={() => {

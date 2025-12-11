@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import LocationPicker from "@/components/map/LocationPicker";
 import { 
   Leaf, 
   Heart, 
@@ -60,6 +61,8 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
   const [priceVnd, setPriceVnd] = useState("");
   const [quantity, setQuantity] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState<string[]>([]);
   const [selectedCommitments, setSelectedCommitments] = useState<string[]>([]);
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>(["#FUNFarm"]);
@@ -146,6 +149,8 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         price_vnd: priceVnd ? parseInt(priceVnd) : null,
         quantity_kg: quantity ? parseFloat(quantity) : null,
         location_address: locationAddress.trim() || null,
+        location_lat: locationLat,
+        location_lng: locationLng,
         delivery_options: selectedDelivery,
         commitments: selectedCommitments,
         images: uploadedUrls.length > 0 ? uploadedUrls : null,
@@ -266,18 +271,22 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         />
       </div>
 
-      {/* Location */}
+      {/* Location with Map */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-red-500" />
-          Vị trí
-          <span className="text-xs text-muted-foreground">(không bắt buộc)</span>
+          Vị trí vườn/trang trại
+          <span className="text-xs text-muted-foreground">(bắt buộc để khách tìm thấy)</span>
         </Label>
-        <Textarea
-          placeholder="Ví dụ: Thôn 5, xã Diên Lâm, Diên Khánh, Khánh Hòa"
-          value={locationAddress}
-          onChange={(e) => setLocationAddress(e.target.value)}
-          className="min-h-[60px]"
+        <LocationPicker
+          initialLat={locationLat || undefined}
+          initialLng={locationLng || undefined}
+          initialAddress={locationAddress}
+          onLocationChange={(lat, lng, addr) => {
+            setLocationLat(lat);
+            setLocationLng(lng);
+            setLocationAddress(addr);
+          }}
         />
       </div>
 
