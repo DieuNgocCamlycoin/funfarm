@@ -22,11 +22,10 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
     'eater': 'buyer',
     'restaurant': 'restaurant',
     'distributor': 'distributor',
-    'shipper': 'shipper',
+    'shipper': 'shipper'
   };
   return mapping[profileType] || 'farm';
 };
-
 const Feed = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -41,14 +40,13 @@ const Feed = () => {
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = false) => {
     try {
       // Fetch posts first
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(pageNum * POSTS_PER_PAGE, (pageNum + 1) * POSTS_PER_PAGE - 1);
-
+      const {
+        data: postsData,
+        error: postsError
+      } = await supabase.from('posts').select('*').order('created_at', {
+        ascending: false
+      }).range(pageNum * POSTS_PER_PAGE, (pageNum + 1) * POSTS_PER_PAGE - 1);
       if (postsError) throw postsError;
-
       if (!postsData || postsData.length === 0) {
         if (!append) setPosts([]);
         setHasMore(false);
@@ -57,8 +55,11 @@ const Feed = () => {
 
       // Get unique author IDs and fetch their public profiles using RPC function
       const authorIds = [...new Set(postsData.map(p => p.author_id))];
-      const { data: profilesData } = await supabase
-        .rpc('get_public_profiles', { user_ids: authorIds });
+      const {
+        data: profilesData
+      } = await supabase.rpc('get_public_profiles', {
+        user_ids: authorIds
+      });
 
       // Create a map for quick profile lookup
       const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || []);
@@ -79,7 +80,7 @@ const Feed = () => {
             reputationScore: profile?.reputation_score || 0,
             location: profile?.location || '',
             followers: 0,
-            following: 0,
+            following: 0
           },
           content: post.content || '',
           images: post.images || [],
@@ -92,16 +93,14 @@ const Feed = () => {
           isLiked: false,
           isSaved: false,
           location: post.location || undefined,
-          hashtags: post.hashtags || [],
+          hashtags: post.hashtags || []
         };
       });
-
       if (append) {
         setPosts(prev => [...prev, ...transformedPosts]);
       } else {
         setPosts(transformedPosts);
       }
-
       setHasMore(transformedPosts.length === POSTS_PER_PAGE);
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -121,66 +120,59 @@ const Feed = () => {
 
   // Realtime subscription for new posts
   useEffect(() => {
-    const channel = supabase
-      .channel('feed-posts')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'posts'
+    const channel = supabase.channel('feed-posts').on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'posts'
+    }, async payload => {
+      const newPost = payload.new as any;
+
+      // Fetch the author profile using RPC function
+      const {
+        data: profilesData
+      } = await supabase.rpc('get_public_profiles', {
+        user_ids: [newPost.author_id]
+      });
+      const profile = profilesData?.[0];
+      const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
+      const transformedPost: Post = {
+        id: newPost.id,
+        author: {
+          id: newPost.author_id,
+          name: displayName,
+          username: displayName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
+          avatar: profile?.avatar_url || '/logo_fun_farm_web3.png',
+          type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
+          verified: profile?.is_verified || false,
+          reputationScore: profile?.reputation_score || 0,
+          location: profile?.location || '',
+          followers: 0,
+          following: 0
         },
-        async (payload) => {
-          const newPost = payload.new as any;
-          
-          // Fetch the author profile using RPC function
-          const { data: profilesData } = await supabase
-            .rpc('get_public_profiles', { user_ids: [newPost.author_id] });
-          const profile = profilesData?.[0];
+        content: newPost.content || '',
+        images: newPost.images || [],
+        video: newPost.video_url || undefined,
+        likes: newPost.likes_count || 0,
+        comments: newPost.comments_count || 0,
+        shares: newPost.shares_count || 0,
+        saves: 0,
+        createdAt: newPost.created_at,
+        isLiked: false,
+        isSaved: false,
+        location: newPost.location || undefined,
+        hashtags: newPost.hashtags || []
+      };
 
-          const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
-          const transformedPost: Post = {
-            id: newPost.id,
-            author: {
-              id: newPost.author_id,
-              name: displayName,
-              username: displayName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
-              avatar: profile?.avatar_url || '/logo_fun_farm_web3.png',
-              type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
-              verified: profile?.is_verified || false,
-              reputationScore: profile?.reputation_score || 0,
-              location: profile?.location || '',
-              followers: 0,
-              following: 0,
-            },
-            content: newPost.content || '',
-            images: newPost.images || [],
-            video: newPost.video_url || undefined,
-            likes: newPost.likes_count || 0,
-            comments: newPost.comments_count || 0,
-            shares: newPost.shares_count || 0,
-            saves: 0,
-            createdAt: newPost.created_at,
-            isLiked: false,
-            isSaved: false,
-            location: newPost.location || undefined,
-            hashtags: newPost.hashtags || [],
-          };
-
-          // Add new post to the beginning of the list
-          setPosts(prev => {
-            // Avoid duplicates
-            if (prev.some(p => p.id === transformedPost.id)) return prev;
-            return [transformedPost, ...prev];
-          });
-
-          toast.success('Có bài viết mới! 🌱', {
-            description: `${transformedPost.author.name} vừa đăng bài`,
-          });
-        }
-      )
-      .subscribe();
-
+      // Add new post to the beginning of the list
+      setPosts(prev => {
+        // Avoid duplicates
+        if (prev.some(p => p.id === transformedPost.id)) return prev;
+        return [transformedPost, ...prev];
+      });
+      toast.success('Có bài viết mới! 🌱', {
+        description: `${transformedPost.author.name} vừa đăng bài`
+      });
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -188,21 +180,16 @@ const Feed = () => {
 
   // Infinite scroll handler
   const handleScroll = useCallback(() => {
-    if (
-      window.innerHeight + document.documentElement.scrollTop >=
-      document.documentElement.offsetHeight - 500
-    ) {
+    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 500) {
       if (!isLoadingMore && hasMore && !isLoading) {
         loadMorePosts();
       }
     }
   }, [isLoadingMore, hasMore, isLoading]);
-
   useEffect(() => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
-
   const loadMorePosts = async () => {
     setIsLoadingMore(true);
     const nextPage = page + 1;
@@ -210,15 +197,12 @@ const Feed = () => {
     setPage(nextPage);
     setIsLoadingMore(false);
   };
-
   const handleNewPost = async () => {
     // Refetch posts to get the latest
     setPage(0);
     await fetchPosts(0);
   };
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <Navbar />
       
       <main className="pt-20 pb-16">
@@ -230,12 +214,8 @@ const Feed = () => {
                 {/* Page Title */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="font-display text-2xl font-bold text-foreground">
-                      Trang Chủ
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                      Khám phá sản phẩm tươi ngon từ nông trại & biển cả
-                    </p>
+                    
+                    
                   </div>
                 </div>
 
@@ -246,58 +226,40 @@ const Feed = () => {
                 <StoryBar />
 
                 {/* Filters */}
-                <FeedFilters 
-                  activeFilter={activeFilter} 
-                  onFilterChange={setActiveFilter} 
-                />
+                <FeedFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
                 {/* Posts */}
-                {isLoading ? (
-                  <div className="flex justify-center py-12">
+                {isLoading ? <div className="flex justify-center py-12">
                     <div className="flex flex-col items-center gap-3 text-muted-foreground">
                       <Loader2 className="w-8 h-8 animate-spin text-primary" />
                       <span>Đang tải bài viết...</span>
                     </div>
-                  </div>
-                ) : posts.length === 0 ? (
-                  <div className="text-center py-12 bg-card rounded-xl border border-border">
+                  </div> : posts.length === 0 ? <div className="text-center py-12 bg-card rounded-xl border border-border">
                     <p className="text-lg text-muted-foreground">🌱 Chưa có bài viết nào!</p>
                     <p className="text-sm mt-1 text-muted-foreground">Hãy là người đầu tiên chia sẻ câu chuyện của bạn</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {posts.map((post) => (
-                      <FeedPost key={post.id} post={post} />
-                    ))}
-                  </div>
-                )}
+                  </div> : <div className="space-y-6">
+                    {posts.map(post => <FeedPost key={post.id} post={post} />)}
+                  </div>}
 
                 {/* Loading indicator */}
-                {isLoadingMore && (
-                  <div className="flex justify-center py-8">
+                {isLoadingMore && <div className="flex justify-center py-8">
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                       <span>Đang tải thêm...</span>
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* End of feed */}
-                {!hasMore && posts.length > 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                {!hasMore && posts.length > 0 && <div className="text-center py-8 text-muted-foreground">
                     <p className="text-lg">🌱 Bạn đã xem hết bảng tin rồi!</p>
                     <p className="text-sm mt-1">Quay lại sau để xem thêm bài mới nhé</p>
-                  </div>
-                )}
+                  </div>}
               </div>
 
               {/* Sidebar */}
               <div className="hidden lg:block">
                 <div className="sticky top-24">
-                  <FeedSidebar 
-                    trendingHashtags={trendingHashtags}
-                    suggestedFarms={suggestedFarms}
-                  />
+                  <FeedSidebar trendingHashtags={trendingHashtags} suggestedFarms={suggestedFarms} />
                 </div>
               </div>
             </div>
@@ -313,13 +275,7 @@ const Feed = () => {
       </div>
 
       {/* Create Post Modal */}
-      <CreatePostModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onPost={handleNewPost}
-      />
-    </div>
-  );
+      <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
+    </div>;
 };
-
 export default Feed;
