@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/hooks/useAuth';
+import WindEffects from "@/components/WindEffects";
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
@@ -19,6 +20,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <WindEffects />
         <Toaster />
         <Sonner />
         <BrowserRouter>
