@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { Camera, ZoomIn, RotateCw, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { uploadToR2 } from '@/lib/r2Upload';
 
 interface ImageCropUploadProps {
   type: 'avatar' | 'cover';
@@ -107,21 +108,16 @@ export const ImageCropUpload = ({ type, currentImage, userId, onUploadComplete }
     setIsUploading(true);
     try {
       const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
-      const fileName = `${type}_${Date.now()}.jpg`;
-      const filePath = `${userId}/${fileName}`;
+      
+      // Upload to R2 via edge function
+      const folder = type === 'avatar' ? 'avatars' : 'covers';
+      const result = await uploadToR2(croppedBlob, folder);
+      
+      if (!result.success || !result.url) {
+        throw new Error(result.error || 'Upload failed');
+      }
 
-      const { error: uploadError } = await supabase.storage
-        .from('user-uploads')
-        .upload(filePath, croppedBlob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('user-uploads')
-        .getPublicUrl(filePath);
+      const publicUrl = result.url;
 
       // Update profile with new URL
       const updateField = type === 'avatar' ? 'avatar_url' : 'cover_url';

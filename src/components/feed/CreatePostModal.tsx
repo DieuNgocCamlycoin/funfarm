@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { uploadToR2 } from "@/lib/r2Upload";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -75,23 +76,15 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
     try {
       for (let i = 0; i < files.length && images.length + newImages.length < 10; i++) {
         const file = files[i];
-        const fileName = `post_${Date.now()}_${i}.${file.name.split('.').pop()}`;
-        const filePath = `${user.id}/posts/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('user-uploads')
-          .upload(filePath, file, {
-            contentType: file.type,
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('user-uploads')
-          .getPublicUrl(filePath);
-
-        newImages.push(publicUrl);
+        
+        // Upload to R2 via edge function
+        const result = await uploadToR2(file, "posts");
+        
+        if (result.success && result.url) {
+          newImages.push(result.url);
+        } else {
+          throw new Error(result.error || "Upload failed");
+        }
       }
 
       setImages([...images, ...newImages]);
