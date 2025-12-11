@@ -352,6 +352,9 @@ export type Database = {
           id: string
           is_verified: boolean
           location: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
           pending_reward: number
           phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"]
@@ -372,6 +375,9 @@ export type Database = {
           id: string
           is_verified?: boolean
           location?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -392,6 +398,9 @@ export type Database = {
           id?: string
           is_verified?: boolean
           location?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,8 @@ import {
   TreeDeciduous,
   Camera,
   X,
-  ImagePlus
+  ImagePlus,
+  MapPinned
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToR2 } from "@/lib/r2Upload";
@@ -70,6 +71,27 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [hasSavedLocation, setHasSavedLocation] = useState(false);
+
+  // Load saved location from profile
+  useEffect(() => {
+    const loadSavedLocation = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('location_lat, location_lng, location_address')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data && data.location_lat && data.location_lng) {
+        setLocationLat(data.location_lat);
+        setLocationLng(data.location_lng);
+        setLocationAddress(data.location_address || '');
+        setHasSavedLocation(true);
+      }
+    };
+
+    loadSavedLocation();
+  }, [userId]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -158,6 +180,18 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
       });
 
       if (error) throw error;
+
+      // Save location to profile for future use
+      if (locationLat && locationLng) {
+        await supabase
+          .from('profiles')
+          .update({
+            location_lat: locationLat,
+            location_lng: locationLng,
+            location_address: locationAddress.trim() || null
+          })
+          .eq('id', userId);
+      }
 
       toast.success("🌾 Đăng bài bán hàng thành công! Phước lành đến với bạn!");
       onSuccess?.();
@@ -278,6 +312,12 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
           Vị trí vườn/trang trại
           <span className="text-xs text-muted-foreground">(bắt buộc để khách tìm thấy)</span>
         </Label>
+        {hasSavedLocation && (
+          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg text-sm">
+            <MapPinned className="h-4 w-4 text-green-600" />
+            <span className="text-green-700">Đang dùng vị trí đã lưu. Bạn có thể thay đổi bên dưới.</span>
+          </div>
+        )}
         <LocationPicker
           initialLat={locationLat || undefined}
           initialLng={locationLng || undefined}
