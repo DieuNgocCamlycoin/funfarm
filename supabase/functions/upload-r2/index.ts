@@ -94,9 +94,9 @@ serve(async (req) => {
     const endpointUrl = new URL(R2_ENDPOINT);
     const region = "auto"; // Cloudflare R2 uses "auto" for region
 
-    // Build canonical request
+    // Build canonical request - include bucket name in URI
     const method = "PUT";
-    const canonicalUri = `/${fileName}`;
+    const canonicalUri = `/${R2_BUCKET_NAME}/${fileName}`;
     const canonicalQueryString = "";
     
     // Calculate content hash
