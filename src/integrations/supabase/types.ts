@@ -440,6 +440,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_bans: {
+        Row: {
+          banned_at: string
+          created_at: string
+          expires_at: string
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          banned_at?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          banned_at?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shipper_locations: {
         Row: {
           id: string
@@ -564,6 +591,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
       process_order: {
         Args: {
           p_buyer_id: string
