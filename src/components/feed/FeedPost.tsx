@@ -35,6 +35,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FeedPostProps {
   post: Post;
@@ -105,6 +115,8 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showShareConfirm, setShowShareConfirm] = useState(false);
+  const [isRewardBanned, setIsRewardBanned] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [shares, setShares] = useState(post.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -113,7 +125,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
 
   const isOwner = user?.id === post.author.id;
 
-  // Check if user already liked this post
+  // Check if user already liked this post and if user is reward banned
   useEffect(() => {
     const checkLikeStatus = async () => {
       if (!user?.id) return;
@@ -130,7 +142,23 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         setCurrentReaction(foundReaction || reactions[0]);
       }
     };
+
+    const checkBanStatus = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('reward_bans')
+        .select('id, reason, expires_at')
+        .eq('user_id', user.id)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+      
+      if (data) {
+        setIsRewardBanned(true);
+      }
+    };
+
     checkLikeStatus();
+    checkBanStatus();
   }, [post.id, user?.id]);
 
   const handleLikeClick = async () => {
@@ -254,13 +282,27 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
     setIsFollowing(!isFollowing);
   };
 
-  const handleShare = async () => {
+  const handleShareClick = () => {
     if (!user?.id) {
       toast.error('Vui lòng đăng nhập để chia sẻ');
       return;
     }
 
+    // Show confirmation dialog first
+    setShowShareConfirm(true);
+  };
+
+  const handleShareConfirm = async () => {
+    setShowShareConfirm(false);
+    
+    if (!user?.id) return;
+
     try {
+      // Check if user is banned from rewards
+      if (isRewardBanned) {
+        toast.info('FUN FARM là nơi lan tỏa tình yêu chân thành. Bạn đang trong thời gian tạm dừng thưởng. Hãy tiếp tục gieo hạt yêu thương đúng cách nhé! ❤️', { duration: 5000 });
+      }
+
       // Check if user has already shared this post
       const { data: existingShare } = await supabase
         .from('post_shares')
@@ -271,7 +313,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
 
       const isFirstShare = !existingShare;
 
-      // Record share in database (trigger will only reward first share)
+      // Record share in database (trigger will only reward first share and check ban)
       await supabase
         .from('post_shares')
         .insert({
@@ -281,10 +323,10 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
 
       setShares(prev => prev + 1);
       
-      if (isFirstShare) {
+      if (isFirstShare && !isRewardBanned) {
         toast.success('+20.000 CAMLY cho bạn! 🎉 Cảm ơn bạn đã lan tỏa tình yêu thương!', { duration: 3000 });
         refreshProfile();
-      } else {
+      } else if (!isFirstShare) {
         toast.info('Bạn đã lan tỏa tình yêu thương cho bài này rồi! 💚', { duration: 3000 });
       }
 
@@ -604,7 +646,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
             variant="ghost" 
             size="sm" 
             className="gap-2"
-            onClick={handleShare}
+            onClick={handleShareClick}
           >
             <Share2 className="w-5 h-5" />
             <span>{formatNumber(shares)}</span>
@@ -651,6 +693,30 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
           }));
         }}
       />
+
+      {/* Share Confirmation Dialog */}
+      <AlertDialog open={showShareConfirm} onOpenChange={setShowShareConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center text-xl">💚 Lan tỏa yêu thương</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base">
+              FUN FARM là nơi chia sẻ tình yêu thương chân thành. 
+              Mỗi bài viết chỉ nhận phước lành 1 lần duy nhất.
+              <br /><br />
+              Bạn có muốn chia sẻ bài viết này với tấm lòng yêu thương không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Để sau</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleShareConfirm}
+              className="bg-primary hover:bg-primary/90"
+            >
+              💚 Tôi chia sẻ bằng tình yêu thương
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 };
