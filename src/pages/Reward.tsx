@@ -245,7 +245,7 @@ const Reward = () => {
                     onClick={connectWallet}
                     disabled={isConnecting}
                     size="lg"
-                    className="w-full gap-3 h-14 text-lg gradient-hero hover:opacity-90"
+                    className="w-full gap-3 h-14 text-lg gradient-hero hover:opacity-90 relative z-[9999]"
                   >
                     {isConnecting ? (
                       <>
@@ -307,7 +307,7 @@ const Reward = () => {
                         onClick={claimReward}
                         disabled={isClaiming}
                         size="lg"
-                        className="gap-3 h-14 px-8 text-lg bg-gradient-to-r from-accent to-primary hover:opacity-90"
+                        className="gap-3 h-14 px-8 text-lg bg-gradient-to-r from-accent to-primary hover:opacity-90 relative z-[9999]"
                       >
                         {isClaiming ? (
                           <>

@@ -413,3 +413,19 @@
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
 }
+
+/* Đảm bảo các nút quan trọng luôn hiện trên mobile */
+@media (max-width: 768px) {
+  .page-wrapper,
+  .content-overlay,
+  .main-content {
+    overflow: visible !important;
+  }
+  
+  /* Cards chứa nút */
+  .border-primary\/20,
+  .border-accent\/20 {
+    overflow: visible !important;
+    position: relative !important;
+  }
+}
