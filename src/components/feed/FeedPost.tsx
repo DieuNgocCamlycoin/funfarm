@@ -261,7 +261,17 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
     }
 
     try {
-      // Record share in database (trigger will add +20,000 CAMLY)
+      // Check if user has already shared this post
+      const { data: existingShare } = await supabase
+        .from('post_shares')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const isFirstShare = !existingShare;
+
+      // Record share in database (trigger will only reward first share)
       await supabase
         .from('post_shares')
         .insert({
@@ -270,8 +280,13 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         });
 
       setShares(prev => prev + 1);
-      toast.success('+20.000 CAMLY cho bạn! 🎉', { duration: 3000 });
-      refreshProfile();
+      
+      if (isFirstShare) {
+        toast.success('+20.000 CAMLY cho bạn! 🎉 Cảm ơn bạn đã lan tỏa tình yêu thương!', { duration: 3000 });
+        refreshProfile();
+      } else {
+        toast.info('Bạn đã lan tỏa tình yêu thương cho bài này rồi! 💚', { duration: 3000 });
+      }
 
       // Also try native share
       if (navigator.share) {
