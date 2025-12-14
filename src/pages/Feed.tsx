@@ -36,16 +36,16 @@ const Feed = () => {
   const [page, setPage] = useState(0);
   const POSTS_PER_PAGE = 10;
 
-  // Fetch posts from database
+  // Fetch posts from database with good heart priority
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = false) => {
     try {
-      // Fetch posts first
-      const {
-        data: postsData,
-        error: postsError
-      } = await supabase.from('posts').select('*').order('created_at', {
-        ascending: false
-      }).range(pageNum * POSTS_PER_PAGE, (pageNum + 1) * POSTS_PER_PAGE - 1);
+      // Use RPC function to get posts with good heart priority
+      const { data: postsData, error: postsError } = await supabase
+        .rpc('get_feed_posts', {
+          p_limit: POSTS_PER_PAGE,
+          p_offset: pageNum * POSTS_PER_PAGE
+        });
+
       if (postsError) throw postsError;
       if (!postsData || postsData.length === 0) {
         if (!append) setPosts([]);
@@ -54,10 +54,8 @@ const Feed = () => {
       }
 
       // Get unique author IDs and fetch their public profiles using RPC function
-      const authorIds = [...new Set(postsData.map(p => p.author_id))];
-      const {
-        data: profilesData
-      } = await supabase.rpc('get_public_profiles', {
+      const authorIds = [...new Set(postsData.map((p: any) => p.author_id))];
+      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
         user_ids: authorIds
       });
 
@@ -80,7 +78,8 @@ const Feed = () => {
             reputationScore: profile?.reputation_score || 0,
             location: profile?.location || '',
             followers: 0,
-            following: 0
+            following: 0,
+            isGoodHeart: post.author_is_good_heart || false
           },
           content: post.content || '',
           images: post.images || [],

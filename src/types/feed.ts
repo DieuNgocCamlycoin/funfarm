@@ -11,6 +11,7 @@ export interface User {
   location: string;
   followers: number;
   following: number;
+  isGoodHeart?: boolean;
 }
 
 export interface Product {

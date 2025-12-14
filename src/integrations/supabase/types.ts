@@ -695,6 +695,34 @@ export type Database = {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
       }
+      get_feed_posts: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          author_id: string
+          author_is_good_heart: boolean
+          comments_count: number
+          commitments: string[]
+          content: string
+          created_at: string
+          delivery_options: string[]
+          hashtags: string[]
+          id: string
+          images: string[]
+          is_product_post: boolean
+          likes_count: number
+          location: string
+          location_address: string
+          location_lat: number
+          location_lng: number
+          post_type: string
+          price_camly: number
+          price_vnd: number
+          product_name: string
+          quantity_kg: number
+          shares_count: number
+          video_url: string
+        }[]
+      }
       get_public_profiles: {
         Args: { user_ids: string[] }
         Returns: {
