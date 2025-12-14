@@ -7,6 +7,8 @@ import { ProfileCreatePost } from "@/components/profile/ProfileCreatePost";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GoodHeartBadge } from "@/components/GoodHeartBadge";
+import { ViolationWarning } from "@/components/ViolationWarning";
 import { 
   MapPin, 
   Calendar, 
@@ -258,6 +260,9 @@ const Profile = () => {
                   </h1>
                   {profile?.is_verified && (
                     <BadgeCheck className="w-6 h-6 text-primary fill-primary/20" />
+                  )}
+                  {(profile as any)?.is_good_heart && (
+                    <GoodHeartBadge since={(profile as any)?.good_heart_since} size="md" />
                   )}
                 </div>
 
