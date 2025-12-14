@@ -117,10 +117,63 @@ export const useRealtimeNotifications = () => {
       )
       .subscribe();
 
+    // Listen for friendship status changes (realtime friend updates)
+    const friendshipChannel = supabase
+      .channel('friendship-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'followers',
+          filter: `follower_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newData = payload.new as any;
+          const oldData = payload.old as any;
+          
+          // When someone accepts our friend request
+          if (oldData.status === 'pending' && newData.status === 'accepted') {
+            toast.success(
+              '🎉 Yêu cầu kết bạn đã được chấp nhận!',
+              { 
+                duration: 6000,
+                description: '+10.000 CAMLY đã được cộng vào tài khoản'
+              }
+            );
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'followers',
+          filter: `following_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newData = payload.new as any;
+          
+          // When someone sends us a friend request
+          if (newData.status === 'pending') {
+            toast.info(
+              '👋 Bạn có yêu cầu kết bạn mới!',
+              { 
+                duration: 5000,
+                description: 'Kiểm tra trong phần thông báo hoặc trang cá nhân'
+              }
+            );
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(violationsChannel);
       supabase.removeChannel(bonusChannel);
       supabase.removeChannel(profileChannel);
+      supabase.removeChannel(friendshipChannel);
     };
   }, [user?.id]);
 };
