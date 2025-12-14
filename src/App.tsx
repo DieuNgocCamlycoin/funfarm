@@ -10,6 +10,7 @@ import { RealtimeNotificationsProvider } from "@/components/RealtimeNotification
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
+import UserProfile from "./pages/UserProfile";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import Reward from "./pages/Reward";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/feed" element={<Feed />} />
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/user/:userId" element={<UserProfile />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/profile-setup" element={<ProfileSetup />} />
               <Route path="/reward" element={<Reward />} />

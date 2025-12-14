@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Post } from "@/types/feed";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -352,7 +353,10 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
     <article className="bg-card rounded-2xl shadow-card border border-border overflow-hidden transition-all duration-300 hover:shadow-soft">
       {/* Header */}
       <div className="p-3 sm:p-4 flex items-start sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+        <Link 
+          to={`/user/${post.author.id}`}
+          className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+        >
           <div className="relative flex-shrink-0">
             <img 
               src={post.author.avatar} 
@@ -388,7 +392,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
               <span className="flex-shrink-0">{timeAgo(post.createdAt)}</span>
             </div>
           </div>
-        </div>
+        </Link>
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <Button
             variant={isFollowing ? "secondary" : "outline"}

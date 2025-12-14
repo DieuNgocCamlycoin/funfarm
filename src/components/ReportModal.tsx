@@ -28,7 +28,8 @@ interface ReportModalProps {
   postId?: string;
   commentId?: string;
   reportedUserId: string;
-  reportedUserName: string;
+  reportedUserName?: string;
+  contentType?: 'post' | 'comment' | 'user';
 }
 
 const REPORT_TYPES = [
@@ -46,14 +47,15 @@ export const ReportModal = ({
   commentId,
   reportedUserId,
   reportedUserName,
+  contentType = 'post',
 }: ReportModalProps) => {
   const { user } = useAuth();
-  const [reportType, setReportType] = useState("");
+  const [selectedReportType, setSelectedReportType] = useState("");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!reportType) {
+    if (!selectedReportType) {
       toast.error("Vui lòng chọn loại vi phạm");
       return;
     }
@@ -70,7 +72,7 @@ export const ReportModal = ({
         reported_user_id: reportedUserId,
         post_id: postId || null,
         comment_id: commentId || null,
-        report_type: reportType,
+        report_type: selectedReportType,
         reason: reason.trim() || null,
       });
 
@@ -80,7 +82,7 @@ export const ReportModal = ({
         duration: 4000,
       });
       onClose();
-      setReportType("");
+      setSelectedReportType("");
       setReason("");
     } catch (error) {
       console.error("Error submitting report:", error);
@@ -99,13 +101,15 @@ export const ReportModal = ({
             Báo cáo vi phạm
           </DialogTitle>
           <DialogDescription>
-            Báo cáo {commentId ? "bình luận" : "bài viết"} của{" "}
-            <span className="font-medium text-foreground">{reportedUserName}</span>
+            {contentType === 'user' 
+              ? "Báo cáo người dùng này"
+              : `Báo cáo ${commentId ? "bình luận" : "bài viết"}${reportedUserName ? ` của ${reportedUserName}` : ""}`
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <RadioGroup value={reportType} onValueChange={setReportType}>
+          <RadioGroup value={selectedReportType} onValueChange={setSelectedReportType}>
             {REPORT_TYPES.map((type) => (
               <div
                 key={type.id}
@@ -142,7 +146,7 @@ export const ReportModal = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!reportType || isSubmitting}
+            disabled={!selectedReportType || isSubmitting}
             className="flex-1 bg-destructive hover:bg-destructive/90"
           >
             {isSubmitting ? (
