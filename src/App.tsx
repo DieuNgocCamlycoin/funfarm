@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/hooks/useAuth';
+import { RealtimeNotificationsProvider } from "@/components/RealtimeNotificationsProvider";
 
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
@@ -23,28 +24,29 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Feed />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profile-setup" element={<ProfileSetup />} />
-            <Route path="/reward" element={<Reward />} />
-            <Route path="/shipper" element={<ShipperDashboard />} />
-            <Route path="/shipper/register" element={<ShipperRegister />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/love-rules" element={<LoveRules />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <RealtimeNotificationsProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Feed />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/welcome" element={<Welcome />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profile-setup" element={<ProfileSetup />} />
+              <Route path="/reward" element={<Reward />} />
+              <Route path="/shipper" element={<ShipperDashboard />} />
+              <Route path="/shipper/register" element={<ShipperRegister />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/love-rules" element={<LoveRules />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </RealtimeNotificationsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
