@@ -67,9 +67,10 @@ interface Post {
 
 interface Stats {
   postsCount: number;
-  followersCount: number;
-  followingCount: number;
+  friendsCount: number;
 }
+
+type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'accepted';
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -79,10 +80,10 @@ const UserProfile = () => {
   const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState<Post[]>([]);
-  const [stats, setStats] = useState<Stats>({ postsCount: 0, followersCount: 0, followingCount: 0 });
+  const [stats, setStats] = useState<Stats>({ postsCount: 0, friendsCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('none');
+  const [friendshipLoading, setFriendshipLoading] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // Redirect to own profile if viewing self
@@ -134,34 +135,45 @@ const UserProfile = () => {
         if (postsError) throw postsError;
         setPosts(postsData || []);
 
-        // Fetch followers count
-        const { count: followersCount } = await supabase
+        // Fetch friends count (accepted friendships where user is either follower or following)
+        const { count: friendsCount } = await supabase
           .from('followers')
           .select('*', { count: 'exact', head: true })
-          .eq('following_id', userId);
-
-        // Fetch following count
-        const { count: followingCount } = await supabase
-          .from('followers')
-          .select('*', { count: 'exact', head: true })
-          .eq('follower_id', userId);
+          .eq('status', 'accepted')
+          .or(`follower_id.eq.${userId},following_id.eq.${userId}`);
 
         setStats({
           postsCount: postsData?.length || 0,
-          followersCount: followersCount || 0,
-          followingCount: followingCount || 0,
+          friendsCount: friendsCount || 0,
         });
 
-        // Check if current user is following this user
+        // Check friendship status with current user
         if (user?.id) {
-          const { data: followData } = await supabase
+          // Check if current user sent a request to this user
+          const { data: sentRequest } = await supabase
             .from('followers')
-            .select('id')
+            .select('id, status')
             .eq('follower_id', user.id)
             .eq('following_id', userId)
             .maybeSingle();
           
-          setIsFollowing(!!followData);
+          // Check if this user sent a request to current user
+          const { data: receivedRequest } = await supabase
+            .from('followers')
+            .select('id, status')
+            .eq('follower_id', userId)
+            .eq('following_id', user.id)
+            .maybeSingle();
+
+          if (sentRequest?.status === 'accepted' || receivedRequest?.status === 'accepted') {
+            setFriendshipStatus('accepted');
+          } else if (sentRequest?.status === 'pending') {
+            setFriendshipStatus('pending_sent');
+          } else if (receivedRequest?.status === 'pending') {
+            setFriendshipStatus('pending_received');
+          } else {
+            setFriendshipStatus('none');
+          }
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -174,42 +186,75 @@ const UserProfile = () => {
     fetchData();
   }, [userId, user?.id, navigate]);
 
-  const handleFollow = async () => {
+  const handleFriendAction = async (action: 'add' | 'cancel' | 'accept' | 'unfriend') => {
     if (!user?.id || !userId) {
-      toast.error('Vui lòng đăng nhập để theo dõi');
+      toast.error('Vui lòng đăng nhập để kết bạn');
       return;
     }
 
-    setFollowLoading(true);
+    setFriendshipLoading(true);
     try {
-      if (isFollowing) {
-        // Unfollow
-        const { error } = await supabase
-          .from('followers')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', userId);
+      switch (action) {
+        case 'add':
+          // Send friend request
+          const { error: addError } = await supabase
+            .from('followers')
+            .insert({ follower_id: user.id, following_id: userId, status: 'pending' });
+          if (addError) throw addError;
+          setFriendshipStatus('pending_sent');
+          toast.success('Đã gửi lời mời kết bạn');
+          break;
 
-        if (error) throw error;
-        setIsFollowing(false);
-        setStats(prev => ({ ...prev, followersCount: prev.followersCount - 1 }));
-        toast.success('Đã bỏ theo dõi');
-      } else {
-        // Follow
-        const { error } = await supabase
-          .from('followers')
-          .insert({ follower_id: user.id, following_id: userId });
+        case 'cancel':
+          // Cancel sent request
+          const { error: cancelError } = await supabase
+            .from('followers')
+            .delete()
+            .eq('follower_id', user.id)
+            .eq('following_id', userId);
+          if (cancelError) throw cancelError;
+          setFriendshipStatus('none');
+          toast.success('Đã hủy lời mời kết bạn');
+          break;
 
-        if (error) throw error;
-        setIsFollowing(true);
-        setStats(prev => ({ ...prev, followersCount: prev.followersCount + 1 }));
-        toast.success('Đã theo dõi');
+        case 'accept':
+          // Accept received request
+          const { error: acceptError } = await supabase
+            .from('followers')
+            .update({ status: 'accepted' })
+            .eq('follower_id', userId)
+            .eq('following_id', user.id);
+          if (acceptError) throw acceptError;
+          setFriendshipStatus('accepted');
+          setStats(prev => ({ ...prev, friendsCount: prev.friendsCount + 1 }));
+          toast.success('Đã chấp nhận lời mời kết bạn');
+          break;
+
+        case 'unfriend':
+          // Remove friendship (delete from both directions)
+          const { error: unfriendError1 } = await supabase
+            .from('followers')
+            .delete()
+            .eq('follower_id', user.id)
+            .eq('following_id', userId);
+          
+          const { error: unfriendError2 } = await supabase
+            .from('followers')
+            .delete()
+            .eq('follower_id', userId)
+            .eq('following_id', user.id);
+          
+          if (unfriendError1 && unfriendError2) throw unfriendError1;
+          setFriendshipStatus('none');
+          setStats(prev => ({ ...prev, friendsCount: Math.max(0, prev.friendsCount - 1) }));
+          toast.success('Đã hủy kết bạn');
+          break;
       }
     } catch (error) {
-      console.error('Error following/unfollowing:', error);
+      console.error('Error with friend action:', error);
       toast.error('Có lỗi xảy ra');
     } finally {
-      setFollowLoading(false);
+      setFriendshipLoading(false);
     }
   };
 
@@ -242,8 +287,8 @@ const UserProfile = () => {
       verified: userProfile.is_verified,
       reputationScore: userProfile.reputation_score,
       location: userProfile.location || '',
-      followers: stats.followersCount,
-      following: stats.followingCount,
+      followers: stats.friendsCount,
+      following: stats.friendsCount,
       isGoodHeart: userProfile.is_good_heart,
     },
     content: post.content || '',
@@ -334,25 +379,75 @@ const UserProfile = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-2 pb-4">
-                <Button 
-                  onClick={handleFollow}
-                  disabled={followLoading}
-                  className={isFollowing ? "bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground" : "gradient-hero border-0"}
-                >
-                  {followLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : isFollowing ? (
-                    <>
-                      <UserMinus className="w-4 h-4 mr-2" />
-                      Đang theo dõi
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Theo dõi
-                    </>
-                  )}
-                </Button>
+                {friendshipStatus === 'none' && (
+                  <Button 
+                    onClick={() => handleFriendAction('add')}
+                    disabled={friendshipLoading}
+                    className="gradient-hero border-0"
+                  >
+                    {friendshipLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Kết bạn
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {friendshipStatus === 'pending_sent' && (
+                  <Button 
+                    onClick={() => handleFriendAction('cancel')}
+                    disabled={friendshipLoading}
+                    variant="outline"
+                    className="border-primary text-primary"
+                  >
+                    {friendshipLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2" />
+                        Đã gửi lời mời
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {friendshipStatus === 'pending_received' && (
+                  <Button 
+                    onClick={() => handleFriendAction('accept')}
+                    disabled={friendshipLoading}
+                    className="gradient-hero border-0"
+                  >
+                    {friendshipLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Chấp nhận lời mời
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {friendshipStatus === 'accepted' && (
+                  <Button 
+                    onClick={() => handleFriendAction('unfriend')}
+                    disabled={friendshipLoading}
+                    className="bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    {friendshipLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4 mr-2" />
+                        Bạn bè
+                      </>
+                    )}
+                  </Button>
+                )}
+                
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -371,12 +466,8 @@ const UserProfile = () => {
                 <div className="text-sm text-muted-foreground">Bài viết</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold text-foreground">{stats.followersCount}</div>
-                <div className="text-sm text-muted-foreground">Người theo dõi</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-foreground">{stats.followingCount}</div>
-                <div className="text-sm text-muted-foreground">Đang theo dõi</div>
+                <div className="text-xl font-bold text-foreground">{stats.friendsCount}</div>
+                <div className="text-sm text-muted-foreground">Bạn bè</div>
               </div>
             </div>
 
