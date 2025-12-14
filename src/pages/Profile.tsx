@@ -27,6 +27,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageCropUpload } from "@/components/profile/ImageCropUpload";
 import { CoverPhotoEditor } from "@/components/profile/CoverPhotoEditor";
+import { FriendRequests } from "@/components/FriendRequests";
+import { FriendsList } from "@/components/FriendsList";
 
 const profileTypeLabels: Record<string, { emoji: string; label: string }> = {
   farmer: { emoji: '🧑‍🌾', label: 'Nông dân' },
@@ -54,15 +56,14 @@ interface Post {
 
 interface Stats {
   postsCount: number;
-  followersCount: number;
-  followingCount: number;
+  friendsCount: number;
 }
 
 const Profile = () => {
   const { profile, user, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState<Post[]>([]);
-  const [stats, setStats] = useState<Stats>({ postsCount: 0, followersCount: 0, followingCount: 0 });
+  const [stats, setStats] = useState<Stats>({ postsCount: 0, friendsCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -88,26 +89,22 @@ const Profile = () => {
         if (postsError) throw postsError;
         setPosts(postsData || []);
 
-        // Fetch followers count
-        const { count: followersCount, error: followersError } = await supabase
+        // Fetch friends count (accepted friendships)
+        const { count: friendsAsFollower } = await supabase
           .from('followers')
           .select('*', { count: 'exact', head: true })
-          .eq('following_id', user.id);
+          .eq('follower_id', user.id)
+          .eq('status', 'accepted');
 
-        if (followersError) throw followersError;
-
-        // Fetch following count
-        const { count: followingCount, error: followingError } = await supabase
+        const { count: friendsAsFollowing } = await supabase
           .from('followers')
           .select('*', { count: 'exact', head: true })
-          .eq('follower_id', user.id);
-
-        if (followingError) throw followingError;
+          .eq('following_id', user.id)
+          .eq('status', 'accepted');
 
         setStats({
           postsCount: postsData?.length || 0,
-          followersCount: followersCount || 0,
-          followingCount: followingCount || 0,
+          friendsCount: (friendsAsFollower || 0) + (friendsAsFollowing || 0),
         });
 
         // Fetch cover_url from profile
@@ -187,8 +184,8 @@ const Profile = () => {
       verified: profile?.is_verified || false,
       reputationScore: profile?.reputation_score || 0,
       location: profile?.location || '',
-      followers: stats.followersCount,
-      following: stats.followingCount,
+      followers: stats.friendsCount,
+      following: stats.friendsCount,
     },
     content: post.content || '',
     images: post.images || [],
@@ -337,15 +334,9 @@ const Profile = () => {
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-foreground">
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : stats.followersCount}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : stats.friendsCount}
                 </div>
-                <div className="text-sm text-muted-foreground">Người theo dõi</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-foreground">
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : stats.followingCount}
-                </div>
-                <div className="text-sm text-muted-foreground">Đang theo dõi</div>
+                <div className="text-sm text-muted-foreground">Bạn bè</div>
               </div>
               <div className="text-center ml-auto">
                 <div className="text-xl font-bold text-accent">{totalCamly.toLocaleString()}</div>
@@ -451,11 +442,9 @@ const Profile = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="friends" className="mt-6">
-              <div className="bg-card rounded-xl border border-border p-6 text-center text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Tính năng bạn bè đang được phát triển!</p>
-              </div>
+            <TabsContent value="friends" className="mt-6 space-y-6">
+              <FriendRequests />
+              <FriendsList />
             </TabsContent>
 
             <TabsContent value="photos" className="mt-6">
