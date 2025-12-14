@@ -9,6 +9,7 @@ import EditPostModal from "./EditPostModal";
 import BuyProductModal from "./BuyProductModal";
 import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
+import { ReportModal } from "@/components/ReportModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ import {
   Send,
   Download,
   Pencil,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -118,6 +120,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showShareConfirm, setShowShareConfirm] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [isRewardBanned, setIsRewardBanned] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [shares, setShares] = useState(post.shares);
@@ -416,6 +419,15 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
                 <Bookmark className="w-4 h-4 mr-2" />
                 Lưu bài viết
               </DropdownMenuItem>
+              {!isOwner && (
+                <DropdownMenuItem 
+                  onClick={() => setShowReportModal(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Flag className="w-4 h-4 mr-2" />
+                  Báo cáo vi phạm
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -735,6 +747,15 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        postId={post.id}
+        reportedUserId={post.author.id}
+        reportedUserName={post.author.name}
+      />
     </article>
   );
 };
