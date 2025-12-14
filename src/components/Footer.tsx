@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Twitter, Github, MessageCircle } from "lucide-react";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useTranslation } from "react-i18next";
@@ -67,6 +68,7 @@ const Footer = () => {
               <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.privacyPolicy')}</a></li>
               <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.termsOfService')}</a></li>
               <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">{t('footer.cookiePolicy')}</a></li>
+              <li><Link to="/love-rules" className="text-muted-foreground hover:text-primary transition-colors">❤️ Quy tắc tình yêu thương</Link></li>
             </ul>
           </div>
         </div>

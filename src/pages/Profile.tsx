@@ -66,8 +66,10 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [banInfo, setBanInfo] = useState<{ expires_at: string; reason: string } | null>(null);
 
   const roleInfo = profileTypeLabels[profile?.profile_type || 'farmer'];
+  const violationLevel = (profile as any)?.violation_level || 0;
 
   // Fetch real stats and posts
   useEffect(() => {
@@ -126,6 +128,21 @@ const Profile = () => {
     };
 
     fetchData();
+
+    // Fetch ban info if any
+    const fetchBanInfo = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('reward_bans')
+        .select('expires_at, reason')
+        .eq('user_id', user.id)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+      if (data) {
+        setBanInfo(data);
+      }
+    };
+    fetchBanInfo();
   }, [user?.id]);
 
   // Update avatar when profile changes
@@ -194,6 +211,16 @@ const Profile = () => {
       <Navbar />
       
       <main className="pt-16">
+        {/* Violation Warning */}
+        {violationLevel > 0 && (
+          <div className="container max-w-5xl mx-auto px-4 pt-4">
+            <ViolationWarning 
+              level={violationLevel} 
+              expiresAt={banInfo?.expires_at} 
+              reason={banInfo?.reason} 
+            />
+          </div>
+        )}
         {/* Cover Photo - Facebook Style với chiều cao lớn hơn */}
         <div className="relative h-64 md:h-80 lg:h-96 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 overflow-hidden">
           {coverUrl ? (
