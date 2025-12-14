@@ -179,6 +179,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          comment_id: string | null
+          content: string
+          created_at: string
+          from_user_id: string | null
+          id: string
+          post_id: string | null
+          read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          comment_id?: string | null
+          content: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          post_id?: string | null
+          read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string | null
+          content?: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          post_id?: string | null
+          read?: boolean
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           buyer_id: string
