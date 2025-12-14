@@ -142,6 +142,19 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
     setIsPosting(true);
     
     try {
+      // Check content with AI before posting
+      const checkResponse = await supabase.functions.invoke('check-content', {
+        body: { content: content.trim(), type: 'post' }
+      });
+
+      if (checkResponse.data && !checkResponse.data.isValid) {
+        toast.error(checkResponse.data.reason || 'Nội dung không phù hợp với cộng đồng FUN FARM ❤️', { 
+          duration: 4000 
+        });
+        setIsPosting(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('posts')
         .insert({
