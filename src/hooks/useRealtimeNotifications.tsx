@@ -1,0 +1,126 @@
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+export const useRealtimeNotifications = () => {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Listen for violation warnings
+    const violationsChannel = supabase
+      .channel('user-violations')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_violations',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const violation = payload.new as any;
+          const level = violation.violation_count || 1;
+          
+          if (level === 1) {
+            toast.warning(
+              'Bạn ơi, hãy lan tỏa tình yêu chân thành nhé ❤️',
+              { 
+                duration: 6000,
+                description: 'Tài khoản bị tạm ngưng thưởng 7 ngày'
+              }
+            );
+          } else if (level === 2) {
+            toast.error(
+              'Cảnh báo vi phạm lần 2',
+              { 
+                duration: 8000,
+                description: 'Tài khoản bị tạm ngưng thưởng 30 ngày'
+              }
+            );
+          } else {
+            toast.error(
+              'FUN FARM chỉ dành cho trái tim lương thiện',
+              { 
+                duration: 10000,
+                description: 'Tài khoản của bạn đã bị khóa vĩnh viễn vì lạm dụng'
+              }
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Listen for bonus request updates
+    const bonusChannel = supabase
+      .channel('bonus-requests')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bonus_requests',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const request = payload.new as any;
+          
+          if (request.status === 'approved') {
+            toast.success(
+              '🎉 Bài viết của bạn đã được duyệt bonus +50%!',
+              { 
+                duration: 6000,
+                description: `+${(request.bonus_amount || 5000).toLocaleString()} CAMLY đã được cộng vào tài khoản`
+              }
+            );
+          } else if (request.status === 'rejected') {
+            toast.info(
+              'Cảm ơn bạn đã gửi bài!',
+              { 
+                duration: 5000,
+                description: 'Lần sau kể thêm câu chuyện từ trái tim để nhận bonus nhé ❤️'
+              }
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Listen for good heart badge
+    const profileChannel = supabase
+      .channel('profile-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        },
+        (payload) => {
+          const oldProfile = payload.old as any;
+          const newProfile = payload.new as any;
+          
+          // Check if user just got good heart badge
+          if (!oldProfile.is_good_heart && newProfile.is_good_heart) {
+            toast.success(
+              '💖 Chúc mừng! Bạn đã nhận huy hiệu "Trái tim lương thiện"!',
+              { 
+                duration: 8000,
+                description: 'Cảm ơn bạn đã lan tỏa tình yêu chân thành trong 30 ngày qua'
+              }
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(violationsChannel);
+      supabase.removeChannel(bonusChannel);
+      supabase.removeChannel(profileChannel);
+    };
+  }, [user?.id]);
+};
