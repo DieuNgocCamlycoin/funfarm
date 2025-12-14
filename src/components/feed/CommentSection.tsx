@@ -110,6 +110,19 @@ const CommentSection = ({ postId, isOpen }: CommentSectionProps) => {
     
     setIsSubmitting(true);
     try {
+      // Check content with AI before commenting
+      const checkResponse = await supabase.functions.invoke('check-content', {
+        body: { content: newComment.trim(), type: 'comment' }
+      });
+
+      if (checkResponse.data && !checkResponse.data.isValid) {
+        toast.error(checkResponse.data.reason || 'Bình luận không phù hợp. Hãy lan tỏa tình yêu chân thành nhé ❤️', { 
+          duration: 4000 
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('comments')
         .insert({
