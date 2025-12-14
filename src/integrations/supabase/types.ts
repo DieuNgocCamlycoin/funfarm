@@ -491,6 +491,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reward_tracking: {
+        Row: {
+          action_type: string
+          id: string
+          post_id: string
+          rewarded_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          id?: string
+          post_id: string
+          rewarded_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          id?: string
+          post_id?: string
+          rewarded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
