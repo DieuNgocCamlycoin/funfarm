@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      blacklisted_wallets: {
+        Row: {
+          blacklisted_at: string
+          id: string
+          is_permanent: boolean
+          reason: string
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          blacklisted_at?: string
+          id?: string
+          is_permanent?: boolean
+          reason: string
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          blacklisted_at?: string
+          id?: string
+          is_permanent?: boolean
+          reason?: string
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      bonus_requests: {
+        Row: {
+          bonus_amount: number
+          created_at: string
+          id: string
+          post_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          bonus_amount?: number
+          created_at?: string
+          id?: string
+          post_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          bonus_amount?: number
+          created_at?: string
+          id?: string
+          post_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           author_id: string
@@ -349,8 +409,11 @@ export type Database = {
           cover_url: string | null
           created_at: string
           display_name: string | null
+          good_heart_since: string | null
           id: string
+          is_good_heart: boolean
           is_verified: boolean
+          last_violation_at: string | null
           location: string | null
           location_address: string | null
           location_lat: number | null
@@ -361,6 +424,7 @@ export type Database = {
           referral_code: string | null
           reputation_score: number
           updated_at: string
+          violation_level: number
           wallet_address: string
           wallet_connected: boolean
           welcome_bonus_claimed: boolean
@@ -372,8 +436,11 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          good_heart_since?: string | null
           id: string
+          is_good_heart?: boolean
           is_verified?: boolean
+          last_violation_at?: string | null
           location?: string | null
           location_address?: string | null
           location_lat?: number | null
@@ -384,6 +451,7 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          violation_level?: number
           wallet_address: string
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
@@ -395,8 +463,11 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          good_heart_since?: string | null
           id?: string
+          is_good_heart?: boolean
           is_verified?: boolean
+          last_violation_at?: string | null
           location?: string | null
           location_address?: string | null
           location_lat?: number | null
@@ -407,6 +478,7 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          violation_level?: number
           wallet_address?: string
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
@@ -533,6 +605,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_violations: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          user_id: string
+          violation_count: number
+          violation_type: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          user_id: string
+          violation_count?: number
+          violation_type: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          user_id?: string
+          violation_count?: number
+          violation_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_profiles: {
@@ -588,6 +687,10 @@ export type Database = {
         Returns: undefined
       }
       calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
+      check_spam_behavior: {
+        Args: { p_action_type: string; p_user_id: string }
+        Returns: boolean
+      }
       complete_delivery: {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
@@ -616,6 +719,7 @@ export type Database = {
         Returns: boolean
       }
       is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
+      is_wallet_blacklisted: { Args: { p_wallet: string }; Returns: boolean }
       process_order: {
         Args: {
           p_buyer_id: string
@@ -632,6 +736,7 @@ export type Database = {
         }
         Returns: string
       }
+      update_good_heart_badge: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "shipper"
