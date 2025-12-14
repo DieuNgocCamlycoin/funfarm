@@ -8,6 +8,7 @@ import ProductPostCard from "./ProductPostCard";
 import EditPostModal from "./EditPostModal";
 import BuyProductModal from "./BuyProductModal";
 import { BonusRequestButton } from "@/components/BonusRequestButton";
+import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -370,6 +371,9 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
               <h3 className="font-display font-semibold text-foreground text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">{post.author.name}</h3>
               {post.author.verified && (
                 <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary fill-primary/20 flex-shrink-0" />
+              )}
+              {post.author.isGoodHeart && (
+                <GoodHeartBadge size="sm" />
               )}
               <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 hidden xs:inline-flex">
                 ⭐ {post.author.reputationScore}
