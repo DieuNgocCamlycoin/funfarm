@@ -7,6 +7,7 @@ import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
 import ProductPostCard from "./ProductPostCard";
 import EditPostModal from "./EditPostModal";
 import BuyProductModal from "./BuyProductModal";
+import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -674,6 +675,19 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
           )} />
         </Button>
       </div>
+
+      {/* Bonus Request Button - for quality posts owned by current user */}
+      {isOwner && (
+        <div className="px-4 pb-3">
+          <BonusRequestButton
+            postId={post.id}
+            userId={user?.id || ''}
+            hasLocation={!!(post.location || post.location_address)}
+            hasImages={post.images.length > 0}
+            hasContent={post.content.length > 50}
+          />
+        </div>
+      )}
 
       {/* Comments Section */}
       <CommentSection postId={post.id} isOpen={showComments} />
