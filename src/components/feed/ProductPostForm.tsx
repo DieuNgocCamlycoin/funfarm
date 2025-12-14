@@ -145,6 +145,25 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
     setIsSubmitting(true);
 
     try {
+      // Build content for AI check
+      let contentToCheck = `${productName.trim()}`;
+      if (story.trim()) {
+        contentToCheck += ` - ${story.trim()}`;
+      }
+
+      // Check content with AI before posting
+      const checkResponse = await supabase.functions.invoke('check-content', {
+        body: { content: contentToCheck, type: 'post' }
+      });
+
+      if (checkResponse.data && !checkResponse.data.isValid) {
+        toast.error(checkResponse.data.reason || 'Nội dung không phù hợp với cộng đồng FUN FARM ❤️', { 
+          duration: 4000 
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Upload images
       const uploadedUrls: string[] = [];
       for (const image of images) {
