@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, ArrowLeft, Trophy, Medal, Star, TrendingUp, Users, FileText, MessageCircle, Share2 } from "lucide-react";
+import { Crown, ArrowLeft, Trophy, Medal, Star, TrendingUp, Users, FileText, MessageCircle, Share2, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import Navbar from "@/components/Navbar";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import camlyCoin from "@/assets/camly_coin.png";
+
+interface RewardBan {
+  expires_at: string;
+  reason: string;
+}
 
 interface LeaderboardUser {
   id: string;
@@ -24,6 +29,7 @@ interface LeaderboardUser {
   profile_type: string;
   reputation_score: number;
   created_at: string;
+  reward_ban?: RewardBan | null;
 }
 
 interface UserStats {
@@ -171,6 +177,19 @@ const Leaderboard = () => {
 
       if (error) throw error;
 
+      // Fetch active reward bans for all users
+      const userIds = (data || []).map(u => u.id);
+      const { data: bansData } = await supabase
+        .from("reward_bans")
+        .select("user_id, expires_at, reason")
+        .in("user_id", userIds)
+        .gt("expires_at", new Date().toISOString());
+
+      const bansMap = new Map<string, RewardBan>();
+      (bansData || []).forEach(ban => {
+        bansMap.set(ban.user_id, { expires_at: ban.expires_at, reason: ban.reason });
+      });
+
       const transformedUsers: LeaderboardUser[] = (data || []).map((user) => ({
         id: user.id,
         display_name: user.display_name || "Nông dân FUN",
@@ -180,6 +199,7 @@ const Leaderboard = () => {
         profile_type: user.profile_type || "eater",
         reputation_score: user.reputation_score || 0,
         created_at: user.created_at,
+        reward_ban: bansMap.get(user.id) || null,
       }));
 
       transformedUsers.sort((a, b) => b.total_reward - a.total_reward);
@@ -388,6 +408,14 @@ const Leaderboard = () => {
                           {user.display_name}
                         </span>
                         <ProfileTypeBadge type={user.profile_type} />
+                        {user.reward_ban && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs animate-pulse"
+                            style={{ background: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.5)' }}
+                            title={`Khóa thưởng đến: ${new Date(user.reward_ban.expires_at).toLocaleDateString('vi-VN')}`}>
+                            <AlertTriangle className="w-3 h-3" />
+                            Khóa thưởng
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-yellow-100/60 mt-0.5">
                         Điểm uy tín: {user.reputation_score}
@@ -444,6 +472,23 @@ const Leaderboard = () => {
                   )}
                 </div>
               </div>
+
+              {/* Reward ban warning */}
+              {selectedUser.reward_ban && (
+                <div className="p-4 rounded-xl animate-pulse"
+                  style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(0, 0, 0, 0.4))', border: '2px solid rgba(239, 68, 68, 0.5)' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                    <span className="font-bold text-red-400">⚠️ ĐANG BỊ KHÓA THƯỞNG</span>
+                  </div>
+                  <div className="text-sm text-red-300/80 mb-1">
+                    <strong>Hết hạn:</strong> {new Date(selectedUser.reward_ban.expires_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div className="text-xs text-red-200/60">
+                    <strong>Lý do:</strong> {selectedUser.reward_ban.reason}
+                  </div>
+                </div>
+              )}
 
               {/* Total reward */}
               <div className="text-center p-4 rounded-xl"
