@@ -6,9 +6,12 @@ import {
   CheckCircle2, 
   Plus,
   Flame,
-  Users
+  Users,
+  UserPlus
 } from "lucide-react";
 import camlyCoinLogo from '@/assets/camly_coin.png';
+import { FriendSearch } from "@/components/FriendSearch";
+import { useState } from "react";
 
 interface FeedSidebarProps {
   trendingHashtags: { tag: string; count: number }[];
@@ -32,8 +35,42 @@ const formatNumber = (num: number): string => {
 };
 
 const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => {
+  const [showFriendSearch, setShowFriendSearch] = useState(false);
+
   return (
     <aside className="space-y-6">
+      {/* Find Friends Section */}
+      <div className="bg-card rounded-2xl shadow-card border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <UserPlus className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="font-display font-semibold text-foreground">Tìm bạn bè</h3>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setShowFriendSearch(!showFriendSearch)}
+            className="text-primary"
+          >
+            {showFriendSearch ? 'Ẩn' : 'Mở rộng'}
+          </Button>
+        </div>
+        
+        {showFriendSearch && (
+          <div className="max-h-[500px] overflow-y-auto">
+            <FriendSearch compact />
+          </div>
+        )}
+        
+        {!showFriendSearch && (
+          <p className="text-sm text-muted-foreground">
+            Tìm kiếm và kết nối với nông dân, ngư dân, nhà hàng trong cộng đồng FUN FARM
+          </p>
+        )}
+      </div>
+
       {/* Trending Hashtags */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-5">
         <div className="flex items-center gap-2 mb-4">
