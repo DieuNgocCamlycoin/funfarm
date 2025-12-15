@@ -182,9 +182,10 @@ const Feed = () => {
     loadInitialPosts();
   }, [fetchPosts]);
 
-  // Realtime subscription for new posts
+  // Realtime subscription for new posts and share count updates
   useEffect(() => {
-    const channel = supabase.channel('feed-posts').on('postgres_changes', {
+    // Channel for new posts (including share posts)
+    const postsChannel = supabase.channel('feed-posts').on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
       table: 'posts'
@@ -199,6 +200,54 @@ const Feed = () => {
       });
       const profile = profilesData?.[0];
       const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
+      
+      // If this is a share post, fetch the original post
+      let originalPost = undefined;
+      if (newPost.post_type === 'share' && newPost.original_post_id) {
+        const { data: origPost } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('id', newPost.original_post_id)
+          .single();
+        
+        if (origPost) {
+          const { data: origProfile } = await supabase.rpc('get_public_profiles', {
+            user_ids: [origPost.author_id]
+          });
+          const op = origProfile?.[0];
+          const opName = op?.display_name?.trim() || 'Nông dân FUN';
+          originalPost = {
+            id: origPost.id,
+            author: {
+              id: origPost.author_id,
+              name: opName,
+              username: opName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
+              avatar: op?.avatar_url || '/logo_fun_farm_web3.png',
+              type: mapProfileTypeToUserType(op?.profile_type || 'farmer'),
+              verified: op?.is_verified || false,
+              reputationScore: op?.reputation_score || 0,
+              location: op?.location || '',
+              followers: 0,
+              following: 0,
+            },
+            content: origPost.content || '',
+            images: origPost.images || [],
+            likes: origPost.likes_count || 0,
+            comments: origPost.comments_count || 0,
+            shares: origPost.shares_count || 0,
+            saves: 0,
+            createdAt: origPost.created_at,
+            isLiked: false,
+            isSaved: false,
+            hashtags: origPost.hashtags || [],
+            location: origPost.location || undefined,
+            is_product_post: origPost.is_product_post,
+            product_name: origPost.product_name,
+            price_camly: origPost.price_camly,
+          };
+        }
+      }
+      
       const transformedPost: Post = {
         id: newPost.id,
         author: {
@@ -235,7 +284,11 @@ const Feed = () => {
         location_lat: newPost.location_lat || undefined,
         location_lng: newPost.location_lng || undefined,
         delivery_options: newPost.delivery_options || [],
-        commitments: newPost.commitments || []
+        commitments: newPost.commitments || [],
+        // Share post fields
+        post_type: newPost.post_type || 'post',
+        original_post_id: newPost.original_post_id,
+        original_post: originalPost,
       };
 
       // Add new post to the beginning of the list
@@ -244,12 +297,42 @@ const Feed = () => {
         if (prev.some(p => p.id === transformedPost.id)) return prev;
         return [transformedPost, ...prev];
       });
+      
+      const toastMessage = newPost.post_type === 'share' 
+        ? `${transformedPost.author.name} vừa chia sẻ bài viết`
+        : `${transformedPost.author.name} vừa đăng bài`;
       toast.success('Có bài viết mới! 🌱', {
-        description: `${transformedPost.author.name} vừa đăng bài`
+        description: toastMessage
       });
     }).subscribe();
+
+    // Channel for share count updates (when someone shares a post)
+    const sharesChannel = supabase.channel('feed-shares').on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'posts',
+      filter: 'shares_count=gt.0'
+    }, payload => {
+      const updatedPost = payload.new as any;
+      // Update the share count for the post in our list
+      setPosts(prev => prev.map(p => {
+        if (p.id === updatedPost.id) {
+          return { ...p, shares: updatedPost.shares_count };
+        }
+        // Also update if this post's original_post matches
+        if (p.original_post && p.original_post.id === updatedPost.id) {
+          return {
+            ...p,
+            original_post: { ...p.original_post, shares: updatedPost.shares_count }
+          };
+        }
+        return p;
+      }));
+    }).subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(sharesChannel);
     };
   }, []);
 
