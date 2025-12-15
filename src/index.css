@@ -519,6 +519,63 @@
   50% { transform: scale(1.05); }
 }
 
+/* Hover pulse glow animation for golden borders - 3D effect */
+@keyframes border-pulse-glow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px rgba(255, 215, 0, 0.4),
+      0 0 40px rgba(255, 215, 0, 0.2),
+      inset 0 0 15px rgba(255, 215, 0, 0.1),
+      0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: translateY(0) scale(1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 35px rgba(255, 215, 0, 0.7),
+      0 0 70px rgba(255, 215, 0, 0.4),
+      0 0 100px rgba(255, 215, 0, 0.2),
+      inset 0 0 25px rgba(255, 215, 0, 0.2),
+      0 8px 25px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px) scale(1.01);
+  }
+}
+
+@keyframes border-shimmer {
+  0% { 
+    background-position: -200% center;
+  }
+  100% { 
+    background-position: 200% center;
+  }
+}
+
+@keyframes card-3d-float {
+  0%, 100% {
+    transform: perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0);
+    box-shadow: 
+      0 0 15px rgba(255, 215, 0, 0.3),
+      0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+  25% {
+    transform: perspective(1000px) rotateX(1deg) rotateY(-1deg) translateZ(5px);
+    box-shadow: 
+      0 0 25px rgba(255, 215, 0, 0.5),
+      0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: perspective(1000px) rotateX(0deg) rotateY(1deg) translateZ(8px);
+    box-shadow: 
+      0 0 35px rgba(255, 215, 0, 0.6),
+      0 10px 25px rgba(0, 0, 0, 0.35);
+  }
+  75% {
+    transform: perspective(1000px) rotateX(-1deg) rotateY(0deg) translateZ(5px);
+    box-shadow: 
+      0 0 25px rgba(255, 215, 0, 0.5),
+      0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
 .animate-twinkle {
   animation: twinkle 2s ease-in-out infinite;
 }
@@ -553,6 +610,69 @@
 
 .animate-counter-pulse {
   animation: counter-pulse 2s ease-in-out infinite;
+}
+
+/* Hover pulse glow classes */
+.honor-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.honor-card-hover:hover {
+  animation: border-pulse-glow 1.5s ease-in-out infinite;
+  border-color: #ffd700 !important;
+}
+
+.honor-card-3d {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.honor-card-3d:hover {
+  animation: card-3d-float 2s ease-in-out infinite;
+}
+
+/* Golden border shimmer on hover */
+.golden-border-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.golden-border-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.3) 25%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 215, 0, 0.3) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.golden-border-shimmer:hover::before {
+  opacity: 1;
+  animation: border-shimmer 2s linear infinite;
+}
+
+/* Main container pulse glow */
+.main-board-glow {
+  transition: all 0.4s ease;
+}
+
+.main-board-glow:hover {
+  box-shadow: 
+    0 0 40px rgba(255, 215, 0, 0.7),
+    0 0 80px rgba(255, 215, 0, 0.4),
+    0 0 120px rgba(255, 215, 0, 0.2),
+    inset 0 0 30px rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.01);
 }
 
 /* FUN FARM Honor Board - Tươi sáng, ấm áp, lấp lánh */

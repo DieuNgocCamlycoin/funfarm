@@ -171,7 +171,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-[20px] p-1"
+      className="relative overflow-hidden rounded-[20px] p-1 main-board-glow cursor-pointer"
       style={{
         background: 'linear-gradient(135deg, #ffd700 0%, #b8860b 25%, #ffd700 50%, #daa520 75%, #ffd700 100%)',
         boxShadow: '0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.3)',
@@ -264,11 +264,10 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               displayedUsers.map((user, index) => (
                 <div
                   key={user.id}
-                  className="relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                  className="relative overflow-hidden rounded-xl transition-all duration-300 cursor-pointer honor-card-hover honor-card-3d golden-border-shimmer"
                   style={{
                     background: 'linear-gradient(135deg, rgba(10, 40, 24, 0.9) 0%, rgba(7, 31, 20, 0.95) 100%)',
-                    border: '2px solid',
-                    borderImage: 'linear-gradient(135deg, #ffd700, #b8860b, #ffd700) 1',
+                    border: '2px solid rgba(255, 215, 0, 0.6)',
                     boxShadow: index === 0 
                       ? '0 0 25px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 215, 0, 0.15)'
                       : '0 0 15px rgba(255, 215, 0, 0.3), inset 0 0 10px rgba(255, 215, 0, 0.1)',
