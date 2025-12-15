@@ -10,6 +10,7 @@ import EditPostModal from "./EditPostModal";
 import BuyProductModal from "./BuyProductModal";
 import SharePostModal from "./SharePostModal";
 import SharedPostCard from "./SharedPostCard";
+import ImageGallery, { imagesToMediaItems } from "./ImageGallery";
 import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { ReportModal } from "@/components/ReportModal";
@@ -35,6 +36,8 @@ import {
   Pencil,
   Flag,
   Repeat2,
+  Play,
+  Expand,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -119,8 +122,11 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [likes, setLikes] = useState(post.likes);
   const [shares, setShares] = useState(post.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const likeButtonRef = useRef<HTMLButtonElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const isOwner = user?.id === post.author.id;
 
@@ -440,65 +446,145 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         </div>
       )}
 
-      {/* Images - only for non-share posts */}
+      {/* Images & Videos - only for non-share posts */}
       {!isSharePost && post.images.length > 0 && (
         <div className="relative group">
-          <div className="aspect-[4/3] overflow-hidden">
-            <img 
-              src={post.images[currentImageIndex]} 
-              alt="Post image"
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {/* Check if current item is video */}
+          {post.images[currentImageIndex]?.toLowerCase().includes('.mp4') || 
+           post.images[currentImageIndex]?.toLowerCase().includes('.webm') ||
+           post.images[currentImageIndex]?.toLowerCase().includes('.mov') ? (
+            // Video Player
+            <div className="aspect-[4/3] overflow-hidden bg-black relative">
+              <video
+                ref={videoRef}
+                src={post.images[currentImageIndex]}
+                className="w-full h-full object-contain"
+                controls
+                playsInline
+                muted
+                preload="metadata"
+              />
+              {/* Expand button */}
+              <button
+                onClick={() => {
+                  setGalleryStartIndex(currentImageIndex);
+                  setShowGallery(true);
+                }}
+                className="absolute top-3 right-3 w-9 h-9 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                title="Xem toàn màn hình"
+              >
+                <Expand className="w-4 h-4 text-foreground" />
+              </button>
+            </div>
+          ) : (
+            // Image Display
+            <div 
+              className="aspect-[4/3] overflow-hidden cursor-pointer"
+              onClick={() => {
+                setGalleryStartIndex(currentImageIndex);
+                setShowGallery(true);
+              }}
+            >
+              <img 
+                src={post.images[currentImageIndex]} 
+                alt="Post image"
+                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              />
+            </div>
+          )}
           
           {/* Download button */}
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.stopPropagation();
               try {
                 const response = await fetch(post.images[currentImageIndex]);
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `image_${currentImageIndex + 1}.jpg`;
+                const isVideo = post.images[currentImageIndex]?.toLowerCase().includes('.mp4');
+                a.download = isVideo ? `video_${currentImageIndex + 1}.mp4` : `image_${currentImageIndex + 1}.jpg`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                toast.success('Đã tải ảnh về thiết bị!');
+                toast.success(isVideo ? 'Đã tải video về thiết bị!' : 'Đã tải ảnh về thiết bị!');
               } catch (error) {
-                toast.error('Có lỗi khi tải ảnh');
+                toast.error('Có lỗi khi tải về');
               }
             }}
             className="absolute top-3 left-3 w-9 h-9 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
-            title="Tải ảnh về"
+            title="Tải về thiết bị"
           >
             <Download className="w-4 h-4 text-foreground" />
           </button>
+
+          {/* Expand button for images */}
+          {!(post.images[currentImageIndex]?.toLowerCase().includes('.mp4') || 
+             post.images[currentImageIndex]?.toLowerCase().includes('.webm')) && (
+            <button
+              onClick={() => {
+                setGalleryStartIndex(currentImageIndex);
+                setShowGallery(true);
+              }}
+              className="absolute top-3 right-3 w-9 h-9 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+              title="Xem phóng to"
+            >
+              <Expand className="w-4 h-4 text-foreground" />
+            </button>
+          )}
+          
+          {/* Video indicator badge */}
+          {(post.images[currentImageIndex]?.toLowerCase().includes('.mp4') || 
+            post.images[currentImageIndex]?.toLowerCase().includes('.webm')) && (
+            <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <Play className="w-3 h-3" />
+              Video
+            </div>
+          )}
           
           {post.images.length > 1 && (
             <>
+              {/* Dots navigation */}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {post.images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={cn(
-                      "w-2 h-2 rounded-full transition-all",
-                      index === currentImageIndex 
-                        ? "bg-primary w-4" 
-                        : "bg-primary/40 hover:bg-primary/60"
-                    )}
-                  />
-                ))}
+                {post.images.map((img, index) => {
+                  const isVid = img?.toLowerCase().includes('.mp4') || img?.toLowerCase().includes('.webm');
+                  return (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentImageIndex(index);
+                      }}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all",
+                        index === currentImageIndex 
+                          ? "bg-primary w-4" 
+                          : "bg-primary/40 hover:bg-primary/60",
+                        isVid && index !== currentImageIndex && "bg-accent/60"
+                      )}
+                      title={isVid ? 'Video' : 'Ảnh'}
+                    />
+                  );
+                })}
               </div>
-              <div className="absolute top-3 right-3 bg-foreground/60 text-background text-xs px-2 py-1 rounded-full">
+              {/* Counter badge */}
+              <div className="absolute top-3 right-14 bg-foreground/60 text-background text-xs px-2 py-1 rounded-full">
                 {currentImageIndex + 1}/{post.images.length}
               </div>
             </>
           )}
         </div>
       )}
+
+      {/* Image Gallery Modal */}
+      <ImageGallery
+        items={imagesToMediaItems(post.images)}
+        initialIndex={galleryStartIndex}
+        isOpen={showGallery}
+        onClose={() => setShowGallery(false)}
+      />
 
       {/* Product Post Card - FUN FARM Marketplace */}
       {post.is_product_post && post.product_name && (

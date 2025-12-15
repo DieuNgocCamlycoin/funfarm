@@ -79,6 +79,24 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
       for (let i = 0; i < files.length && images.length + newImages.length < 10; i++) {
         const file = files[i];
         
+        // Check file size - max 100MB for videos, 20MB for images
+        const isVideo = file.type.startsWith('video/');
+        const maxSize = isVideo ? 100 * 1024 * 1024 : 20 * 1024 * 1024; // 100MB or 20MB
+        
+        if (file.size > maxSize) {
+          toast.error(`${file.name} quá lớn. Tối đa ${isVideo ? '100MB' : '20MB'}!`);
+          continue;
+        }
+        
+        // Check video duration (max 60s)
+        if (isVideo) {
+          const duration = await getVideoDuration(file);
+          if (duration > 60) {
+            toast.error(`Video ${file.name} dài quá 60 giây!`);
+            continue;
+          }
+        }
+        
         // Upload to R2 via edge function
         const result = await uploadToR2(file, "posts");
         
@@ -89,17 +107,56 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
         }
       }
 
-      setImages([...images, ...newImages]);
-      toast.success(`Đã tải lên ${newImages.length} ảnh/video!`);
+      if (newImages.length > 0) {
+        setImages([...images, ...newImages]);
+        const videoCount = newImages.filter(url => 
+          url.toLowerCase().includes('.mp4') || 
+          url.toLowerCase().includes('.webm') ||
+          url.toLowerCase().includes('.mov')
+        ).length;
+        const imageCount = newImages.length - videoCount;
+        
+        let msg = '';
+        if (imageCount > 0 && videoCount > 0) {
+          msg = `Đã tải lên ${imageCount} ảnh và ${videoCount} video!`;
+        } else if (videoCount > 0) {
+          msg = `Đã tải lên ${videoCount} video!`;
+        } else {
+          msg = `Đã tải lên ${imageCount} ảnh!`;
+        }
+        toast.success(msg);
+      }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Có lỗi khi tải ảnh lên. Vui lòng thử lại!');
+      toast.error('Có lỗi khi tải lên. Vui lòng thử lại!');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  // Get video duration helper
+  const getVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(video.duration);
+      };
+      video.onerror = () => {
+        resolve(0);
+      };
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Check if URL is video
+  const isVideoUrl = (url: string): boolean => {
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.mov');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -297,11 +354,18 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, index) => (
                   <div key={index} className="relative aspect-square rounded-xl overflow-hidden group">
-                    <img
-                      src={img}
-                      alt={`Upload ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    {isVideoUrl(img) ? (
+                      <div className="w-full h-full bg-muted flex flex-col items-center justify-center">
+                        <Video className="w-8 h-8 text-primary mb-1" />
+                        <span className="text-xs text-muted-foreground">Video</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={img}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleDownloadImage(img, index)}
@@ -351,6 +415,9 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 </>
               )}
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Ảnh tối đa 20MB • Video tối đa 100MB/60 giây
+            </p>
           </div>
 
           {/* Location */}
