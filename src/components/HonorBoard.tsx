@@ -174,23 +174,26 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
     return (
       <div className="relative overflow-hidden rounded-2xl cosmos-bg-compact p-4 animate-golden-glow"
         style={{
-          border: '2px solid',
-          borderImage: 'linear-gradient(135deg, hsl(50 100% 60%), hsl(40 100% 50%), hsl(50 100% 70%)) 1',
+          border: '3px solid',
+          borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 58%), hsl(50 100% 70%)) 1',
         }}
       >
         <StarField />
         <SparkleParticles />
         
-        {/* Golden halo effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-transparent to-yellow-500/5" />
+        {/* Bright golden halo effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-yellow-400/10 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)]" />
         
         <div className="relative z-10">
           <h3 className="text-center font-bold text-lg tracking-widest mb-3 animate-text-glow"
             style={{
-              background: 'linear-gradient(90deg, #ffd700, #fff8dc, #ffd700)',
+              background: 'linear-gradient(90deg, #fff, #ffd700, #fff, #ffd700, #fff)',
+              backgroundSize: '200% 100%',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              animation: 'text-glow-pulse 3s ease-in-out infinite, shimmer 4s ease-in-out infinite',
             }}
           >
             ✨ HONOR BOARD ✨
@@ -200,16 +203,11 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
             {statItems.map((item) => (
               <div 
                 key={item.label} 
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:scale-105"
-                style={{
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  border: '1px solid rgba(255, 215, 0, 0.3)',
-                  boxShadow: 'inset 0 0 10px rgba(255, 215, 0, 0.1)',
-                }}
+                className="honor-stat-box flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-300"
               >
-                <item.icon className="w-3.5 h-3.5 text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.6)]" />
-                <span className="text-yellow-100/80 truncate">{item.label.split(' ')[1]}</span>
-                <span className="ml-auto font-bold text-yellow-300 drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]">
+                <item.icon className="w-3.5 h-3.5 text-yellow-500 drop-shadow-[0_0_6px_rgba(255,215,0,0.9)]" />
+                <span className="text-white/90 truncate font-medium">{item.label.split(' ')[1]}</span>
+                <span className="ml-auto font-bold text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.7)]">
                   {isLoading ? "..." : <AnimatedCounter value={item.value} />}
                 </span>
               </div>
@@ -220,18 +218,19 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           <div 
             className="mt-2 flex items-center justify-center gap-2 rounded-lg px-3 py-2"
             style={{
-              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4))',
-              border: '1px solid rgba(255, 215, 0, 0.4)',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 215, 0, 0.15))',
+              border: '2px solid rgba(255, 215, 0, 0.6)',
+              boxShadow: '0 0 15px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.1)',
             }}
           >
             <img 
               src={camlyCoin} 
               alt="CAMLY" 
               className="w-5 h-5 animate-coin-spin"
-              style={{ filter: 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.8))' }}
+              style={{ filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 1))' }}
             />
-            <span className="text-yellow-100/80 text-xs">REWARD</span>
-            <span className="font-bold text-yellow-300 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">
+            <span className="text-white/90 text-xs font-medium">REWARD</span>
+            <span className="font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]">
               {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
             </span>
           </div>
@@ -245,33 +244,35 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
       className="relative overflow-hidden rounded-3xl cosmos-bg p-6 animate-golden-glow"
       style={{
         border: '4px solid',
-        borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 55%), hsl(50 100% 70%), hsl(40 100% 50%)) 1',
+        borderImage: 'linear-gradient(135deg, hsl(50 100% 70%), hsl(45 100% 60%), hsl(50 100% 75%), hsl(45 100% 65%)) 1',
       }}
     >
       {/* Star field with parallax */}
       <StarField moving />
       <SparkleParticles />
       
-      {/* Golden halo effect from top */}
-      <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/15 via-transparent to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.2)_0%,transparent_60%)]" />
+      {/* Bright golden halo effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-yellow-400/15 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.25)_0%,transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,215,0,0.15)_0%,transparent_70%)]" />
       
-      {/* Corner ornaments */}
-      <div className="absolute top-3 left-3 w-8 h-8 border-t-3 border-l-3 rounded-tl-lg"
-        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderRight: 'none', borderBottom: 'none' }} />
-      <div className="absolute top-3 right-3 w-8 h-8 border-t-3 border-r-3 rounded-tr-lg"
-        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderLeft: 'none', borderBottom: 'none' }} />
-      <div className="absolute bottom-3 left-3 w-8 h-8 border-b-3 border-l-3 rounded-bl-lg"
-        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderRight: 'none', borderTop: 'none' }} />
-      <div className="absolute bottom-3 right-3 w-8 h-8 border-b-3 border-r-3 rounded-br-lg"
-        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderLeft: 'none', borderTop: 'none' }} />
+      {/* Golden corner ornaments with stronger glow */}
+      <div className="absolute top-3 left-3 w-10 h-10"
+        style={{ borderTop: '4px solid rgba(255, 215, 0, 1)', borderLeft: '4px solid rgba(255, 215, 0, 1)', borderRadius: '10px 0 0 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
+      <div className="absolute top-3 right-3 w-10 h-10"
+        style={{ borderTop: '4px solid rgba(255, 215, 0, 1)', borderRight: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 10px 0 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
+      <div className="absolute bottom-3 left-3 w-10 h-10"
+        style={{ borderBottom: '4px solid rgba(255, 215, 0, 1)', borderLeft: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 0 0 10px', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
+      <div className="absolute bottom-3 right-3 w-10 h-10"
+        style={{ borderBottom: '4px solid rgba(255, 215, 0, 1)', borderRight: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 0 10px 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
 
-      {/* Twinkling stars */}
-      <div className="absolute top-8 left-10 w-1.5 h-1.5 bg-white rounded-full animate-twinkle" style={{ animationDelay: '0s' }} />
-      <div className="absolute top-16 right-12 w-1 h-1 bg-yellow-300 rounded-full animate-twinkle" style={{ animationDelay: '0.5s' }} />
-      <div className="absolute bottom-20 left-8 w-2 h-2 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '1s' }} />
-      <div className="absolute bottom-12 right-8 w-1 h-1 bg-yellow-200 rounded-full animate-twinkle" style={{ animationDelay: '1.5s' }} />
-      <div className="absolute top-1/2 left-4 w-1 h-1 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '2s' }} />
+      {/* Twinkling stars - brighter */}
+      <div className="absolute top-8 left-10 w-2 h-2 bg-white rounded-full animate-twinkle" style={{ animationDelay: '0s', boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)' }} />
+      <div className="absolute top-16 right-12 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-twinkle" style={{ animationDelay: '0.5s', boxShadow: '0 0 6px rgba(255, 215, 0, 0.9)' }} />
+      <div className="absolute bottom-20 left-8 w-2.5 h-2.5 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '1s', boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)' }} />
+      <div className="absolute bottom-12 right-8 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-twinkle" style={{ animationDelay: '1.5s', boxShadow: '0 0 6px rgba(255, 215, 0, 0.8)' }} />
+      <div className="absolute top-1/2 left-4 w-1.5 h-1.5 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '2s', boxShadow: '0 0 6px rgba(255, 255, 255, 0.8)' }} />
+      <div className="absolute top-1/3 right-6 w-2 h-2 bg-yellow-400 rounded-full animate-twinkle" style={{ animationDelay: '0.3s', boxShadow: '0 0 8px rgba(255, 215, 0, 1)' }} />
 
       <div className="relative z-10">
         {/* Title with glow effect */}
@@ -294,34 +295,26 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           {statItems.map((item, index) => (
             <div
               key={item.label}
-              className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-300 hover:scale-[1.02] group"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3))',
-                border: '1px solid rgba(255, 215, 0, 0.3)',
-                boxShadow: 'inset 0 0 15px rgba(255, 215, 0, 0.05)',
-                animationDelay: `${index * 0.1}s`,
-              }}
+              className="honor-stat-box flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-300 hover:scale-[1.02] group"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div 
                 className="p-2.5 rounded-lg transition-all duration-300 group-hover:scale-110"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 215, 0, 0.1))',
-                  border: '1px solid rgba(255, 215, 0, 0.4)',
-                  boxShadow: '0 0 12px rgba(255, 215, 0, 0.3)',
+                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 255, 255, 0.2))',
+                  border: '2px solid rgba(255, 215, 0, 0.7)',
+                  boxShadow: '0 0 15px rgba(255, 215, 0, 0.5)',
                 }}
               >
-                <item.icon className="w-5 h-5 text-yellow-400 drop-shadow-[0_0_6px_rgba(255,215,0,0.8)]" />
+                <item.icon className="w-5 h-5 text-yellow-500 drop-shadow-[0_0_8px_rgba(255,215,0,1)]" />
               </div>
-              <span 
-                className="font-semibold tracking-wide flex-1"
-                style={{ color: 'rgba(255, 248, 220, 0.9)' }}
-              >
+              <span className="font-semibold tracking-wide flex-1 text-white/95">
                 {item.label}
               </span>
               <span 
-                className="font-bold text-xl drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
+                className="font-bold text-xl drop-shadow-[0_0_10px_rgba(255,215,0,0.7)]"
                 style={{
-                  background: 'linear-gradient(90deg, #ffd700, #fff8dc)',
+                  background: 'linear-gradient(90deg, #fff, #ffd700, #fff)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',

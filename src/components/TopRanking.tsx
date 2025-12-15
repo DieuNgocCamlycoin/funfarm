@@ -231,19 +231,24 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
       <div 
         className="relative overflow-hidden rounded-2xl cosmos-bg-compact p-4 animate-golden-glow"
         style={{
-          border: '2px solid',
-          borderImage: 'linear-gradient(135deg, hsl(50 100% 60%), hsl(40 100% 50%), hsl(50 100% 70%)) 1',
+          border: '3px solid',
+          borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 58%), hsl(50 100% 70%)) 1',
         }}
       >
         {/* Star field */}
-        <div className="absolute inset-0 starfield" style={{ opacity: 0.6 }} />
+        <div className="absolute inset-0 starfield" style={{ opacity: 0.8 }} />
         <SparkleParticles />
+        
+        {/* Bright halo */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-yellow-400/10 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)]" />
         
         <div className="relative z-10">
           <h3 
             className="text-center font-bold text-lg tracking-widest mb-3 animate-text-glow"
             style={{
-              background: 'linear-gradient(90deg, #ffd700, #fff8dc, #ffd700)',
+              background: 'linear-gradient(90deg, #fff, #ffd700, #fff, #ffd700, #fff)',
+              backgroundSize: '200% 100%',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -254,41 +259,32 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           
           <div className="space-y-2">
             {isLoading ? (
-              <div className="text-center text-yellow-200/60 py-4">Đang tải...</div>
+              <div className="text-center text-white/60 py-4">Đang tải...</div>
             ) : (
               displayedUsers.slice(0, 3).map((user, index) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:scale-[1.02]"
-                  style={{
-                    background: index === 0 
-                      ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4))'
-                      : 'rgba(0, 0, 0, 0.35)',
-                    border: `1px solid ${index === 0 ? 'rgba(255, 215, 0, 0.5)' : 'rgba(255, 215, 0, 0.25)'}`,
-                  }}
+                  className="honor-stat-box flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-300"
                 >
                   <div className="w-5 flex justify-center">
                     <RankBadge rank={index + 1} />
                   </div>
                   <div className="relative">
-                    <Avatar className="w-7 h-7 border border-yellow-400/50">
+                    <Avatar className="w-7 h-7 border-2 border-yellow-400/70">
                       <AvatarImage src={user.avatar_url || funFarmLogo} />
-                      <AvatarFallback className="bg-yellow-500/20 text-yellow-300 text-xs">
+                      <AvatarFallback className="bg-yellow-500/30 text-yellow-300 text-xs">
                         {user.display_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <span 
-                    className="flex-1 text-xs truncate"
-                    style={{ color: 'rgba(255, 248, 220, 0.9)' }}
-                  >
+                  <span className="flex-1 text-xs truncate text-white/95 font-medium">
                     {user.display_name}
                   </span>
                   <div className="flex items-center gap-1">
-                    <img src={camlyCoin} alt="" className="w-3 h-3" />
+                    <img src={camlyCoin} alt="" className="w-3 h-3" style={{ filter: 'drop-shadow(0 0 4px rgba(255, 215, 0, 0.8))' }} />
                     <span 
                       className="font-bold text-xs"
-                      style={{ color: '#ffd700', textShadow: '0 0 6px rgba(255, 215, 0, 0.5)' }}
+                      style={{ color: '#ffd700', textShadow: '0 0 8px rgba(255, 215, 0, 0.7)' }}
                     >
                       {formatNumber(user.total_reward)}
                     </span>
@@ -307,31 +303,32 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
       className="relative overflow-hidden rounded-3xl cosmos-bg p-6 animate-golden-glow"
       style={{
         border: '4px solid',
-        borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 55%), hsl(50 100% 70%), hsl(40 100% 50%)) 1',
+        borderImage: 'linear-gradient(135deg, hsl(50 100% 70%), hsl(45 100% 60%), hsl(50 100% 75%), hsl(45 100% 65%)) 1',
       }}
     >
       {/* Star field */}
-      <div className="absolute inset-0 starfield animate-float-star" style={{ opacity: 0.8 }} />
+      <div className="absolute inset-0 starfield animate-float-star" style={{ opacity: 1 }} />
       <SparkleParticles />
       
-      {/* Golden halo */}
-      <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/15 via-transparent to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.2)_0%,transparent_60%)]" />
+      {/* Bright golden halo */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-yellow-400/15 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.25)_0%,transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,215,0,0.15)_0%,transparent_70%)]" />
       
-      {/* Corner ornaments */}
-      <div className="absolute top-3 left-3 w-8 h-8"
-        style={{ borderTop: '3px solid rgba(255, 215, 0, 0.8)', borderLeft: '3px solid rgba(255, 215, 0, 0.8)', borderRadius: '8px 0 0 0' }} />
-      <div className="absolute top-3 right-3 w-8 h-8"
-        style={{ borderTop: '3px solid rgba(255, 215, 0, 0.8)', borderRight: '3px solid rgba(255, 215, 0, 0.8)', borderRadius: '0 8px 0 0' }} />
-      <div className="absolute bottom-3 left-3 w-8 h-8"
-        style={{ borderBottom: '3px solid rgba(255, 215, 0, 0.8)', borderLeft: '3px solid rgba(255, 215, 0, 0.8)', borderRadius: '0 0 0 8px' }} />
-      <div className="absolute bottom-3 right-3 w-8 h-8"
-        style={{ borderBottom: '3px solid rgba(255, 215, 0, 0.8)', borderRight: '3px solid rgba(255, 215, 0, 0.8)', borderRadius: '0 0 8px 0' }} />
+      {/* Golden corner ornaments with stronger glow */}
+      <div className="absolute top-3 left-3 w-10 h-10"
+        style={{ borderTop: '4px solid rgba(255, 215, 0, 1)', borderLeft: '4px solid rgba(255, 215, 0, 1)', borderRadius: '10px 0 0 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
+      <div className="absolute top-3 right-3 w-10 h-10"
+        style={{ borderTop: '4px solid rgba(255, 215, 0, 1)', borderRight: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 10px 0 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
+      <div className="absolute bottom-3 left-3 w-10 h-10"
+        style={{ borderBottom: '4px solid rgba(255, 215, 0, 1)', borderLeft: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 0 0 10px', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
+      <div className="absolute bottom-3 right-3 w-10 h-10"
+        style={{ borderBottom: '4px solid rgba(255, 215, 0, 1)', borderRight: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 0 10px 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
 
-      {/* Twinkling stars */}
-      <div className="absolute top-8 left-12 w-1.5 h-1.5 bg-white rounded-full animate-twinkle" />
-      <div className="absolute top-20 right-10 w-1 h-1 bg-yellow-300 rounded-full animate-twinkle" style={{ animationDelay: '0.7s' }} />
-      <div className="absolute bottom-24 left-8 w-2 h-2 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '1.2s' }} />
+      {/* Twinkling stars - brighter */}
+      <div className="absolute top-8 left-12 w-2 h-2 bg-white rounded-full animate-twinkle" style={{ boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)' }} />
+      <div className="absolute top-20 right-10 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-twinkle" style={{ animationDelay: '0.7s', boxShadow: '0 0 6px rgba(255, 215, 0, 0.9)' }} />
+      <div className="absolute bottom-24 left-8 w-2.5 h-2.5 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '1.2s', boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)' }} />
 
       <div className="relative z-10">
         {/* Title */}
