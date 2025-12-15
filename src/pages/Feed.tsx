@@ -285,9 +285,16 @@ const Feed = () => {
                   </div>}
               </div>
 
-              {/* Sidebar */}
+              {/* Sidebar - Scrollable */}
               <div className="hidden lg:block">
-                <div className="sticky top-24">
+                <div 
+                  className="sticky top-24 overflow-y-auto scrollbar-thin pr-2"
+                  style={{
+                    maxHeight: 'calc(100vh - 120px)',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(255, 215, 0, 0.5) transparent',
+                  }}
+                >
                   <FeedSidebar trendingHashtags={trendingHashtags} suggestedFarms={suggestedFarms} />
                 </div>
               </div>
