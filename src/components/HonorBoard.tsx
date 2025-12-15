@@ -1,10 +1,11 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Honor Board - Bảng vinh danh thành tựu cộng đồng - Cosmos Design
+// Honor Board - Bảng vinh danh thành tựu cộng đồng - Design theo thiết kế
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, FileText, Image, Video, Coins } from "lucide-react";
+import { Users, FileText, Image, Video } from "lucide-react";
 import camlyCoin from "@/assets/camly_coin.png";
+import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 
 interface HonorStats {
   totalUsers: number;
@@ -48,31 +49,22 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
     };
   }, [value]);
 
-  return (
-    <span 
-      className="animate-counter-pulse font-bold"
-      style={{
-        color: '#ffd700',
-        textShadow: '0 0 10px rgba(255, 215, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.5)',
-      }}
-    >
-      {displayValue.toLocaleString("vi-VN")}
-    </span>
-  );
+  return <span>{displayValue.toLocaleString("vi-VN")}</span>;
 };
 
-// Sparkle particle component
+// Sparkle particle component - hiệu ứng sao lấp lánh rơi
 const SparkleParticles = () => {
-  const particles = Array.from({ length: 15 }, (_, i) => ({
+  const particles = Array.from({ length: 25 }, (_, i) => ({
     id: i,
     left: `${Math.random() * 100}%`,
-    delay: `${Math.random() * 8}s`,
-    duration: `${6 + Math.random() * 4}s`,
-    size: Math.random() > 0.5 ? 2 : 1,
+    delay: `${Math.random() * 6}s`,
+    duration: `${4 + Math.random() * 3}s`,
+    size: 1 + Math.random() * 2,
+    type: i % 4, // 0: white, 1: gold, 2: bright gold, 3: shimmer
   }));
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
       {particles.map((p) => (
         <div
           key={p.id}
@@ -89,10 +81,14 @@ const SparkleParticles = () => {
             style={{
               width: p.size + 'px',
               height: p.size + 'px',
-              background: p.id % 3 === 0 
-                ? 'rgba(255, 215, 0, 0.9)' 
-                : 'rgba(255, 255, 255, 0.8)',
-              boxShadow: '0 0 4px rgba(255, 215, 0, 0.6)',
+              background: p.type === 0 
+                ? '#ffffff'
+                : p.type === 1 
+                ? '#ffd700'
+                : p.type === 2
+                ? '#ffec8b'
+                : '#fff8dc',
+              boxShadow: `0 0 ${p.size * 3}px ${p.type === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,215,0,0.9)'}`,
             }}
           />
         </div>
@@ -101,13 +97,26 @@ const SparkleParticles = () => {
   );
 };
 
-// Star field component with parallax
-const StarField = ({ moving = false }: { moving?: boolean }) => (
-  <div 
-    className={`absolute inset-0 starfield ${moving ? 'animate-float-star' : ''}`}
-    style={{ opacity: 0.8 }}
-  />
-);
+// Corner ornament decorative
+const CornerOrnament = ({ position }: { position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }) => {
+  const styles: Record<string, React.CSSProperties> = {
+    'top-left': { top: 8, left: 8, borderTop: '3px solid', borderLeft: '3px solid', borderRadius: '8px 0 0 0' },
+    'top-right': { top: 8, right: 8, borderTop: '3px solid', borderRight: '3px solid', borderRadius: '0 8px 0 0' },
+    'bottom-left': { bottom: 8, left: 8, borderBottom: '3px solid', borderLeft: '3px solid', borderRadius: '0 0 0 8px' },
+    'bottom-right': { bottom: 8, right: 8, borderBottom: '3px solid', borderRight: '3px solid', borderRadius: '0 0 8px 0' },
+  };
+
+  return (
+    <div 
+      className="absolute w-6 h-6 z-30"
+      style={{
+        ...styles[position],
+        borderColor: '#ffd700',
+        filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.8))',
+      }}
+    />
+  );
+};
 
 const HonorBoard = ({ compact = false }: HonorBoardProps) => {
   const [stats, setStats] = useState<HonorStats>({
@@ -180,265 +189,212 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
     { icon: Video, label: "TOTAL VIDEOS", value: stats.totalVideos },
   ];
 
-  if (compact) {
-    return (
-      <div 
-        className="relative rounded-2xl animate-golden-glow h-[400px] flex flex-col"
-        style={{
-          border: '3px solid',
-          borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 58%), hsl(50 100% 70%)) 1',
-          background: 'linear-gradient(135deg, rgba(34, 139, 34, 0.4), rgba(0, 105, 148, 0.3), rgba(184, 134, 11, 0.25))',
-        }}
-      >
-        {/* Fixed Header */}
-        <div className="relative overflow-hidden rounded-t-2xl p-3 cosmos-bg-compact flex-shrink-0">
-          <StarField />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-yellow-400/10 to-transparent" />
-          <div className="relative z-10">
-            <h3 
-              className="text-center font-extrabold text-xl tracking-widest animate-text-glow"
-              style={{
-                color: '#ffd700',
-                textShadow: '0 0 15px rgba(255, 215, 0, 1), 0 0 30px rgba(255, 215, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8)',
-                letterSpacing: '0.15em',
-              }}
-            >
-              ✨ HONOR BOARD ✨
-            </h3>
-          </div>
-        </div>
-        
-        {/* Scrollable Content */}
-        <div 
-          className="relative flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-yellow-500/60 scrollbar-track-transparent"
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255, 215, 0, 0.6) transparent',
-          }}
-        >
-          <SparkleParticles />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)]" />
-          
-          <div className="relative z-10 space-y-2">
-            {statItems.map((item) => (
-              <div 
-                key={item.label} 
-                className="honor-stat-box flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 215, 0, 0.1))',
-                  border: '2px solid rgba(255, 215, 0, 0.5)',
-                  boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)',
-                }}
-              >
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 255, 255, 0.2))',
-                    border: '2px solid rgba(255, 215, 0, 0.7)',
-                    boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
-                  }}
-                >
-                  <item.icon 
-                    className="w-4 h-4"
-                    style={{
-                      color: '#ffd700',
-                      filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 1))',
-                    }}
-                  />
-                </div>
-                <span 
-                  className="flex-1 font-bold text-sm tracking-wide"
-                  style={{
-                    color: '#ffd700',
-                    textShadow: '0 0 8px rgba(255, 215, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6)',
-                  }}
-                >
-                  {item.label}
-                </span>
-                <span 
-                  className="font-extrabold text-lg"
-                  style={{
-                    color: '#ffd700',
-                    textShadow: '0 0 15px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.7)',
-                  }}
-                >
-                  {isLoading ? "..." : <AnimatedCounter value={item.value} />}
-                </span>
-              </div>
-            ))}
-            
-            {/* CAMLY Reward with spinning coin */}
-            <div 
-              className="flex items-center gap-3 rounded-lg px-3 py-3 transition-all duration-300 hover:scale-[1.02]"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 255, 255, 0.1))',
-                border: '2px solid rgba(255, 215, 0, 0.7)',
-                boxShadow: '0 0 20px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <div 
-                className="p-1.5 rounded-lg"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.15))',
-                }}
-              >
-                <img 
-                  src={camlyCoin} 
-                  alt="CAMLY" 
-                  className="w-6 h-6 animate-coin-spin"
-                  style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 1))' }}
-                />
-              </div>
-              <span 
-                className="flex-1 font-bold text-sm tracking-wide"
-                style={{
-                  color: '#ffd700',
-                  textShadow: '0 0 8px rgba(255, 215, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6)',
-                }}
-              >
-                TOTAL REWARD
-              </span>
-              <span 
-                className="font-extrabold text-lg"
-                style={{
-                  color: '#ffd700',
-                  textShadow: '0 0 15px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.7)',
-                }}
-              >
-                {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div 
-      className="relative overflow-hidden rounded-3xl cosmos-bg p-6 animate-golden-glow"
+      className="relative overflow-hidden rounded-[20px] p-1"
       style={{
-        border: '4px solid',
-        borderImage: 'linear-gradient(135deg, hsl(50 100% 70%), hsl(45 100% 60%), hsl(50 100% 75%), hsl(45 100% 65%)) 1',
+        background: 'linear-gradient(135deg, #ffd700 0%, #b8860b 25%, #ffd700 50%, #daa520 75%, #ffd700 100%)',
+        boxShadow: '0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.3)',
       }}
     >
-      {/* Star field with parallax */}
-      <StarField moving />
-      <SparkleParticles />
-      
-      {/* Bright golden halo effect */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-yellow-400/15 to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.25)_0%,transparent_50%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,215,0,0.15)_0%,transparent_70%)]" />
-      
-      {/* Golden corner ornaments with stronger glow */}
-      <div className="absolute top-3 left-3 w-10 h-10"
-        style={{ borderTop: '4px solid rgba(255, 215, 0, 1)', borderLeft: '4px solid rgba(255, 215, 0, 1)', borderRadius: '10px 0 0 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
-      <div className="absolute top-3 right-3 w-10 h-10"
-        style={{ borderTop: '4px solid rgba(255, 215, 0, 1)', borderRight: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 10px 0 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
-      <div className="absolute bottom-3 left-3 w-10 h-10"
-        style={{ borderBottom: '4px solid rgba(255, 215, 0, 1)', borderLeft: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 0 0 10px', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
-      <div className="absolute bottom-3 right-3 w-10 h-10"
-        style={{ borderBottom: '4px solid rgba(255, 215, 0, 1)', borderRight: '4px solid rgba(255, 215, 0, 1)', borderRadius: '0 0 10px 0', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }} />
-
-      {/* Twinkling stars - brighter */}
-      <div className="absolute top-8 left-10 w-2 h-2 bg-white rounded-full animate-twinkle" style={{ animationDelay: '0s', boxShadow: '0 0 8px rgba(255, 255, 255, 0.9)' }} />
-      <div className="absolute top-16 right-12 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-twinkle" style={{ animationDelay: '0.5s', boxShadow: '0 0 6px rgba(255, 215, 0, 0.9)' }} />
-      <div className="absolute bottom-20 left-8 w-2.5 h-2.5 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '1s', boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)' }} />
-      <div className="absolute bottom-12 right-8 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-twinkle" style={{ animationDelay: '1.5s', boxShadow: '0 0 6px rgba(255, 215, 0, 0.8)' }} />
-      <div className="absolute top-1/2 left-4 w-1.5 h-1.5 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '2s', boxShadow: '0 0 6px rgba(255, 255, 255, 0.8)' }} />
-      <div className="absolute top-1/3 right-6 w-2 h-2 bg-yellow-400 rounded-full animate-twinkle" style={{ animationDelay: '0.3s', boxShadow: '0 0 8px rgba(255, 215, 0, 1)' }} />
-
-      <div className="relative z-10">
-        {/* Title with glow effect */}
-        <h2 
-          className="text-center font-bold text-2xl md:text-3xl tracking-[0.2em] mb-6 animate-text-glow"
+      {/* Inner container with cosmos background */}
+      <div 
+        className="relative overflow-hidden rounded-[16px]"
+        style={{
+          background: 'linear-gradient(160deg, #1a472a 0%, #0d3320 20%, #0a2818 40%, #071f14 60%, #0a2818 80%, #0d3320 100%)',
+        }}
+      >
+        {/* Cosmic gradient overlay */}
+        <div 
+          className="absolute inset-0"
           style={{
-            background: 'linear-gradient(90deg, #fff8dc, #ffd700, #fff8dc, #ffd700, #fff8dc)',
-            backgroundSize: '200% 100%',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            animation: 'text-glow-pulse 3s ease-in-out infinite, shimmer 4s ease-in-out infinite',
+            background: `
+              radial-gradient(ellipse at 20% 20%, rgba(0, 100, 180, 0.3) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 80%, rgba(184, 134, 11, 0.25) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 50%, rgba(34, 139, 34, 0.2) 0%, transparent 70%)
+            `,
           }}
-        >
-          ✨ HONOR BOARD ✨
-        </h2>
+        />
+        
+        {/* Starfield effect */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.8), transparent),
+              radial-gradient(2px 2px at 40px 70px, rgba(255,215,0,0.7), transparent),
+              radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.6), transparent),
+              radial-gradient(2px 2px at 130px 80px, rgba(255,215,0,0.5), transparent),
+              radial-gradient(1px 1px at 160px 30px, rgba(255,255,255,0.7), transparent),
+              radial-gradient(1px 1px at 50px 120px, rgba(255,215,0,0.6), transparent),
+              radial-gradient(2px 2px at 180px 120px, rgba(255,255,255,0.5), transparent)
+            `,
+            backgroundSize: '200px 150px',
+            animation: 'twinkle 3s ease-in-out infinite',
+          }}
+        />
 
-        {/* Stats */}
-        <div className="space-y-3">
-          {statItems.map((item, index) => (
-            <div
-              key={item.label}
-              className="honor-stat-box flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-300 hover:scale-[1.02] group"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div 
-                className="p-2.5 rounded-lg transition-all duration-300 group-hover:scale-110"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 255, 255, 0.2))',
-                  border: '2px solid rgba(255, 215, 0, 0.7)',
-                  boxShadow: '0 0 15px rgba(255, 215, 0, 0.5)',
-                }}
-              >
-                <item.icon className="w-5 h-5 text-yellow-500 drop-shadow-[0_0_8px_rgba(255,215,0,1)]" />
-              </div>
-              <span className="font-semibold tracking-wide flex-1 text-white/95">
-                {item.label}
-              </span>
-              <span 
-                className="font-bold text-xl drop-shadow-[0_0_10px_rgba(255,215,0,0.7)]"
-                style={{
-                  background: 'linear-gradient(90deg, #fff, #ffd700, #fff)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                {isLoading ? "..." : <AnimatedCounter value={item.value} />}
-              </span>
-            </div>
-          ))}
+        <SparkleParticles />
+        
+        {/* Golden glow from corners */}
+        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-radial from-yellow-500/30 to-transparent blur-xl" />
+        <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-radial from-yellow-500/30 to-transparent blur-xl" />
+        
+        {/* Corner ornaments */}
+        <CornerOrnament position="top-left" />
+        <CornerOrnament position="top-right" />
+        <CornerOrnament position="bottom-left" />
+        <CornerOrnament position="bottom-right" />
 
-          {/* TOTAL REWARD with spinning CAMLY coin */}
-          <div
-            className="flex items-center gap-4 rounded-xl px-4 py-4 transition-all duration-300 hover:scale-[1.02] group"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4))',
-              border: '2px solid rgba(255, 215, 0, 0.5)',
-              boxShadow: '0 0 20px rgba(255, 215, 0, 0.2), inset 0 0 20px rgba(255, 215, 0, 0.1)',
-            }}
-          >
+        <div className={`relative z-10 ${compact ? 'p-4' : 'p-6'}`}>
+          {/* Logo at top */}
+          <div className="flex justify-center mb-3">
             <div 
-              className="p-2 rounded-lg"
+              className="relative"
               style={{
-                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.15))',
+                filter: 'drop-shadow(0 0 15px rgba(255,215,0,0.5))',
               }}
             >
               <img 
-                src={camlyCoin} 
-                alt="CAMLY Coin" 
-                className="w-8 h-8 animate-coin-spin"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.9))' }}
+                src={funFarmLogo} 
+                alt="FUN FARM Web3" 
+                className={`${compact ? 'w-16 h-16' : 'w-20 h-20'} object-contain`}
               />
             </div>
-            <span 
-              className="font-semibold tracking-wide flex-1"
-              style={{ color: 'rgba(255, 248, 220, 0.95)' }}
-            >
-              TOTAL REWARD
-            </span>
-            <span 
-              className="font-bold text-2xl animate-text-glow"
+          </div>
+
+          {/* Title */}
+          <h2 
+            className={`text-center font-extrabold ${compact ? 'text-xl' : 'text-2xl md:text-3xl'} tracking-[0.15em] mb-5`}
+            style={{
+              color: '#ffd700',
+              textShadow: `
+                0 0 10px rgba(255, 215, 0, 1),
+                0 0 20px rgba(255, 215, 0, 0.8),
+                0 0 40px rgba(255, 215, 0, 0.6),
+                0 2px 4px rgba(0, 0, 0, 0.8)
+              `,
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+          >
+            HONOR BOARD
+          </h2>
+
+          {/* Stats */}
+          <div className="space-y-3">
+            {statItems.map((item, index) => (
+              <div
+                key={item.label}
+                className="relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(10, 40, 24, 0.9) 0%, rgba(7, 31, 20, 0.95) 100%)',
+                  border: '2px solid',
+                  borderImage: 'linear-gradient(135deg, #ffd700, #b8860b, #ffd700) 1',
+                  boxShadow: '0 0 15px rgba(255, 215, 0, 0.3), inset 0 0 10px rgba(255, 215, 0, 0.1)',
+                }}
+              >
+                <div className={`flex items-center gap-3 ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
+                  {/* Icon */}
+                  <div 
+                    className={`${compact ? 'p-2' : 'p-2.5'} rounded-lg`}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(184, 134, 11, 0.15))',
+                      border: '1px solid rgba(255, 215, 0, 0.5)',
+                    }}
+                  >
+                    <item.icon 
+                      className={`${compact ? 'w-4 h-4' : 'w-5 h-5'}`}
+                      style={{
+                        color: '#ffd700',
+                        filter: 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.8))',
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Label */}
+                  <span 
+                    className={`flex-1 font-bold ${compact ? 'text-sm' : 'text-base'} tracking-wide`}
+                    style={{
+                      color: '#ffd700',
+                      textShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  
+                  {/* Value */}
+                  <span 
+                    className={`font-extrabold ${compact ? 'text-lg' : 'text-xl'}`}
+                    style={{
+                      color: '#ffd700',
+                      textShadow: `
+                        0 0 10px rgba(255, 215, 0, 1),
+                        0 0 20px rgba(255, 215, 0, 0.7),
+                        0 2px 4px rgba(0, 0, 0, 0.8)
+                      `,
+                    }}
+                  >
+                    {isLoading ? "..." : <AnimatedCounter value={item.value} />}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {/* TOTAL REWARD with CAMLY coin */}
+            <div
+              className="relative overflow-hidden rounded-xl transition-all duration-300 hover:scale-[1.02]"
               style={{
-                background: 'linear-gradient(90deg, #ffd700, #fff, #ffd700)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                background: 'linear-gradient(135deg, rgba(10, 40, 24, 0.9) 0%, rgba(7, 31, 20, 0.95) 100%)',
+                border: '2px solid',
+                borderImage: 'linear-gradient(135deg, #ffd700, #b8860b, #ffd700) 1',
+                boxShadow: '0 0 20px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 215, 0, 0.15)',
               }}
             >
-              {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
-            </span>
+              <div className={`flex items-center gap-3 ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}>
+                {/* CAMLY Coin */}
+                <div 
+                  className={`${compact ? 'p-1.5' : 'p-2'} rounded-lg`}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(184, 134, 11, 0.2))',
+                  }}
+                >
+                  <img 
+                    src={camlyCoin} 
+                    alt="CAMLY" 
+                    className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} animate-coin-spin`}
+                    style={{ 
+                      filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.9))',
+                    }}
+                  />
+                </div>
+                
+                {/* Label */}
+                <span 
+                  className={`flex-1 font-bold ${compact ? 'text-sm' : 'text-base'} tracking-wide`}
+                  style={{
+                    color: '#ffd700',
+                    textShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)',
+                  }}
+                >
+                  TOTAL REWARD
+                </span>
+                
+                {/* Value */}
+                <span 
+                  className={`font-extrabold ${compact ? 'text-xl' : 'text-2xl'}`}
+                  style={{
+                    color: '#ffd700',
+                    textShadow: `
+                      0 0 15px rgba(255, 215, 0, 1),
+                      0 0 30px rgba(255, 215, 0, 0.7),
+                      0 2px 4px rgba(0, 0, 0, 0.8)
+                    `,
+                  }}
+                >
+                  {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
