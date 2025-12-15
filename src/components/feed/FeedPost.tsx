@@ -8,6 +8,8 @@ import { ReactionPicker, Reaction, reactions } from "./ReactionPicker";
 import ProductPostCard from "./ProductPostCard";
 import EditPostModal from "./EditPostModal";
 import BuyProductModal from "./BuyProductModal";
+import SharePostModal from "./SharePostModal";
+import SharedPostCard from "./SharedPostCard";
 import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { ReportModal } from "@/components/ReportModal";
@@ -32,6 +34,7 @@ import {
   Download,
   Pencil,
   Flag,
+  Repeat2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -40,16 +43,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface FeedPostProps {
   post: Post;
@@ -294,63 +287,32 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
       return;
     }
 
-    // Show confirmation dialog first
+    // Open share modal
     setShowShareConfirm(true);
   };
 
-  const handleShareConfirm = async () => {
-    setShowShareConfirm(false);
-    
-    if (!user?.id) return;
-
-    try {
-      // Check if user is banned from rewards
-      if (isRewardBanned) {
-        toast.info('FUN FARM là nơi lan tỏa tình yêu chân thành. Bạn đang trong thời gian tạm dừng thưởng. Hãy tiếp tục gieo hạt yêu thương đúng cách nhé! ❤️', { duration: 5000 });
-      }
-
-      // Check if user has already shared this post
-      const { data: existingShare } = await supabase
-        .from('post_shares')
-        .select('id')
-        .eq('post_id', post.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const isFirstShare = !existingShare;
-
-      // Record share in database (trigger will only reward first share and check ban)
-      await supabase
-        .from('post_shares')
-        .insert({
-          post_id: post.id,
-          user_id: user.id
-        });
-
-      setShares(prev => prev + 1);
-      
-      if (isFirstShare && !isRewardBanned) {
-        toast.success('+20.000 CAMLY cho bạn! 🎉 Cảm ơn bạn đã lan tỏa tình yêu thương!', { duration: 3000 });
-        refreshProfile();
-      } else if (!isFirstShare) {
-        toast.info('Bạn đã lan tỏa tình yêu thương cho bài này rồi! 💚', { duration: 3000 });
-      }
-
-      // Also try native share
-      if (navigator.share) {
-        navigator.share({
-          title: post.author.name,
-          text: post.content.substring(0, 100),
-          url: window.location.href,
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
+  const handleShareComplete = () => {
+    setShares(prev => prev + 1);
   };
+
+  // Check if this is a share post
+  const isSharePost = post.post_type === 'share' && post.original_post;
 
   return (
     <article className="bg-card rounded-2xl shadow-card border border-border overflow-hidden transition-all duration-300 hover:shadow-soft">
+      {/* Share Header - shows when this is a shared post */}
+      {isSharePost && (
+        <div className="px-3 sm:px-4 pt-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <Repeat2 className="w-4 h-4" />
+          <span>
+            <Link to={`/user/${post.author.id}`} className="font-semibold text-foreground hover:underline">
+              {post.author.name}
+            </Link>
+            {" "}đã chia sẻ bài viết
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="p-3 sm:p-4 flex items-start sm:items-center justify-between gap-2">
         <Link 
@@ -437,33 +399,49 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-3 sm:px-4 pb-3">
-        <p className="text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base">{post.content}</p>
-        
-        {/* Hashtags */}
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
-          {post.hashtags.map((tag) => (
-            <span 
-              key={tag} 
-              className="text-primary hover:text-primary/80 cursor-pointer text-xs sm:text-sm font-medium"
-            >
-              #{tag}
-            </span>
-          ))}
+      {/* Share Comment (for share posts) */}
+      {isSharePost && post.content && (
+        <div className="px-3 sm:px-4 pb-3">
+          <p className="text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base">{post.content}</p>
         </div>
+      )}
 
-        {/* Location */}
-        {post.location && (
-          <div className="flex items-center gap-1 mt-2 text-xs sm:text-sm text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>{post.location}</span>
+      {/* Embedded Original Post (for share posts) */}
+      {isSharePost && post.original_post && (
+        <div className="px-3 sm:px-4 pb-3">
+          <SharedPostCard originalPost={post.original_post} />
+        </div>
+      )}
+
+      {/* Regular Content (for non-share posts) */}
+      {!isSharePost && (
+        <div className="px-3 sm:px-4 pb-3">
+          <p className="text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base">{post.content}</p>
+          
+          {/* Hashtags */}
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+            {post.hashtags.map((tag) => (
+              <span 
+                key={tag} 
+                className="text-primary hover:text-primary/80 cursor-pointer text-xs sm:text-sm font-medium"
+              >
+                #{tag}
+              </span>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Images */}
-      {post.images.length > 0 && (
+          {/* Location */}
+          {post.location && (
+            <div className="flex items-center gap-1 mt-2 text-xs sm:text-sm text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{post.location}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Images - only for non-share posts */}
+      {!isSharePost && post.images.length > 0 && (
         <div className="relative group">
           <div className="aspect-[4/3] overflow-hidden">
             <img 
@@ -728,29 +706,13 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         }}
       />
 
-      {/* Share Confirmation Dialog */}
-      <AlertDialog open={showShareConfirm} onOpenChange={setShowShareConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-center text-xl">💚 Lan tỏa yêu thương</AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-base">
-              FUN FARM là nơi chia sẻ tình yêu thương chân thành. 
-              Mỗi bài viết chỉ nhận phước lành 1 lần duy nhất.
-              <br /><br />
-              Bạn có muốn chia sẻ bài viết này với tấm lòng yêu thương không?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel>Để sau</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleShareConfirm}
-              className="bg-primary hover:bg-primary/90"
-            >
-              💚 Tôi chia sẻ bằng tình yêu thương
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Share Post Modal */}
+      <SharePostModal
+        isOpen={showShareConfirm}
+        onClose={() => setShowShareConfirm(false)}
+        post={post}
+        onShareComplete={handleShareComplete}
+      />
 
       {/* Report Modal */}
       <ReportModal
