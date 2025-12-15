@@ -8,3 +8,9 @@ verify_jwt = true
 
 [functions.upload-r2]
 verify_jwt = true
+
+[functions.check-inactive-bans]
+verify_jwt = false
+
+[functions.check-content]
+verify_jwt = false
