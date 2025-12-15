@@ -29,6 +29,7 @@ import { ImageCropUpload } from "@/components/profile/ImageCropUpload";
 import { CoverPhotoEditor } from "@/components/profile/CoverPhotoEditor";
 import { FriendRequests } from "@/components/FriendRequests";
 import { FriendsList } from "@/components/FriendsList";
+import { FriendSearch } from "@/components/FriendSearch";
 
 const profileTypeLabels: Record<string, { emoji: string; label: string }> = {
   farmer: { emoji: '🧑‍🌾', label: 'Nông dân' },
@@ -443,6 +444,7 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="friends" className="mt-6 space-y-6">
+              <FriendSearch />
               <FriendRequests />
               <FriendsList />
             </TabsContent>
