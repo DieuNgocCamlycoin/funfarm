@@ -30,7 +30,11 @@ interface SearchResult {
   friendshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'accepted';
 }
 
-export function FriendSearch() {
+interface FriendSearchProps {
+  compact?: boolean;
+}
+
+export function FriendSearch({ compact = false }: FriendSearchProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -262,11 +266,13 @@ export function FriendSearch() {
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4">
-      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-        <Search className="w-5 h-5 text-primary" />
-        Tìm kiếm bạn bè
-      </h3>
+    <div className={compact ? "" : "bg-card rounded-xl border border-border p-4"}>
+      {!compact && (
+        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+          <Search className="w-5 h-5 text-primary" />
+          Tìm kiếm bạn bè
+        </h3>
+      )}
 
       {/* Search Filters */}
       <div className="space-y-3 mb-4">
