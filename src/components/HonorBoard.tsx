@@ -48,7 +48,17 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
     };
   }, [value]);
 
-  return <span className="animate-counter-pulse">{displayValue.toLocaleString("vi-VN")}</span>;
+  return (
+    <span 
+      className="animate-counter-pulse font-bold"
+      style={{
+        color: '#ffd700',
+        textShadow: '0 0 10px rgba(255, 215, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.5)',
+      }}
+    >
+      {displayValue.toLocaleString("vi-VN")}
+    </span>
+  );
 };
 
 // Sparkle particle component
@@ -172,67 +182,132 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   if (compact) {
     return (
-      <div className="relative overflow-hidden rounded-2xl cosmos-bg-compact p-4 animate-golden-glow"
+      <div 
+        className="relative rounded-2xl animate-golden-glow h-[400px] flex flex-col"
         style={{
           border: '3px solid',
           borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 58%), hsl(50 100% 70%)) 1',
+          background: 'linear-gradient(135deg, rgba(34, 139, 34, 0.4), rgba(0, 105, 148, 0.3), rgba(184, 134, 11, 0.25))',
         }}
       >
-        <StarField />
-        <SparkleParticles />
+        {/* Fixed Header */}
+        <div className="relative overflow-hidden rounded-t-2xl p-3 cosmos-bg-compact flex-shrink-0">
+          <StarField />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-yellow-400/10 to-transparent" />
+          <div className="relative z-10">
+            <h3 
+              className="text-center font-extrabold text-xl tracking-widest animate-text-glow"
+              style={{
+                color: '#ffd700',
+                textShadow: '0 0 15px rgba(255, 215, 0, 1), 0 0 30px rgba(255, 215, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8)',
+                letterSpacing: '0.15em',
+              }}
+            >
+              ✨ HONOR BOARD ✨
+            </h3>
+          </div>
+        </div>
         
-        {/* Bright golden halo effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-yellow-400/10 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)]" />
-        
-        <div className="relative z-10">
-          <h3 className="text-center font-bold text-lg tracking-widest mb-3 animate-text-glow"
-            style={{
-              background: 'linear-gradient(90deg, #fff, #ffd700, #fff, #ffd700, #fff)',
-              backgroundSize: '200% 100%',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'text-glow-pulse 3s ease-in-out infinite, shimmer 4s ease-in-out infinite',
-            }}
-          >
-            ✨ HONOR BOARD ✨
-          </h3>
+        {/* Scrollable Content */}
+        <div 
+          className="relative flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-yellow-500/60 scrollbar-track-transparent"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255, 215, 0, 0.6) transparent',
+          }}
+        >
+          <SparkleParticles />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.15)_0%,transparent_70%)]" />
           
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="relative z-10 space-y-2">
             {statItems.map((item) => (
               <div 
                 key={item.label} 
-                className="honor-stat-box flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-300"
+                className="honor-stat-box flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-300 hover:scale-[1.02]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 215, 0, 0.1))',
+                  border: '2px solid rgba(255, 215, 0, 0.5)',
+                  boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)',
+                }}
               >
-                <item.icon className="w-3.5 h-3.5 text-yellow-500 drop-shadow-[0_0_6px_rgba(255,215,0,0.9)]" />
-                <span className="text-white/90 truncate font-medium">{item.label.split(' ')[1]}</span>
-                <span className="ml-auto font-bold text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.7)]">
+                <div 
+                  className="p-2 rounded-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 255, 255, 0.2))',
+                    border: '2px solid rgba(255, 215, 0, 0.7)',
+                    boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
+                  }}
+                >
+                  <item.icon 
+                    className="w-4 h-4"
+                    style={{
+                      color: '#ffd700',
+                      filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 1))',
+                    }}
+                  />
+                </div>
+                <span 
+                  className="flex-1 font-bold text-sm tracking-wide"
+                  style={{
+                    color: '#ffd700',
+                    textShadow: '0 0 8px rgba(255, 215, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  {item.label}
+                </span>
+                <span 
+                  className="font-extrabold text-lg"
+                  style={{
+                    color: '#ffd700',
+                    textShadow: '0 0 15px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.7)',
+                  }}
+                >
                   {isLoading ? "..." : <AnimatedCounter value={item.value} />}
                 </span>
               </div>
             ))}
-          </div>
-          
-          {/* CAMLY Reward with spinning coin */}
-          <div 
-            className="mt-2 flex items-center justify-center gap-2 rounded-lg px-3 py-2"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 215, 0, 0.15))',
-              border: '2px solid rgba(255, 215, 0, 0.6)',
-              boxShadow: '0 0 15px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            <img 
-              src={camlyCoin} 
-              alt="CAMLY" 
-              className="w-5 h-5 animate-coin-spin"
-              style={{ filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 1))' }}
-            />
-            <span className="text-white/90 text-xs font-medium">REWARD</span>
-            <span className="font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]">
-              {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
-            </span>
+            
+            {/* CAMLY Reward with spinning coin */}
+            <div 
+              className="flex items-center gap-3 rounded-lg px-3 py-3 transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 255, 255, 0.1))',
+                border: '2px solid rgba(255, 215, 0, 0.7)',
+                boxShadow: '0 0 20px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <div 
+                className="p-1.5 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.15))',
+                }}
+              >
+                <img 
+                  src={camlyCoin} 
+                  alt="CAMLY" 
+                  className="w-6 h-6 animate-coin-spin"
+                  style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 1))' }}
+                />
+              </div>
+              <span 
+                className="flex-1 font-bold text-sm tracking-wide"
+                style={{
+                  color: '#ffd700',
+                  textShadow: '0 0 8px rgba(255, 215, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6)',
+                }}
+              >
+                TOTAL REWARD
+              </span>
+              <span 
+                className="font-extrabold text-lg"
+                style={{
+                  color: '#ffd700',
+                  textShadow: '0 0 15px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 215, 0, 0.7), 0 2px 4px rgba(0, 0, 0, 0.7)',
+                }}
+              >
+                {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
+              </span>
+            </div>
           </div>
         </div>
       </div>
