@@ -1,10 +1,10 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Honor Board - Bảng vinh danh thành tựu cộng đồng
+// Honor Board - Bảng vinh danh thành tựu cộng đồng - Cosmos Design
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, FileText, Image, Video, Coins } from "lucide-react";
-import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
+import camlyCoin from "@/assets/camly_coin.png";
 
 interface HonorStats {
   totalUsers: number;
@@ -18,6 +18,87 @@ interface HonorBoardProps {
   compact?: boolean;
 }
 
+// Animated counter component
+const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const countRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (countRef.current) clearInterval(countRef.current);
+    
+    const startValue = displayValue;
+    const difference = value - startValue;
+    const steps = 60;
+    const stepValue = difference / steps;
+    const stepDuration = duration / steps;
+    let currentStep = 0;
+
+    countRef.current = setInterval(() => {
+      currentStep++;
+      if (currentStep >= steps) {
+        setDisplayValue(value);
+        clearInterval(countRef.current);
+      } else {
+        setDisplayValue(Math.round(startValue + stepValue * currentStep));
+      }
+    }, stepDuration);
+
+    return () => {
+      if (countRef.current) clearInterval(countRef.current);
+    };
+  }, [value]);
+
+  return <span className="animate-counter-pulse">{displayValue.toLocaleString("vi-VN")}</span>;
+};
+
+// Sparkle particle component
+const SparkleParticles = () => {
+  const particles = Array.from({ length: 15 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    delay: `${Math.random() * 8}s`,
+    duration: `${6 + Math.random() * 4}s`,
+    size: Math.random() > 0.5 ? 2 : 1,
+  }));
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute animate-sparkle-fall"
+          style={{
+            left: p.left,
+            top: '-10px',
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+          }}
+        >
+          <div 
+            className="rounded-full"
+            style={{
+              width: p.size + 'px',
+              height: p.size + 'px',
+              background: p.id % 3 === 0 
+                ? 'rgba(255, 215, 0, 0.9)' 
+                : 'rgba(255, 255, 255, 0.8)',
+              boxShadow: '0 0 4px rgba(255, 215, 0, 0.6)',
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Star field component with parallax
+const StarField = ({ moving = false }: { moving?: boolean }) => (
+  <div 
+    className={`absolute inset-0 starfield ${moving ? 'animate-float-star' : ''}`}
+    style={{ opacity: 0.8 }}
+  />
+);
+
 const HonorBoard = ({ compact = false }: HonorBoardProps) => {
   const [stats, setStats] = useState<HonorStats>({
     totalUsers: 0,
@@ -30,17 +111,14 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   const fetchStats = async () => {
     try {
-      // Fetch total users
       const { count: usersCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true });
 
-      // Fetch total posts
       const { count: postsCount } = await supabase
         .from("posts")
         .select("*", { count: "exact", head: true });
 
-      // Fetch posts with images/videos for counting
       const { data: postsWithMedia } = await supabase
         .from("posts")
         .select("images, video_url");
@@ -57,7 +135,6 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
         }
       });
 
-      // Fetch total rewards (pending + balance)
       const { data: rewardsData } = await supabase
         .from("profiles")
         .select("pending_reward, camly_balance");
@@ -82,50 +159,81 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   useEffect(() => {
     fetchStats();
-
-    // Refresh every 5 minutes
     const interval = setInterval(fetchStats, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const formatNumber = (num: number): string => {
-    return num.toLocaleString("vi-VN");
-  };
-
   const statItems = [
-    { icon: Users, label: "TOTAL USERS", value: stats.totalUsers, color: "text-yellow-400" },
-    { icon: FileText, label: "TOTAL POSTS", value: stats.totalPosts, color: "text-yellow-400" },
-    { icon: Image, label: "TOTAL PHOTOS", value: stats.totalPhotos, color: "text-yellow-400" },
-    { icon: Video, label: "TOTAL VIDEOS", value: stats.totalVideos, color: "text-yellow-400" },
-    { icon: Coins, label: "TOTAL REWARD", value: stats.totalReward, color: "text-yellow-400" },
+    { icon: Users, label: "TOTAL USERS", value: stats.totalUsers },
+    { icon: FileText, label: "TOTAL POSTS", value: stats.totalPosts },
+    { icon: Image, label: "TOTAL PHOTOS", value: stats.totalPhotos },
+    { icon: Video, label: "TOTAL VIDEOS", value: stats.totalVideos },
   ];
 
   if (compact) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-gradient-to-br from-emerald-900/90 via-teal-900/90 to-emerald-950/90 p-4 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
-        {/* Sparkle effects */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.1)_0%,transparent_50%)]" />
-        <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-400/10 rounded-full blur-xl" />
+      <div className="relative overflow-hidden rounded-2xl cosmos-bg-compact p-4 animate-golden-glow"
+        style={{
+          border: '2px solid',
+          borderImage: 'linear-gradient(135deg, hsl(50 100% 60%), hsl(40 100% 50%), hsl(50 100% 70%)) 1',
+        }}
+      >
+        <StarField />
+        <SparkleParticles />
+        
+        {/* Golden halo effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-transparent to-yellow-500/5" />
         
         <div className="relative z-10">
-          <h3 className="text-center font-bold text-lg bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 bg-clip-text text-transparent mb-3 tracking-wide">
+          <h3 className="text-center font-bold text-lg tracking-widest mb-3 animate-text-glow"
+            style={{
+              background: 'linear-gradient(90deg, #ffd700, #fff8dc, #ffd700)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             ✨ HONOR BOARD ✨
           </h3>
           
           <div className="grid grid-cols-2 gap-2 text-xs">
-            {statItems.slice(0, 4).map((item) => (
-              <div key={item.label} className="flex items-center gap-2 bg-black/30 rounded-lg px-2 py-1.5 border border-yellow-500/30">
-                <item.icon className="w-3.5 h-3.5 text-yellow-400" />
+            {statItems.map((item) => (
+              <div 
+                key={item.label} 
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all hover:scale-105"
+                style={{
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  border: '1px solid rgba(255, 215, 0, 0.3)',
+                  boxShadow: 'inset 0 0 10px rgba(255, 215, 0, 0.1)',
+                }}
+              >
+                <item.icon className="w-3.5 h-3.5 text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.6)]" />
                 <span className="text-yellow-100/80 truncate">{item.label.split(' ')[1]}</span>
-                <span className="ml-auto font-bold text-yellow-300">{formatNumber(item.value)}</span>
+                <span className="ml-auto font-bold text-yellow-300 drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]">
+                  {isLoading ? "..." : <AnimatedCounter value={item.value} />}
+                </span>
               </div>
             ))}
           </div>
           
-          <div className="mt-2 flex items-center justify-center gap-2 bg-black/30 rounded-lg px-3 py-2 border border-yellow-500/30">
-            <Coins className="w-4 h-4 text-yellow-400" />
-            <span className="text-yellow-100/80">REWARD</span>
-            <span className="font-bold text-yellow-300">{formatNumber(stats.totalReward)}</span>
+          {/* CAMLY Reward with spinning coin */}
+          <div 
+            className="mt-2 flex items-center justify-center gap-2 rounded-lg px-3 py-2"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4))',
+              border: '1px solid rgba(255, 215, 0, 0.4)',
+            }}
+          >
+            <img 
+              src={camlyCoin} 
+              alt="CAMLY" 
+              className="w-5 h-5 animate-coin-spin"
+              style={{ filter: 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.8))' }}
+            />
+            <span className="text-yellow-100/80 text-xs">REWARD</span>
+            <span className="font-bold text-yellow-300 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]">
+              {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
+            </span>
           </div>
         </div>
       </div>
@@ -133,35 +241,51 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border-4 border-yellow-500/60 bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-950 p-6 shadow-[0_0_60px_rgba(234,179,8,0.4)]">
-      {/* Golden corner decorations */}
-      <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-yellow-400/80 rounded-tl-3xl" />
-      <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-yellow-400/80 rounded-tr-3xl" />
-      <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-yellow-400/80 rounded-bl-3xl" />
-      <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-yellow-400/80 rounded-br-3xl" />
+    <div 
+      className="relative overflow-hidden rounded-3xl cosmos-bg p-6 animate-golden-glow"
+      style={{
+        border: '4px solid',
+        borderImage: 'linear-gradient(135deg, hsl(50 100% 65%), hsl(45 100% 55%), hsl(50 100% 70%), hsl(40 100% 50%)) 1',
+      }}
+    >
+      {/* Star field with parallax */}
+      <StarField moving />
+      <SparkleParticles />
       
-      {/* Sparkle overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.15)_0%,transparent_60%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.2)_0%,transparent_60%)]" />
+      {/* Golden halo effect from top */}
+      <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/15 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.2)_0%,transparent_60%)]" />
       
-      {/* Animated sparkles */}
-      <div className="absolute top-4 left-8 w-2 h-2 bg-yellow-300 rounded-full animate-pulse opacity-60" />
-      <div className="absolute top-12 right-10 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-pulse opacity-50" style={{ animationDelay: '0.5s' }} />
-      <div className="absolute bottom-16 left-12 w-2 h-2 bg-yellow-400 rounded-full animate-pulse opacity-40" style={{ animationDelay: '1s' }} />
-      <div className="absolute bottom-8 right-6 w-1 h-1 bg-yellow-100 rounded-full animate-pulse opacity-70" style={{ animationDelay: '1.5s' }} />
+      {/* Corner ornaments */}
+      <div className="absolute top-3 left-3 w-8 h-8 border-t-3 border-l-3 rounded-tl-lg"
+        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderRight: 'none', borderBottom: 'none' }} />
+      <div className="absolute top-3 right-3 w-8 h-8 border-t-3 border-r-3 rounded-tr-lg"
+        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderLeft: 'none', borderBottom: 'none' }} />
+      <div className="absolute bottom-3 left-3 w-8 h-8 border-b-3 border-l-3 rounded-bl-lg"
+        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderRight: 'none', borderTop: 'none' }} />
+      <div className="absolute bottom-3 right-3 w-8 h-8 border-b-3 border-r-3 rounded-br-lg"
+        style={{ borderColor: 'rgba(255, 215, 0, 0.8)', borderWidth: '3px', borderLeft: 'none', borderTop: 'none' }} />
+
+      {/* Twinkling stars */}
+      <div className="absolute top-8 left-10 w-1.5 h-1.5 bg-white rounded-full animate-twinkle" style={{ animationDelay: '0s' }} />
+      <div className="absolute top-16 right-12 w-1 h-1 bg-yellow-300 rounded-full animate-twinkle" style={{ animationDelay: '0.5s' }} />
+      <div className="absolute bottom-20 left-8 w-2 h-2 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '1s' }} />
+      <div className="absolute bottom-12 right-8 w-1 h-1 bg-yellow-200 rounded-full animate-twinkle" style={{ animationDelay: '1.5s' }} />
+      <div className="absolute top-1/2 left-4 w-1 h-1 bg-white rounded-full animate-twinkle-slow" style={{ animationDelay: '2s' }} />
 
       <div className="relative z-10">
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-          <img
-            src={funFarmLogo}
-            alt="FUN FARM Web3"
-            className="w-16 h-16 rounded-full border-2 border-yellow-400/60 shadow-[0_0_20px_rgba(234,179,8,0.5)]"
-          />
-        </div>
-
-        {/* Title */}
-        <h2 className="text-center font-bold text-2xl md:text-3xl bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-200 bg-clip-text text-transparent mb-6 tracking-widest drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">
+        {/* Title with glow effect */}
+        <h2 
+          className="text-center font-bold text-2xl md:text-3xl tracking-[0.2em] mb-6 animate-text-glow"
+          style={{
+            background: 'linear-gradient(90deg, #fff8dc, #ffd700, #fff8dc, #ffd700, #fff8dc)',
+            backgroundSize: '200% 100%',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'text-glow-pulse 3s ease-in-out infinite, shimmer 4s ease-in-out infinite',
+          }}
+        >
           ✨ HONOR BOARD ✨
         </h2>
 
@@ -170,20 +294,84 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           {statItems.map((item, index) => (
             <div
               key={item.label}
-              className="flex items-center gap-4 bg-gradient-to-r from-black/40 via-black/30 to-black/40 rounded-xl px-4 py-3 border border-yellow-500/40 hover:border-yellow-400/60 transition-all hover:shadow-[0_0_15px_rgba(234,179,8,0.3)]"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              className="flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-300 hover:scale-[1.02] group"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3))',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                boxShadow: 'inset 0 0 15px rgba(255, 215, 0, 0.05)',
+                animationDelay: `${index * 0.1}s`,
+              }}
             >
-              <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 border border-yellow-400/40">
-                <item.icon className="w-5 h-5 text-yellow-400" />
+              <div 
+                className="p-2.5 rounded-lg transition-all duration-300 group-hover:scale-110"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 215, 0, 0.1))',
+                  border: '1px solid rgba(255, 215, 0, 0.4)',
+                  boxShadow: '0 0 12px rgba(255, 215, 0, 0.3)',
+                }}
+              >
+                <item.icon className="w-5 h-5 text-yellow-400 drop-shadow-[0_0_6px_rgba(255,215,0,0.8)]" />
               </div>
-              <span className="font-semibold text-yellow-100/90 tracking-wide flex-1">
+              <span 
+                className="font-semibold tracking-wide flex-1"
+                style={{ color: 'rgba(255, 248, 220, 0.9)' }}
+              >
                 {item.label}
               </span>
-              <span className="font-bold text-xl bg-gradient-to-r from-yellow-300 to-yellow-400 bg-clip-text text-transparent">
-                {isLoading ? "..." : formatNumber(item.value)}
+              <span 
+                className="font-bold text-xl drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
+                style={{
+                  background: 'linear-gradient(90deg, #ffd700, #fff8dc)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                {isLoading ? "..." : <AnimatedCounter value={item.value} />}
               </span>
             </div>
           ))}
+
+          {/* TOTAL REWARD with spinning CAMLY coin */}
+          <div
+            className="flex items-center gap-4 rounded-xl px-4 py-4 transition-all duration-300 hover:scale-[1.02] group"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.4))',
+              border: '2px solid rgba(255, 215, 0, 0.5)',
+              boxShadow: '0 0 20px rgba(255, 215, 0, 0.2), inset 0 0 20px rgba(255, 215, 0, 0.1)',
+            }}
+          >
+            <div 
+              className="p-2 rounded-lg"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.15))',
+              }}
+            >
+              <img 
+                src={camlyCoin} 
+                alt="CAMLY Coin" 
+                className="w-8 h-8 animate-coin-spin"
+                style={{ filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.9))' }}
+              />
+            </div>
+            <span 
+              className="font-semibold tracking-wide flex-1"
+              style={{ color: 'rgba(255, 248, 220, 0.95)' }}
+            >
+              TOTAL REWARD
+            </span>
+            <span 
+              className="font-bold text-2xl animate-text-glow"
+              style={{
+                background: 'linear-gradient(90deg, #ffd700, #fff, #ffd700)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
+            </span>
+          </div>
         </div>
       </div>
     </div>

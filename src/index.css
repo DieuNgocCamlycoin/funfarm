@@ -429,3 +429,202 @@
     position: relative !important;
   }
 }
+
+/* ========================================
+   HONOR BOARD & TOP RANKING - COSMOS DESIGN
+   ======================================== */
+
+/* Starry night background effect */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes twinkle-slow {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes float-star {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-3px) translateX(2px); }
+  50% { transform: translateY(-5px) translateX(-1px); }
+  75% { transform: translateY(-2px) translateX(-3px); }
+}
+
+@keyframes golden-glow-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 
+                0 0 40px rgba(255, 215, 0, 0.2),
+                inset 0 0 20px rgba(255, 215, 0, 0.1);
+  }
+  50% { 
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.6), 
+                0 0 80px rgba(255, 215, 0, 0.3),
+                inset 0 0 30px rgba(255, 215, 0, 0.15);
+  }
+}
+
+@keyframes text-glow-pulse {
+  0%, 100% { 
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5),
+                 0 0 20px rgba(255, 215, 0, 0.3),
+                 0 0 30px rgba(255, 215, 0, 0.2);
+  }
+  50% { 
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                 0 0 40px rgba(255, 215, 0, 0.5),
+                 0 0 60px rgba(255, 215, 0, 0.3);
+  }
+}
+
+@keyframes sparkle-fall {
+  0% { 
+    transform: translateY(-10px) rotate(0deg); 
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { 
+    transform: translateY(100%) rotate(360deg); 
+    opacity: 0;
+  }
+}
+
+@keyframes coin-spin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+@keyframes spotlight-hover {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes laurel-glow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+  }
+  50% { 
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+  }
+}
+
+@keyframes counter-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.animate-twinkle-slow {
+  animation: twinkle-slow 4s ease-in-out infinite;
+}
+
+.animate-float-star {
+  animation: float-star 6s ease-in-out infinite;
+}
+
+.animate-golden-glow {
+  animation: golden-glow-pulse 5s ease-in-out infinite;
+}
+
+.animate-text-glow {
+  animation: text-glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-sparkle-fall {
+  animation: sparkle-fall 8s linear infinite;
+}
+
+.animate-coin-spin {
+  animation: coin-spin 4s linear infinite;
+}
+
+.animate-laurel-glow {
+  animation: laurel-glow 2s ease-in-out infinite;
+}
+
+.animate-counter-pulse {
+  animation: counter-pulse 2s ease-in-out infinite;
+}
+
+/* Cosmos gradient backgrounds */
+.cosmos-bg {
+  background: linear-gradient(
+    135deg,
+    hsl(180 60% 8%) 0%,
+    hsl(200 70% 12%) 25%,
+    hsl(220 60% 10%) 50%,
+    hsl(180 50% 15%) 75%,
+    hsl(160 60% 10%) 100%
+  );
+}
+
+.cosmos-bg-compact {
+  background: linear-gradient(
+    135deg,
+    hsl(180 60% 10%) 0%,
+    hsl(200 70% 15%) 50%,
+    hsl(180 50% 12%) 100%
+  );
+}
+
+/* Golden frame effect */
+.golden-frame {
+  border: 3px solid transparent;
+  background: 
+    linear-gradient(hsl(180 60% 10%), hsl(180 60% 10%)) padding-box,
+    linear-gradient(
+      135deg,
+      hsl(45 100% 60%) 0%,
+      hsl(50 100% 70%) 25%,
+      hsl(40 100% 50%) 50%,
+      hsl(50 100% 65%) 75%,
+      hsl(45 100% 55%) 100%
+    ) border-box;
+}
+
+/* Starfield pattern */
+.starfield {
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 40%, rgba(255, 215, 0, 0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 10%, rgba(255, 255, 255, 0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 30%, rgba(255, 215, 0, 0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 20% 80%, rgba(255, 255, 255, 0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 90%, rgba(255, 215, 0, 0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 70%, rgba(255, 255, 255, 0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 50%, rgba(255, 255, 255, 0.7) 0%, transparent 100%),
+    radial-gradient(2px 2px at 15% 55%, rgba(255, 215, 0, 0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 25%, rgba(255, 255, 255, 0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 85%, rgba(255, 215, 0, 0.5) 0%, transparent 100%);
+}
+
+/* Golden corner ornaments */
+.corner-ornament::before,
+.corner-ornament::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 3px solid;
+  border-image: linear-gradient(135deg, hsl(50 100% 60%), hsl(40 100% 50%)) 1;
+}
+
+.corner-ornament::before {
+  top: 8px;
+  left: 8px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-ornament::after {
+  bottom: 8px;
+  right: 8px;
+  border-left: none;
+  border-top: none;
+}
