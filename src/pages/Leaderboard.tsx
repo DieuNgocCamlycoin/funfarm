@@ -202,7 +202,14 @@ const Leaderboard = () => {
         reward_ban: bansMap.get(user.id) || null,
       }));
 
-      transformedUsers.sort((a, b) => b.total_reward - a.total_reward);
+      // Sort: First by ban status (non-banned first), then by total_reward
+      transformedUsers.sort((a, b) => {
+        // Banned users go to bottom
+        if (a.reward_ban && !b.reward_ban) return 1;
+        if (!a.reward_ban && b.reward_ban) return -1;
+        // Then sort by total_reward
+        return b.total_reward - a.total_reward;
+      });
       setUsers(transformedUsers);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
