@@ -2,8 +2,9 @@
 // Top Ranking - Bảng xếp hạng người dùng lương thiện - Cosmos Design
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, ChevronDown, ChevronUp } from "lucide-react";
+import { Crown, ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
@@ -471,31 +472,20 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           )}
         </div>
 
-        {/* Show More Button */}
-        {topUsers.length > 5 && (
-          <Button
-            variant="ghost"
-            className="w-full mt-4 transition-all duration-300 hover:scale-[1.02]"
-            style={{
-              color: '#ffd700',
-              border: '1px solid rgba(255, 215, 0, 0.4)',
-              background: 'rgba(0, 0, 0, 0.3)',
-            }}
-            onClick={() => setShowAll(!showAll)}
-          >
-            {showAll ? (
-              <>
-                <ChevronUp className="w-4 h-4 mr-2" />
-                Thu gọn
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-4 h-4 mr-2" />
-                Xem Top 20
-              </>
-            )}
-          </Button>
-        )}
+        {/* View Full Leaderboard Button */}
+        <Button
+          variant="ghost"
+          className="w-full mt-4 transition-all duration-300 hover:scale-[1.02] gap-2"
+          style={{
+            color: '#ffd700',
+            border: '1px solid rgba(255, 215, 0, 0.4)',
+            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.3))',
+          }}
+          onClick={() => window.location.href = '/leaderboard'}
+        >
+          <Trophy className="w-4 h-4" />
+          Xem Bảng Xếp Hạng Đầy Đủ
+        </Button>
       </div>
     </div>
   );
