@@ -63,6 +63,9 @@ interface Post {
   shares_count: number;
   created_at: string;
   author_id: string;
+  original_post_id?: string | null;
+  share_comment?: string | null;
+  original_post?: any;
 }
 
 interface Stats {
@@ -133,7 +136,43 @@ const UserProfile = () => {
           .order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
-        setPosts(postsData || []);
+        
+        // For share posts, fetch original post data
+        const postsWithOriginal = await Promise.all((postsData || []).map(async (post) => {
+          if (post.post_type === 'share' && post.original_post_id) {
+            const { data: origPost } = await supabase
+              .from('posts')
+              .select('*')
+              .eq('id', post.original_post_id)
+              .single();
+            
+            if (origPost) {
+              const { data: origProfile } = await supabase.rpc('get_public_profiles', {
+                user_ids: [origPost.author_id]
+              });
+              const op = origProfile?.[0];
+              return {
+                ...post,
+                original_post: {
+                  ...origPost,
+                  author: {
+                    id: origPost.author_id,
+                    display_name: op?.display_name || 'Nông dân FUN',
+                    avatar_url: op?.avatar_url,
+                    profile_type: op?.profile_type || 'farmer',
+                    is_verified: op?.is_verified || false,
+                    reputation_score: op?.reputation_score || 0,
+                    location: op?.location,
+                    is_good_heart: false,
+                  }
+                }
+              };
+            }
+          }
+          return post;
+        }));
+        
+        setPosts(postsWithOriginal);
 
         // Fetch friends count (accepted friendships where user is either follower or following)
         const { count: friendsCount } = await supabase
@@ -275,35 +314,91 @@ const UserProfile = () => {
 
   const roleInfo = profileTypeLabels[userProfile.profile_type || 'eater'];
 
+  // Helper function to map profile type
+  const mapProfileTypeToUserType = (profileType: string) => {
+    const typeMap: Record<string, string> = {
+      farmer: 'farm',
+      fisher: 'fisher',
+      eater: 'farm',
+      restaurant: 'restaurant',
+      distributor: 'distributor',
+      shipper: 'farm',
+    };
+    return typeMap[profileType] || 'farm';
+  };
+
   // Transform posts for FeedPost component
-  const transformedPosts = posts.map(post => ({
-    id: post.id,
-    author: {
-      id: userProfile.id,
-      name: userProfile.display_name || 'FUN Farmer',
-      username: userProfile.display_name || 'funfarmer',
-      avatar: userProfile.avatar_url || '',
-      type: 'farm' as const,
-      verified: userProfile.is_verified,
-      reputationScore: userProfile.reputation_score,
-      location: userProfile.location || '',
-      followers: stats.friendsCount,
-      following: stats.friendsCount,
-      isGoodHeart: userProfile.is_good_heart,
-    },
-    content: post.content || '',
-    images: post.images || [],
-    video: post.video_url || undefined,
-    likes: post.likes_count,
-    comments: post.comments_count,
-    shares: post.shares_count,
-    saves: 0,
-    createdAt: post.created_at,
-    isLiked: false,
-    isSaved: false,
-    location: post.location || undefined,
-    hashtags: post.hashtags || [],
-  }));
+  const transformedPosts = posts.map(post => {
+    // Transform original_post if it's a share
+    let originalPost = undefined;
+    if (post.post_type === 'share' && post.original_post) {
+      const op = post.original_post;
+      const opAuthor = op.author;
+      originalPost = {
+        id: op.id,
+        author: {
+          id: opAuthor.id,
+          name: opAuthor.display_name || 'Nông dân FUN',
+          username: (opAuthor.display_name || 'funfarmer').toLowerCase().replace(/\s+/g, ''),
+          avatar: opAuthor.avatar_url || '/logo_fun_farm_web3.png',
+          type: mapProfileTypeToUserType(opAuthor.profile_type || 'farmer') as any,
+          verified: opAuthor.is_verified || false,
+          reputationScore: opAuthor.reputation_score || 0,
+          location: opAuthor.location || '',
+          followers: 0,
+          following: 0,
+          isGoodHeart: opAuthor.is_good_heart || false,
+        },
+        content: op.content || '',
+        images: op.images || [],
+        likes: op.likes_count || 0,
+        comments: op.comments_count || 0,
+        shares: op.shares_count || 0,
+        saves: 0,
+        createdAt: op.created_at,
+        isLiked: false,
+        isSaved: false,
+        hashtags: op.hashtags || [],
+        location: op.location || undefined,
+        is_product_post: op.is_product_post,
+        product_name: op.product_name,
+        price_camly: op.price_camly,
+      };
+    }
+
+    return {
+      id: post.id,
+      author: {
+        id: userProfile.id,
+        name: userProfile.display_name || 'FUN Farmer',
+        username: userProfile.display_name || 'funfarmer',
+        avatar: userProfile.avatar_url || '',
+        type: 'farm' as const,
+        verified: userProfile.is_verified,
+        reputationScore: userProfile.reputation_score,
+        location: userProfile.location || '',
+        followers: stats.friendsCount,
+        following: stats.friendsCount,
+        isGoodHeart: userProfile.is_good_heart,
+      },
+      content: post.content || '',
+      images: post.images || [],
+      video: post.video_url || undefined,
+      likes: post.likes_count,
+      comments: post.comments_count,
+      shares: post.shares_count,
+      saves: 0,
+      createdAt: post.created_at,
+      isLiked: false,
+      isSaved: false,
+      location: post.location || undefined,
+      hashtags: post.hashtags || [],
+      post_type: post.post_type as 'post' | 'share',
+      original_post_id: post.original_post_id || undefined,
+      share_comment: post.share_comment || undefined,
+      original_post: originalPost,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-background">
