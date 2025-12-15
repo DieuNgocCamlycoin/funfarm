@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Home, User } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Home, User, Search } from "lucide-react";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -17,6 +17,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { NotificationBell } from "./notifications/NotificationBell";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FriendSearch } from "./FriendSearch";
 
 const profileTypeEmojis: Record<string, string> = {
   farmer: '🧑‍🌾',
@@ -29,6 +31,7 @@ const profileTypeEmojis: Record<string, string> = {
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isWelcomePage = location.pathname === "/welcome";
@@ -45,17 +48,54 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-[9999] bg-white/95 backdrop-blur-md border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img 
-              src={funFarmLogo} 
-              alt="FUN FARM Web3" 
-              className="w-12 h-12 rounded-xl object-cover shadow-glow"
-            />
-            <span className="font-display font-bold text-xl text-gradient-hero">
-              FUN FARM
-            </span>
-          </Link>
+          {/* Logo + Search - Facebook style */}
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2">
+              <img 
+                src={funFarmLogo} 
+                alt="FUN FARM Web3" 
+                className="w-12 h-12 rounded-xl object-cover shadow-glow"
+              />
+              <span className="font-display font-bold text-xl text-gradient-hero hidden sm:block">
+                FUN FARM
+              </span>
+            </Link>
+
+            {/* Search Button - Facebook style */}
+            {user && (
+              <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-10 w-10 md:w-auto md:px-4 rounded-full bg-muted hover:bg-muted/80 gap-2"
+                  >
+                    <Search className="w-5 h-5 text-muted-foreground" />
+                    <span className="hidden md:inline text-muted-foreground text-sm">
+                      Tìm bạn bè...
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-[400px] max-h-[600px] overflow-y-auto p-0" 
+                  align="start"
+                  sideOffset={8}
+                >
+                  <div className="p-4 border-b border-border bg-muted/30">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Search className="w-4 h-4 text-primary" />
+                      Tìm kiếm bạn bè
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tìm theo tên, vị trí hoặc loại thành viên
+                    </p>
+                  </div>
+                  <div className="p-4">
+                    <FriendSearch compact />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
