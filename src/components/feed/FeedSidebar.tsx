@@ -12,6 +12,8 @@ import {
 import camlyCoinLogo from '@/assets/camly_coin.png';
 import { FriendSearch } from "@/components/FriendSearch";
 import { useState } from "react";
+import HonorBoard from "@/components/HonorBoard";
+import TopRanking from "@/components/TopRanking";
 
 interface FeedSidebarProps {
   trendingHashtags: { tag: string; count: number }[];
@@ -39,6 +41,12 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
 
   return (
     <aside className="space-y-6">
+      {/* Honor Board - Bảng vinh danh */}
+      <HonorBoard />
+
+      {/* Top Ranking - Bảng xếp hạng */}
+      <TopRanking />
+
       {/* Find Friends Section */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-5">
         <div className="flex items-center justify-between mb-4">

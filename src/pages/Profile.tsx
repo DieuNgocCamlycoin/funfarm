@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { ViolationWarning } from "@/components/ViolationWarning";
+import HonorBoard from "@/components/HonorBoard";
 import { 
   MapPin, 
   Calendar, 
@@ -242,6 +243,13 @@ const Profile = () => {
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
+          
+          {/* Honor Board Overlay - Top Left */}
+          <div className="absolute top-4 left-4 z-40 hidden md:block">
+            <div className="scale-[0.65] origin-top-left opacity-90 hover:opacity-100 transition-opacity">
+              <HonorBoard compact />
+            </div>
+          </div>
           
           {/* Cover Photo Editor Button */}
           {user?.id && (
