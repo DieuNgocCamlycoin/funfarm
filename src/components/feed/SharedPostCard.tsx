@@ -81,7 +81,6 @@ export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps)
             {timeAgo(originalPost.createdAt)}
           </span>
         </div>
-        <ExternalLink className="w-4 h-4 text-muted-foreground" />
       </Link>
 
       {/* Original Post Content */}
@@ -148,6 +147,15 @@ export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps)
           </div>
         </div>
       )}
+
+      {/* View Original Post Button */}
+      <Link 
+        to={`/post/${originalPost.id}`}
+        className="flex items-center justify-center gap-2 px-3 py-2.5 border-t border-border text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+      >
+        <ExternalLink className="w-4 h-4" />
+        Xem bài viết gốc
+      </Link>
     </div>
   );
 };
