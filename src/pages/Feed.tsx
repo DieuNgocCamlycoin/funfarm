@@ -65,9 +65,57 @@ const Feed = () => {
       const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || []);
 
       // Transform database posts to Post type
-      const transformedPosts: Post[] = postsData.map((post: any) => {
+      const transformedPosts: Post[] = await Promise.all(postsData.map(async (post: any) => {
         const profile = profilesMap.get(post.author_id);
         const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
+        
+        // Fetch original post if this is a share
+        let originalPost = undefined;
+        if (post.post_type === 'share' && post.original_post_id) {
+          const { data: origPost } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('id', post.original_post_id)
+            .single();
+          
+          if (origPost) {
+            const { data: origProfile } = await supabase.rpc('get_public_profiles', {
+              user_ids: [origPost.author_id]
+            });
+            const op = origProfile?.[0];
+            const opName = op?.display_name?.trim() || 'Nông dân FUN';
+            originalPost = {
+              id: origPost.id,
+              author: {
+                id: origPost.author_id,
+                name: opName,
+                username: opName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
+                avatar: op?.avatar_url || '/logo_fun_farm_web3.png',
+                type: mapProfileTypeToUserType(op?.profile_type || 'farmer'),
+                verified: op?.is_verified || false,
+                reputationScore: op?.reputation_score || 0,
+                location: op?.location || '',
+                followers: 0,
+                following: 0,
+              },
+              content: origPost.content || '',
+              images: origPost.images || [],
+              likes: origPost.likes_count || 0,
+              comments: origPost.comments_count || 0,
+              shares: origPost.shares_count || 0,
+              saves: 0,
+              createdAt: origPost.created_at,
+              isLiked: false,
+              isSaved: false,
+              hashtags: origPost.hashtags || [],
+              location: origPost.location || undefined,
+              is_product_post: origPost.is_product_post,
+              product_name: origPost.product_name,
+              price_camly: origPost.price_camly,
+            };
+          }
+        }
+        
         return {
           id: post.id,
           author: {
@@ -105,9 +153,13 @@ const Feed = () => {
           location_lat: post.location_lat || undefined,
           location_lng: post.location_lng || undefined,
           delivery_options: post.delivery_options || [],
-          commitments: post.commitments || []
+          commitments: post.commitments || [],
+          // Share post fields
+          post_type: post.post_type || 'post',
+          original_post_id: post.original_post_id,
+          original_post: originalPost,
         };
-      });
+      }));
       if (append) {
         setPosts(prev => [...prev, ...transformedPosts]);
       } else {

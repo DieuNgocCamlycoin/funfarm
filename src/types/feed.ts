@@ -54,6 +54,11 @@ export interface Post {
   location_lng?: number;
   delivery_options?: string[];
   commitments?: string[];
+  // Share post fields
+  post_type?: 'post' | 'share';
+  original_post_id?: string;
+  share_comment?: string;
+  original_post?: Post;
 }
 
 export interface Comment {

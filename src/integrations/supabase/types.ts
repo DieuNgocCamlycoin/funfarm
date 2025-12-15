@@ -364,11 +364,13 @@ export type Database = {
           location_address: string | null
           location_lat: number | null
           location_lng: number | null
+          original_post_id: string | null
           post_type: string
           price_camly: number | null
           price_vnd: number | null
           product_name: string | null
           quantity_kg: number | null
+          share_comment: string | null
           shares_count: number
           updated_at: string
           video_url: string | null
@@ -389,11 +391,13 @@ export type Database = {
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          original_post_id?: string | null
           post_type?: string
           price_camly?: number | null
           price_vnd?: number | null
           product_name?: string | null
           quantity_kg?: number | null
+          share_comment?: string | null
           shares_count?: number
           updated_at?: string
           video_url?: string | null
@@ -414,11 +418,13 @@ export type Database = {
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          original_post_id?: string | null
           post_type?: string
           price_camly?: number | null
           price_vnd?: number | null
           product_name?: string | null
           quantity_kg?: number | null
+          share_comment?: string | null
           shares_count?: number
           updated_at?: string
           video_url?: string | null
@@ -436,6 +442,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_original_post_id_fkey"
+            columns: ["original_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
