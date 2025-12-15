@@ -15,6 +15,7 @@ import UserProfile from "./pages/UserProfile";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import Reward from "./pages/Reward";
+import Leaderboard from "./pages/Leaderboard";
 import ShipperDashboard from "./pages/ShipperDashboard";
 import ShipperRegister from "./pages/ShipperRegister";
 import Admin from "./pages/Admin";
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/reward" element={<Reward />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/shipper" element={<ShipperDashboard />} />
                 <Route path="/shipper/register" element={<ShipperRegister />} />
                 <Route path="/admin" element={<Admin />} />
