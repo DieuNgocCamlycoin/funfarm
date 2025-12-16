@@ -50,6 +50,7 @@ import {
 
 interface FeedPostProps {
   post: Post;
+  onCountsUpdate?: (postId: string, counts: { likes?: number; comments?: number; shares?: number }) => void;
 }
 
 const getUserTypeIcon = (type: string) => {
@@ -109,7 +110,7 @@ const timeAgo = (dateString: string): string => {
 const MAX_CONTENT_LENGTH = 400;
 const MAX_LINES = 5;
 
-const FeedPost = ({ post: initialPost }: FeedPostProps) => {
+const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
   const { user, refreshProfile } = useAuth();
   const [post, setPost] = useState(initialPost);
   const [isLiked, setIsLiked] = useState(false);
@@ -124,8 +125,9 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [isRewardBanned, setIsRewardBanned] = useState(false);
   const [hasBeenRewardedForLike, setHasBeenRewardedForLike] = useState(false);
-  const [likes, setLikes] = useState(post.likes);
-  const [shares, setShares] = useState(post.shares);
+  const [likes, setLikes] = useState(initialPost.likes);
+  const [comments, setComments] = useState(initialPost.comments);
+  const [shares, setShares] = useState(initialPost.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryStartIndex, setGalleryStartIndex] = useState(0);
@@ -134,6 +136,14 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const likeButtonRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const contentRef = useRef<HTMLParagraphElement>(null);
+
+  // Sync state when post prop changes
+  useEffect(() => {
+    setPost(initialPost);
+    setLikes(initialPost.likes);
+    setComments(initialPost.comments);
+    setShares(initialPost.shares);
+  }, [initialPost.id, initialPost.likes, initialPost.comments, initialPost.shares]);
 
   const isOwner = user?.id === post.author.id;
   
@@ -678,7 +688,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
             onClick={() => setShowComments(!showComments)}
           >
             <MessageCircle className={cn("w-5 h-5", showComments && "fill-primary/20")} />
-            <span>{formatNumber(post.comments)}</span>
+            <span>{formatNumber(comments)}</span>
           </Button>
           <Button
             variant="ghost" 
@@ -727,7 +737,14 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
       )}
 
       {/* Comments Section */}
-      <CommentSection postId={post.id} isOpen={showComments} />
+      <CommentSection 
+        postId={post.id} 
+        isOpen={showComments}
+        onCommentAdded={() => {
+          setComments(prev => prev + 1);
+          onCountsUpdate?.(post.id, { comments: comments + 1 });
+        }}
+      />
 
       {/* Edit Post Modal */}
       <EditPostModal

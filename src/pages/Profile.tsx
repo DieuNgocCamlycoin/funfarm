@@ -197,6 +197,31 @@ const Profile = () => {
     setCoverUrl(url);
   };
 
+  // Real-time subscription for post updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase.channel('profile-posts-updates').on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'posts',
+    }, payload => {
+      const updatedPost = payload.new as any;
+      // Only update if this is our post
+      if (updatedPost.author_id === user.id) {
+        setPosts(prev => prev.map(p => 
+          p.id === updatedPost.id 
+            ? { ...p, likes_count: updatedPost.likes_count, comments_count: updatedPost.comments_count, shares_count: updatedPost.shares_count }
+            : p
+        ));
+      }
+    }).subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   // Refresh posts after creating a new one
   const handlePostCreated = useCallback(async () => {
     if (!user?.id) return;
