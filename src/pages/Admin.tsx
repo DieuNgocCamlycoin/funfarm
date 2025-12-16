@@ -41,15 +41,18 @@ interface BannedUser {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [pendingUsers, setPendingUsers] = useState<PendingRewardUser[]>([]);
   const [bannedUsers, setBannedUsers] = useState<BannedUser[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Check admin role using has_role RPC
+  // Check admin role using has_role RPC - wait for auth to finish loading first
   useEffect(() => {
+    // Don't check until auth is done loading
+    if (authLoading) return;
+
     const checkAdminRole = async () => {
       if (!user?.id) {
         navigate('/auth');
@@ -80,12 +83,12 @@ const Admin = () => {
         console.error('Admin check failed:', err);
         navigate('/feed');
       } finally {
-        setIsLoading(false);
+        setCheckingAdmin(false);
       }
     };
 
     checkAdminRole();
-  }, [user?.id, navigate]);
+  }, [user?.id, authLoading, navigate]);
 
   // Fetch data when admin is confirmed
   useEffect(() => {
@@ -197,7 +200,7 @@ const Admin = () => {
   };
 
   // Loading state
-  if (isLoading) {
+  if (authLoading || checkingAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
