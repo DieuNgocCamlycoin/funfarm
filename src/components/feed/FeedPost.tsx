@@ -106,6 +106,9 @@ const timeAgo = (dateString: string): string => {
   });
 };
 
+const MAX_CONTENT_LENGTH = 400;
+const MAX_LINES = 5;
+
 const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const { user, refreshProfile } = useAuth();
   const [post, setPost] = useState(initialPost);
@@ -125,11 +128,17 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
   const [galleryStartIndex, setGalleryStartIndex] = useState(0);
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const likeButtonRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const contentRef = useRef<HTMLParagraphElement>(null);
 
   const isOwner = user?.id === post.author.id;
+  
+  // Check if content needs truncation
+  const contentNeedsTruncation = (post.content?.length || 0) > MAX_CONTENT_LENGTH || 
+    (post.content?.split('\n').length || 0) > MAX_LINES;
 
   // Check if user already liked this post and if user is reward banned
   useEffect(() => {
@@ -409,7 +418,23 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
       {/* Share Comment (for share posts) */}
       {isSharePost && post.content && (
         <div className="px-3 sm:px-4 pb-3">
-          <p className="text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base">{post.content}</p>
+          <p 
+            ref={contentRef}
+            className={cn(
+              "text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base",
+              !isContentExpanded && contentNeedsTruncation && "line-clamp-5"
+            )}
+          >
+            {post.content}
+          </p>
+          {contentNeedsTruncation && (
+            <button
+              onClick={() => setIsContentExpanded(!isContentExpanded)}
+              className="text-primary hover:text-primary/80 font-medium text-sm mt-1 transition-colors"
+            >
+              {isContentExpanded ? "Thu gọn" : "... Xem thêm ❤️"}
+            </button>
+          )}
         </div>
       )}
 
@@ -423,7 +448,23 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
       {/* Regular Content (for non-share posts) */}
       {!isSharePost && (
         <div className="px-3 sm:px-4 pb-3">
-          <p className="text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base">{post.content}</p>
+          <p 
+            ref={contentRef}
+            className={cn(
+              "text-foreground whitespace-pre-line leading-relaxed text-sm sm:text-base",
+              !isContentExpanded && contentNeedsTruncation && "line-clamp-5"
+            )}
+          >
+            {post.content}
+          </p>
+          {contentNeedsTruncation && (
+            <button
+              onClick={() => setIsContentExpanded(!isContentExpanded)}
+              className="text-primary hover:text-primary/80 font-medium text-sm mt-1 transition-colors"
+            >
+              {isContentExpanded ? "Thu gọn" : "... Xem thêm ❤️"}
+            </button>
+          )}
           
           {/* Hashtags */}
           <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3">
