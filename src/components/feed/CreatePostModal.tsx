@@ -50,6 +50,17 @@ const postTypes = [
   { id: "live", label: "Livestream", icon: Radio, color: "text-destructive" },
 ];
 
+const DRAFT_STORAGE_KEY = "fun_farm_post_draft";
+
+interface PostDraft {
+  content: string;
+  postType: string;
+  images: string[];
+  location: string;
+  hashtags: string[];
+  savedAt: number;
+}
+
 const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: CreatePostModalProps) => {
   const { user, profile } = useAuth();
   const [content, setContent] = useState("");
@@ -61,12 +72,72 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
   const [newHashtag, setNewHashtag] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInitialLoad = useRef(true);
+
+  // Load draft from localStorage when modal opens
+  useEffect(() => {
+    if (isOpen && isInitialLoad.current) {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        try {
+          const draft: PostDraft = JSON.parse(savedDraft);
+          // Only restore if draft is less than 24 hours old
+          if (Date.now() - draft.savedAt < 24 * 60 * 60 * 1000) {
+            setContent(draft.content || "");
+            setPostType(draft.postType || initialTab);
+            setImages(draft.images || []);
+            setLocation(draft.location || "");
+            setHashtags(draft.hashtags || []);
+            setHasDraft(true);
+            toast.info("Đã khôi phục bản nháp bài viết!", { duration: 3000 });
+          } else {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+          }
+        } catch (e) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        }
+      }
+      isInitialLoad.current = false;
+    }
+  }, [isOpen, initialTab]);
+
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    if (!isOpen || isInitialLoad.current) return;
+    
+    const hasContent = content.trim() || images.length > 0 || location.trim() || hashtags.length > 0;
+    
+    if (hasContent) {
+      const draft: PostDraft = {
+        content,
+        postType,
+        images,
+        location,
+        hashtags,
+        savedAt: Date.now(),
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      setHasDraft(true);
+    } else if (hasDraft) {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setHasDraft(false);
+    }
+  }, [content, postType, images, location, hashtags, isOpen, hasDraft]);
 
   // Reset postType when initialTab changes
   useEffect(() => {
-    setPostType(initialTab);
+    if (!isInitialLoad.current) {
+      setPostType(initialTab);
+    }
   }, [initialTab]);
+
+  // Clear draft function
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraft(false);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -246,6 +317,8 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
     setLocation("");
     setHashtags([]);
     setPostType("post");
+    clearDraft();
+    isInitialLoad.current = true;
   };
 
   return (
