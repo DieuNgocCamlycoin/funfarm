@@ -808,11 +808,13 @@ export type Database = {
           location_address: string
           location_lat: number
           location_lng: number
+          original_post_id: string
           post_type: string
           price_camly: number
           price_vnd: number
           product_name: string
           quantity_kg: number
+          share_comment: string
           shares_count: number
           video_url: string
         }[]
