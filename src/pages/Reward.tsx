@@ -183,8 +183,9 @@ const Reward = () => {
   }
 
   const pendingReward = profile?.pending_reward || 0;
+  const approvedReward = (profile as any)?.approved_reward || 0;
   const isWalletConnected = profile?.wallet_connected && profile?.wallet_address;
-  const hasClaimedAll = pendingReward === 0 && profile?.welcome_bonus_claimed;
+  const hasClaimedAll = pendingReward === 0 && approvedReward === 0 && profile?.welcome_bonus_claimed;
 
   return (
     <div className="min-h-screen bg-background">
@@ -267,27 +268,83 @@ const Reward = () => {
             </CardContent>
           </Card>
 
-          {/* PHẦN 2: Thưởng đang chờ bạn nhận */}
+          {/* PHẦN 2: Thưởng đã duyệt - sẵn sàng claim */}
+          {approvedReward > 0 && (
+            <Card className="border-green-500/30 shadow-glow bg-gradient-to-br from-green-500/5 to-green-600/5">
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="flex items-center justify-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Thưởng đã duyệt - Sẵn sàng claim!
+                </CardTitle>
+                <CardDescription>
+                  Admin đã duyệt thưởng của bạn. Claim ngay để nhận CAMLY thật về ví!
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <img src={camlyCoinLogo} alt="CAMLY" className="w-12 h-12 object-contain" />
+                  <div className="text-5xl md:text-6xl font-display font-bold text-green-600">
+                    {approvedReward.toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-lg text-muted-foreground mb-6">CAMLY sẵn sàng claim</div>
+
+                {isWalletConnected ? (
+                  <div className="space-y-4">
+                    <Button
+                      onClick={claimReward}
+                      disabled={isClaiming}
+                      size="lg"
+                      className="gap-3 h-14 px-8 text-lg bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 relative z-[9999]"
+                    >
+                      {isClaiming ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Đang chuyển CAMLY...
+                        </>
+                      ) : (
+                        <>
+                          <Gift className="w-5 h-5" />
+                          Claim ngay – Nhận {approvedReward.toLocaleString()} CAMLY thật về ví
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      CAMLY thật sẽ được chuyển trực tiếp về ví MetaMask của bạn!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                    <p className="text-muted-foreground">
+                      👆 Vui lòng kết nối ví MetaMask ở phần trên để claim thưởng
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* PHẦN 3: Thưởng đang chờ duyệt */}
           <Card className="border-accent/20 shadow-glow">
             <CardHeader className="text-center pb-2">
               <CardTitle className="flex items-center justify-center gap-2">
                 <Sparkles className="w-5 h-5 text-accent" />
-                Thưởng đang chờ bạn nhận
+                Thưởng đang chờ duyệt
               </CardTitle>
               <CardDescription>
                 {hasClaimedAll 
                   ? 'Bạn đã nhận hết thưởng! Tiếp tục hoạt động để nhận thêm nhé'
-                  : 'Thưởng sẽ cộng dồn khi bạn đăng sản phẩm, review, mời bạn bè...'}
+                  : 'Thưởng sẽ được Admin duyệt trước khi bạn có thể claim'}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <div className="flex items-center justify-center gap-3 mb-2">
-                <img src={camlyCoinLogo} alt="CAMLY" className="w-12 h-12 object-contain" />
-                <div className="text-5xl md:text-6xl font-display font-bold text-primary">
+                <img src={camlyCoinLogo} alt="CAMLY" className="w-12 h-12 object-contain opacity-60" />
+                <div className="text-5xl md:text-6xl font-display font-bold text-orange-500">
                   {pendingReward.toLocaleString()}
                 </div>
               </div>
-              <div className="text-lg text-muted-foreground mb-6">CAMLY đang chờ claim</div>
+              <div className="text-lg text-muted-foreground mb-6">CAMLY đang chờ Admin duyệt</div>
 
               {hasClaimedAll ? (
                 <div className="flex flex-col items-center gap-4">
@@ -300,44 +357,19 @@ const Reward = () => {
                   </p>
                 </div>
               ) : pendingReward > 0 ? (
-                <div className="space-y-4">
-                  {isWalletConnected ? (
-                    <>
-                      <Button
-                        onClick={claimReward}
-                        disabled={isClaiming}
-                        size="lg"
-                        className="gap-3 h-14 px-8 text-lg bg-gradient-to-r from-accent to-primary hover:opacity-90 relative z-[9999]"
-                      >
-                        {isClaiming ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Đang chuyển CAMLY...
-                          </>
-                        ) : (
-                          <>
-                            <Gift className="w-5 h-5" />
-                            Claim ngay – Nhận {pendingReward.toLocaleString()} CAMLY thật về ví
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-sm text-muted-foreground">
-                        CAMLY thật sẽ được chuyển trực tiếp về ví MetaMask của bạn!
-                      </p>
-                    </>
-                  ) : (
-                    <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                      <p className="text-muted-foreground">
-                        👆 Vui lòng kết nối ví MetaMask ở phần trên để claim thưởng
-                      </p>
-                    </div>
-                  )}
+                <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                  <p className="text-orange-600 dark:text-orange-400 font-medium">
+                    ⏳ Thưởng của bạn đang được Admin xem xét
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Vui lòng đợi Admin duyệt để có thể claim về ví
+                  </p>
                 </div>
-              ) : (
+              ) : approvedReward === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Chưa có thưởng nào. Hãy hoạt động để tích lũy CAMLY!
                 </p>
-              )}
+              ) : null}
             </CardContent>
           </Card>
 
