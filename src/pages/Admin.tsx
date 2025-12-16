@@ -15,10 +15,14 @@ import {
   CheckCircle, 
   XCircle, 
   Gift,
-  Clock,
   Ban,
-  Eye,
-  Loader2
+  Loader2,
+  Activity,
+  Heart,
+  Share2,
+  MessageCircle,
+  TrendingUp,
+  Zap
 } from "lucide-react";
 
 interface BonusRequest {
@@ -61,6 +65,25 @@ interface UserWithViolation {
   is_good_heart: boolean;
 }
 
+interface SpamAlert {
+  id: string;
+  user_id: string;
+  display_name: string;
+  action_type: 'like' | 'share' | 'comment';
+  count_24h: number;
+  timestamp: string;
+}
+
+interface TopSpammer {
+  user_id: string;
+  display_name: string;
+  avatar_url: string;
+  like_count: number;
+  share_count: number;
+  comment_count: number;
+  total_count: number;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -70,6 +93,16 @@ const Admin = () => {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [flaggedUsers, setFlaggedUsers] = useState<UserWithViolation[]>([]);
   const [activeTab, setActiveTab] = useState("bonus");
+  
+  // Spam monitoring state
+  const [realtimeAlerts, setRealtimeAlerts] = useState<SpamAlert[]>([]);
+  const [topSpammers, setTopSpammers] = useState<TopSpammer[]>([]);
+  const [activityStats, setActivityStats] = useState({
+    likes_1h: 0,
+    shares_1h: 0,
+    comments_1h: 0,
+    total_1h: 0
+  });
 
   // Check admin role
   useEffect(() => {
@@ -112,7 +145,6 @@ const Admin = () => {
         .order('created_at', { ascending: false });
 
       if (requests) {
-        // Fetch related posts and profiles
         const postIds = requests.map(r => r.post_id);
         const userIds = requests.map(r => r.user_id);
 
@@ -151,7 +183,7 @@ const Admin = () => {
         setViolations(enrichedViolations);
       }
 
-      // Fetch flagged users (violation_level > 0)
+      // Fetch flagged users
       const { data: usersData } = await supabase
         .from('profiles')
         .select('id, display_name, avatar_url, violation_level, pending_reward, last_violation_at, is_good_heart')
@@ -166,11 +198,223 @@ const Admin = () => {
     fetchData();
   }, [isAdmin]);
 
+  // Fetch spam monitoring data
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const fetchSpamData = async () => {
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+      // Get activity stats for last hour
+      const [likesRes, sharesRes, commentsRes] = await Promise.all([
+        supabase.from('post_likes').select('id', { count: 'exact', head: true }).gte('created_at', oneHourAgo),
+        supabase.from('post_shares').select('id', { count: 'exact', head: true }).gte('created_at', oneHourAgo),
+        supabase.from('comments').select('id', { count: 'exact', head: true }).gte('created_at', oneHourAgo)
+      ]);
+
+      setActivityStats({
+        likes_1h: likesRes.count || 0,
+        shares_1h: sharesRes.count || 0,
+        comments_1h: commentsRes.count || 0,
+        total_1h: (likesRes.count || 0) + (sharesRes.count || 0) + (commentsRes.count || 0)
+      });
+
+      // Get top activity users in 24h
+      const { data: likesByUser } = await supabase
+        .from('post_likes')
+        .select('user_id')
+        .gte('created_at', twentyFourHoursAgo);
+
+      const { data: sharesByUser } = await supabase
+        .from('post_shares')
+        .select('user_id')
+        .gte('created_at', twentyFourHoursAgo);
+
+      const { data: commentsByUser } = await supabase
+        .from('comments')
+        .select('author_id')
+        .gte('created_at', twentyFourHoursAgo);
+
+      // Aggregate counts by user
+      const userCounts: Record<string, { likes: number; shares: number; comments: number }> = {};
+
+      likesByUser?.forEach(l => {
+        if (!userCounts[l.user_id]) userCounts[l.user_id] = { likes: 0, shares: 0, comments: 0 };
+        userCounts[l.user_id].likes++;
+      });
+
+      sharesByUser?.forEach(s => {
+        if (!userCounts[s.user_id]) userCounts[s.user_id] = { likes: 0, shares: 0, comments: 0 };
+        userCounts[s.user_id].shares++;
+      });
+
+      commentsByUser?.forEach(c => {
+        if (!userCounts[c.author_id]) userCounts[c.author_id] = { likes: 0, shares: 0, comments: 0 };
+        userCounts[c.author_id].comments++;
+      });
+
+      // Get top 10 users with most activity
+      const sortedUsers = Object.entries(userCounts)
+        .map(([userId, counts]) => ({
+          user_id: userId,
+          ...counts,
+          total: counts.likes + counts.shares + counts.comments
+        }))
+        .filter(u => u.total >= 20) // Only show users with 20+ actions
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+
+      if (sortedUsers.length > 0) {
+        const userIds = sortedUsers.map(u => u.user_id);
+        const { data: profiles } = await supabase.rpc('get_public_profiles', { user_ids: userIds });
+
+        const enrichedSpammers: TopSpammer[] = sortedUsers.map(u => ({
+          user_id: u.user_id,
+          display_name: profiles?.find((p: any) => p.id === u.user_id)?.display_name || 'Người dùng',
+          avatar_url: profiles?.find((p: any) => p.id === u.user_id)?.avatar_url || '/placeholder.svg',
+          like_count: u.likes,
+          share_count: u.shares,
+          comment_count: u.comments,
+          total_count: u.total
+        }));
+
+        setTopSpammers(enrichedSpammers);
+      }
+    };
+
+    fetchSpamData();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchSpamData, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
+  // Real-time subscription for spam alerts
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    // Subscribe to new likes
+    const likesChannel = supabase
+      .channel('admin-likes-monitor')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'post_likes'
+      }, async (payload) => {
+        const userId = payload.new.user_id;
+        
+        // Count user's likes in last 24h
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from('post_likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', twentyFourHoursAgo);
+
+        if (count && count >= 30) {
+          const { data: profile } = await supabase.rpc('get_public_profiles', { user_ids: [userId] });
+          const alert: SpamAlert = {
+            id: payload.new.id,
+            user_id: userId,
+            display_name: profile?.[0]?.display_name || 'Người dùng',
+            action_type: 'like',
+            count_24h: count,
+            timestamp: payload.new.created_at
+          };
+          setRealtimeAlerts(prev => [alert, ...prev].slice(0, 20));
+          
+          if (count >= 50) {
+            toast.warning(`⚠️ ${alert.display_name} đã like ${count} lần trong 24h!`);
+          }
+        }
+      })
+      .subscribe();
+
+    // Subscribe to new shares
+    const sharesChannel = supabase
+      .channel('admin-shares-monitor')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'post_shares'
+      }, async (payload) => {
+        const userId = payload.new.user_id;
+        
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from('post_shares')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', twentyFourHoursAgo);
+
+        if (count && count >= 20) {
+          const { data: profile } = await supabase.rpc('get_public_profiles', { user_ids: [userId] });
+          const alert: SpamAlert = {
+            id: payload.new.id,
+            user_id: userId,
+            display_name: profile?.[0]?.display_name || 'Người dùng',
+            action_type: 'share',
+            count_24h: count,
+            timestamp: payload.new.created_at
+          };
+          setRealtimeAlerts(prev => [alert, ...prev].slice(0, 20));
+          
+          if (count >= 50) {
+            toast.warning(`⚠️ ${alert.display_name} đã share ${count} lần trong 24h!`);
+          }
+        }
+      })
+      .subscribe();
+
+    // Subscribe to new comments
+    const commentsChannel = supabase
+      .channel('admin-comments-monitor')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments'
+      }, async (payload) => {
+        const userId = payload.new.author_id;
+        
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from('comments')
+          .select('id', { count: 'exact', head: true })
+          .eq('author_id', userId)
+          .gte('created_at', twentyFourHoursAgo);
+
+        if (count && count >= 30) {
+          const { data: profile } = await supabase.rpc('get_public_profiles', { user_ids: [userId] });
+          const alert: SpamAlert = {
+            id: payload.new.id,
+            user_id: userId,
+            display_name: profile?.[0]?.display_name || 'Người dùng',
+            action_type: 'comment',
+            count_24h: count,
+            timestamp: payload.new.created_at
+          };
+          setRealtimeAlerts(prev => [alert, ...prev].slice(0, 20));
+          
+          if (count >= 50) {
+            toast.warning(`⚠️ ${alert.display_name} đã comment ${count} lần trong 24h!`);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(sharesChannel);
+      supabase.removeChannel(commentsChannel);
+    };
+  }, [isAdmin]);
+
   const handleApproveBonus = async (request: BonusRequest) => {
     try {
-      const bonusAmount = 5000; // +50% of base 10000
+      const bonusAmount = 5000;
 
-      // Update request status
       await supabase
         .from('bonus_requests')
         .update({ 
@@ -181,7 +425,6 @@ const Admin = () => {
         })
         .eq('id', request.id);
 
-      // Add bonus to user
       await supabase.rpc('add_camly_reward', { 
         user_id: request.user_id, 
         amount: bonusAmount 
@@ -216,14 +459,12 @@ const Admin = () => {
 
   const handleUnbanUser = async (userId: string) => {
     try {
-      // Remove active bans
       await supabase
         .from('reward_bans')
         .delete()
         .eq('user_id', userId)
         .gt('expires_at', new Date().toISOString());
 
-      // Reset violation level
       await supabase
         .from('profiles')
         .update({ violation_level: 0, last_violation_at: null })
@@ -234,6 +475,36 @@ const Admin = () => {
     } catch (error) {
       console.error('Error unbanning user:', error);
       toast.error('Có lỗi xảy ra');
+    }
+  };
+
+  const handleBanSpammer = async (userId: string, displayName: string) => {
+    try {
+      // Ban for 7 days
+      await supabase.from('reward_bans').insert({
+        user_id: userId,
+        reason: 'Spam activity detected by admin',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      });
+
+      await supabase.from('profiles').update({
+        violation_level: 1,
+        last_violation_at: new Date().toISOString()
+      }).eq('id', userId);
+
+      toast.success(`Đã khóa thưởng ${displayName} trong 7 ngày`);
+      setTopSpammers(prev => prev.filter(s => s.user_id !== userId));
+    } catch (error) {
+      console.error('Error banning spammer:', error);
+      toast.error('Có lỗi xảy ra');
+    }
+  };
+
+  const getActionIcon = (type: 'like' | 'share' | 'comment') => {
+    switch (type) {
+      case 'like': return <Heart className="w-4 h-4 text-red-500" />;
+      case 'share': return <Share2 className="w-4 h-4 text-blue-500" />;
+      case 'comment': return <MessageCircle className="w-4 h-4 text-green-500" />;
     }
   };
 
@@ -259,7 +530,7 @@ const Admin = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Đang chờ duyệt</CardTitle>
@@ -291,13 +562,32 @@ const Admin = () => {
                 <p className="text-xs text-muted-foreground">người dùng</p>
               </CardContent>
             </Card>
+
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-primary flex items-center gap-1">
+                  <Activity className="w-4 h-4" />
+                  Activity 1h
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">{activityStats.total_1h}</div>
+                <p className="text-xs text-muted-foreground">
+                  {activityStats.likes_1h}❤️ {activityStats.shares_1h}🔄 {activityStats.comments_1h}💬
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="bonus" className="gap-2">
                 <Gift className="w-4 h-4" />
                 Duyệt Bonus ({bonusRequests.length})
+              </TabsTrigger>
+              <TabsTrigger value="spam" className="gap-2">
+                <Zap className="w-4 h-4" />
+                Spam Monitor
               </TabsTrigger>
               <TabsTrigger value="violations" className="gap-2">
                 <AlertTriangle className="w-4 h-4" />
@@ -376,6 +666,112 @@ const Admin = () => {
                   </Card>
                 ))
               )}
+            </TabsContent>
+
+            {/* Spam Monitor Tab */}
+            <TabsContent value="spam" className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Top Activity Users */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-orange-500" />
+                      Top Hoạt động 24h
+                    </CardTitle>
+                    <CardDescription>Users có nhiều action nhất (≥20)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {topSpammers.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        Không có user nào có ≥20 action trong 24h
+                      </p>
+                    ) : (
+                      topSpammers.map((spammer, index) => (
+                        <div key={spammer.user_id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                              index === 0 ? 'bg-yellow-500 text-white' :
+                              index === 1 ? 'bg-gray-400 text-white' :
+                              index === 2 ? 'bg-amber-600 text-white' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {index + 1}
+                            </span>
+                            <img 
+                              src={spammer.avatar_url || '/placeholder.svg'} 
+                              alt="" 
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                            <div>
+                              <p className="font-medium text-sm">{spammer.display_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {spammer.like_count}❤️ {spammer.share_count}🔄 {spammer.comment_count}💬
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={spammer.total_count >= 50 ? "destructive" : "outline"}>
+                              {spammer.total_count}
+                            </Badge>
+                            {spammer.total_count >= 40 && (
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                onClick={() => handleBanSpammer(spammer.user_id, spammer.display_name)}
+                              >
+                                Ban
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Real-time Alerts */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-green-500 animate-pulse" />
+                      Real-time Alerts
+                    </CardTitle>
+                    <CardDescription>Cảnh báo khi user có ≥30 action/24h</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {realtimeAlerts.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">
+                          <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          Đang theo dõi... Chưa có cảnh báo mới
+                        </p>
+                      ) : (
+                        realtimeAlerts.map((alert) => (
+                          <div 
+                            key={alert.id} 
+                            className={`flex items-center justify-between p-2 rounded-lg border ${
+                              alert.count_24h >= 50 ? 'bg-red-500/10 border-red-500/30' : 'bg-orange-500/10 border-orange-500/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {getActionIcon(alert.action_type)}
+                              <div>
+                                <p className="font-medium text-sm">{alert.display_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(alert.timestamp).toLocaleTimeString('vi-VN')}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant={alert.count_24h >= 50 ? "destructive" : "outline"}>
+                              {alert.count_24h} {alert.action_type}s
+                            </Badge>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Violations Tab */}
