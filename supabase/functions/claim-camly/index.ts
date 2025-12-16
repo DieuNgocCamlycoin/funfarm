@@ -79,6 +79,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Kiểm tra ví có bị blacklist không
+    const { data: blacklisted } = await supabase
+      .from('blacklisted_wallets')
+      .select('reason, is_permanent')
+      .eq('wallet_address', walletAddress.toLowerCase())
+      .maybeSingle();
+
+    if (blacklisted) {
+      console.log('Blacklisted wallet attempted claim:', walletAddress, blacklisted.reason);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Ví này đã bị khóa vĩnh viễn do vi phạm quy định. Không thể nhận thưởng.' 
+        }), 
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Kiểm tra user có bị ban reward không
+    const { data: rewardBan } = await supabase
+      .from('reward_bans')
+      .select('reason, expires_at')
+      .eq('user_id', userId)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (rewardBan) {
+      console.log('Banned user attempted claim:', userId, rewardBan.reason);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Tài khoản của bạn đã bị cấm nhận thưởng do vi phạm quy định.' 
+        }), 
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Processing claim for authenticated user:', userId, 'wallet:', walletAddress);
 
     // Kiểm tra user có đủ pending_reward không
