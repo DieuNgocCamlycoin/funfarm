@@ -208,7 +208,7 @@ export const ImageGallery = ({ items, initialIndex = 0, isOpen, onClose }: Image
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black/95 border-0">
-        {/* Close button */}
+        {/* Close button - top right */}
         <Button
           variant="ghost"
           size="icon"
@@ -216,6 +216,16 @@ export const ImageGallery = ({ items, initialIndex = 0, isOpen, onClose }: Image
           className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 w-10 h-10"
         >
           <X className="w-6 h-6" />
+        </Button>
+
+        {/* Return to post button - top center */}
+        <Button
+          variant="outline"
+          onClick={onClose}
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/60 border-white/30 text-white hover:bg-white/20 hover:text-white gap-2"
+        >
+          <X className="w-4 h-4" />
+          Quay lại bài viết
         </Button>
 
         {/* Image counter */}
