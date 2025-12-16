@@ -120,19 +120,27 @@ const Admin = () => {
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user?.id) {
+        setIsLoading(false);
         navigate('/auth');
         return;
       }
 
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
+      const { data: isAdmin, error } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin',
+      });
 
-      if (!data) {
+      if (error) {
+        console.error('Error checking admin role:', error);
+        toast.error('Không kiểm tra được quyền admin');
+        setIsLoading(false);
+        navigate('/feed');
+        return;
+      }
+
+      if (!isAdmin) {
         toast.error('Bạn không có quyền truy cập trang này');
+        setIsLoading(false);
         navigate('/feed');
         return;
       }
