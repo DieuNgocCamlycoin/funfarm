@@ -22,7 +22,8 @@ import {
   Share2,
   MessageCircle,
   TrendingUp,
-  Zap
+  Zap,
+  Sparkles
 } from "lucide-react";
 
 interface BonusRequest {
@@ -84,6 +85,15 @@ interface TopSpammer {
   total_count: number;
 }
 
+interface UserPendingReward {
+  id: string;
+  display_name: string;
+  avatar_url: string;
+  pending_reward: number;
+  approved_reward: number;
+  created_at: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -92,7 +102,9 @@ const Admin = () => {
   const [bonusRequests, setBonusRequests] = useState<BonusRequest[]>([]);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [flaggedUsers, setFlaggedUsers] = useState<UserWithViolation[]>([]);
-  const [activeTab, setActiveTab] = useState("bonus");
+  const [activeTab, setActiveTab] = useState("rewards");
+  const [pendingRewardUsers, setPendingRewardUsers] = useState<UserPendingReward[]>([]);
+  const [isApproving, setIsApproving] = useState<string | null>(null);
   
   // Spam monitoring state
   const [realtimeAlerts, setRealtimeAlerts] = useState<SpamAlert[]>([]);
@@ -192,6 +204,17 @@ const Admin = () => {
 
       if (usersData) {
         setFlaggedUsers(usersData);
+      }
+
+      // Fetch users with pending rewards for approval
+      const { data: pendingUsers } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, pending_reward, approved_reward, created_at')
+        .gt('pending_reward', 0)
+        .order('pending_reward', { ascending: false });
+
+      if (pendingUsers) {
+        setPendingRewardUsers(pendingUsers as UserPendingReward[]);
       }
     };
 
@@ -478,6 +501,48 @@ const Admin = () => {
     }
   };
 
+  const handleApproveReward = async (userId: string, displayName: string) => {
+    setIsApproving(userId);
+    try {
+      const { data, error } = await supabase.rpc('approve_user_reward', {
+        p_user_id: userId,
+        p_admin_id: user?.id,
+        p_note: 'Approved by admin'
+      });
+
+      if (error) throw error;
+
+      setPendingRewardUsers(prev => prev.filter(u => u.id !== userId));
+      toast.success(`Đã duyệt thưởng ${(data as number).toLocaleString()} CAMLY cho ${displayName}!`);
+    } catch (error: any) {
+      console.error('Error approving reward:', error);
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setIsApproving(null);
+    }
+  };
+
+  const handleRejectReward = async (userId: string, displayName: string) => {
+    setIsApproving(userId);
+    try {
+      const { data, error } = await supabase.rpc('reject_user_reward', {
+        p_user_id: userId,
+        p_admin_id: user?.id,
+        p_note: 'Rejected by admin'
+      });
+
+      if (error) throw error;
+
+      setPendingRewardUsers(prev => prev.filter(u => u.id !== userId));
+      toast.success(`Đã từ chối thưởng ${(data as number).toLocaleString()} CAMLY của ${displayName}`);
+    } catch (error: any) {
+      console.error('Error rejecting reward:', error);
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setIsApproving(null);
+    }
+  };
+
   const handleBanSpammer = async (userId: string, displayName: string) => {
     try {
       // Ban for 7 days
@@ -581,9 +646,13 @@ const Admin = () => {
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto">
-              <TabsTrigger value="bonus" className="gap-2">
+              <TabsTrigger value="rewards" className="gap-2">
                 <Gift className="w-4 h-4" />
-                Duyệt Bonus ({bonusRequests.length})
+                Duyệt Thưởng ({pendingRewardUsers.length})
+              </TabsTrigger>
+              <TabsTrigger value="bonus" className="gap-2">
+                <Sparkles className="w-4 h-4" />
+                Bonus Requests ({bonusRequests.length})
               </TabsTrigger>
               <TabsTrigger value="spam" className="gap-2">
                 <Zap className="w-4 h-4" />
@@ -598,6 +667,79 @@ const Admin = () => {
                 Bị cấm ({flaggedUsers.length})
               </TabsTrigger>
             </TabsList>
+
+            {/* Reward Approval Tab - NEW */}
+            <TabsContent value="rewards" className="space-y-4 mt-4">
+              <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Duyệt thưởng CAMLY</CardTitle>
+                  <CardDescription>
+                    Xem xét và duyệt thưởng cho users trước khi họ có thể claim về ví
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              {pendingRewardUsers.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-50 text-green-500" />
+                    <p>Không có thưởng nào cần duyệt</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                pendingRewardUsers.map(userReward => (
+                  <Card key={userReward.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={userReward.avatar_url || '/placeholder.svg'} 
+                            alt="" 
+                            className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
+                          />
+                          <div>
+                            <p className="font-semibold">{userReward.display_name || 'Người dùng'}</p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Gift className="w-4 h-4 text-orange-500" />
+                                Chờ duyệt: <span className="font-bold text-orange-600">{userReward.pending_reward.toLocaleString()}</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                Đã duyệt: <span className="font-bold text-green-600">{userReward.approved_reward.toLocaleString()}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            onClick={() => handleApproveReward(userReward.id, userReward.display_name || 'User')}
+                            disabled={isApproving === userReward.id}
+                            className="gap-2"
+                          >
+                            {isApproving === userReward.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-4 h-4" />
+                            )}
+                            Duyệt
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleRejectReward(userReward.id, userReward.display_name || 'User')}
+                            disabled={isApproving === userReward.id}
+                            className="gap-2"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Từ chối
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
 
             {/* Bonus Requests Tab */}
             <TabsContent value="bonus" className="space-y-4 mt-4">

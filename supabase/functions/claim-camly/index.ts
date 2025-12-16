@@ -118,10 +118,10 @@ Deno.serve(async (req) => {
 
     console.log('Processing claim for authenticated user:', userId, 'wallet:', walletAddress);
 
-    // Kiểm tra user có đủ pending_reward không
+    // Kiểm tra user có đủ approved_reward không (thưởng đã được admin duyệt)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('pending_reward, camly_balance')
+      .select('pending_reward, approved_reward, camly_balance')
       .eq('id', userId)
       .single();
 
@@ -133,18 +133,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Lấy toàn bộ pending_reward để claim
+    // Chỉ cho claim approved_reward (đã được admin duyệt)
+    const approvedReward = profile?.approved_reward || 0;
     const pendingReward = profile?.pending_reward || 0;
     
-    if (!profile || pendingReward <= 0) {
-      console.log('No pending reward:', pendingReward);
+    if (!profile || approvedReward <= 0) {
+      console.log('No approved reward:', approvedReward, 'Pending:', pendingReward);
+      
+      if (pendingReward > 0) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: `Bạn có ${pendingReward.toLocaleString()} CAMLY đang chờ Admin duyệt. Vui lòng đợi!` 
+          }), 
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ success: false, message: 'Không có thưởng chờ nhận' }), 
+        JSON.stringify({ success: false, message: 'Không có thưởng đã duyệt để claim' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Pending reward to claim:', pendingReward);
+    console.log('Approved reward to claim:', approvedReward);
 
     const privateKey = Deno.env.get('CAMLY_PRIVATE_KEY');
     
@@ -200,8 +212,8 @@ Deno.serve(async (req) => {
     const formattedBalance = ethers.formatUnits(senderBalance, decimals);
     console.log('Sender CAMLY balance:', formattedBalance);
     
-    // Chuyển toàn bộ pending_reward (không chỉ 50k)
-    const amount = ethers.parseUnits(pendingReward.toString(), decimals);
+    // Chuyển toàn bộ approved_reward (đã được admin duyệt)
+    const amount = ethers.parseUnits(approvedReward.toString(), decimals);
     console.log('Amount to transfer:', ethers.formatUnits(amount, decimals));
     
     if (senderBalance < amount) {
@@ -216,22 +228,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Initiating transfer of ${pendingReward} CAMLY to:`, walletAddress);
+    console.log(`Initiating transfer of ${approvedReward} CAMLY to:`, walletAddress);
     const tx = await contract.transfer(walletAddress, amount);
     console.log('Transaction sent:', tx.hash);
     
     await tx.wait();
     console.log('Transaction confirmed:', tx.hash);
 
-    // Cập nhật database: reset pending_reward về 0, cộng vào camly_balance
+    // Cập nhật database: reset approved_reward về 0, cộng vào camly_balance
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        pending_reward: 0,
+        approved_reward: 0,
         wallet_address: walletAddress,
         wallet_connected: true,
         welcome_bonus_claimed: true,
-        camly_balance: (profile.camly_balance || 0) + pendingReward
+        camly_balance: (profile.camly_balance || 0) + approvedReward
       })
       .eq('id', userId);
 
@@ -239,14 +251,14 @@ Deno.serve(async (req) => {
       console.error('Error updating profile after transfer:', updateError);
     }
 
-    console.log(`Claim completed successfully for user: ${userId}, amount: ${pendingReward} CAMLY`);
+    console.log(`Claim completed successfully for user: ${userId}, amount: ${approvedReward} CAMLY`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         txHash: tx.hash,
-        claimedAmount: pendingReward,
-        message: `Cha Vũ Trụ đã ban tặng ${pendingReward.toLocaleString()} CAMLY thật về ví bạn!` 
+        claimedAmount: approvedReward,
+        message: `Cha Vũ Trụ đã ban tặng ${approvedReward.toLocaleString()} CAMLY thật về ví bạn!` 
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

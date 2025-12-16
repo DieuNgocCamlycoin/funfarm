@@ -455,6 +455,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved_reward: number
           avatar_url: string | null
           bio: string | null
           camly_balance: number
@@ -482,6 +483,7 @@ export type Database = {
           welcome_bonus_claimed: boolean
         }
         Insert: {
+          approved_reward?: number
           avatar_url?: string | null
           bio?: string | null
           camly_balance?: number
@@ -509,6 +511,7 @@ export type Database = {
           welcome_bonus_claimed?: boolean
         }
         Update: {
+          approved_reward?: number
           avatar_url?: string | null
           bio?: string | null
           camly_balance?: number
@@ -603,6 +606,39 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      reward_approvals: {
+        Row: {
+          admin_id: string | null
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -780,6 +816,10 @@ export type Database = {
         Args: { amount: number; user_id: string }
         Returns: undefined
       }
+      approve_user_reward: {
+        Args: { p_admin_id: string; p_note?: string; p_user_id: string }
+        Returns: number
+      }
       calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
       check_spam_behavior: {
         Args: { p_action_type: string; p_user_id: string }
@@ -859,6 +899,10 @@ export type Database = {
           p_seller_id: string
         }
         Returns: string
+      }
+      reject_user_reward: {
+        Args: { p_admin_id: string; p_note?: string; p_user_id: string }
+        Returns: number
       }
       update_good_heart_badge: { Args: never; Returns: undefined }
     }
