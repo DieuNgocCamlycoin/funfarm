@@ -147,7 +147,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
     const newImages: string[] = [];
 
     try {
-      for (let i = 0; i < files.length && images.length + newImages.length < 10; i++) {
+      for (let i = 0; i < files.length && images.length + newImages.length < 80; i++) {
         const file = files[i];
         
         // Check file size - max 100MB for videos, 20MB for images
@@ -419,7 +419,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 Hình ảnh & Video
               </label>
               <span className="text-xs text-muted-foreground">
-                {images.length}/10
+                {images.length}/80
               </span>
             </div>
 
@@ -473,7 +473,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={images.length >= 10 || isUploading}
+              disabled={images.length >= 80 || isUploading}
               className="w-full border-dashed border-2 gap-2 hover:border-primary hover:bg-primary/5"
             >
               {isUploading ? (

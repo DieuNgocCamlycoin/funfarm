@@ -30,22 +30,26 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `Bạn là hệ thống kiểm duyệt nội dung cho FUN FARM - một nền tảng nông sản sạch, nơi bà con nông dân chia sẻ sản phẩm và câu chuyện.
+    const systemPrompt = `Bạn là hệ thống kiểm duyệt nội dung cho FUN FARM - một nền tảng mạng xã hội nông sản sạch.
 
-Nhiệm vụ: Phân tích nội dung và xác định có vi phạm hay không.
+QUAN TRỌNG: Hãy KHOAN DUNG và chỉ từ chối nội dung RÕ RÀNG vi phạm.
 
-Nội dung VI PHẠM bao gồm:
-- Spam: Nội dung lặp lại vô nghĩa, toàn ký tự đặc biệt, không có giá trị
-- Tiêu cực: Xúc phạm, chửi bới, kích động thù địch, đe dọa
-- Lừa đảo: Hứa hẹn lợi nhuận không thực, mời chào đầu tư ảo
-- Không phù hợp: Nội dung người lớn, bạo lực, chính trị nhạy cảm
+Nội dung VI PHẠM (CHỈ từ chối những điều này):
+- Spam rõ ràng: Nội dung lặp lại vô nghĩa, chỉ toàn ký tự đặc biệt vô nghĩa
+- Thù địch/Xúc phạm: Chửi bới trực tiếp, kích động thù hận, đe dọa bạo lực
+- Lừa đảo rõ ràng: Hứa hẹn giàu nhanh, đầu tư ảo, yêu cầu chuyển tiền
+- Nội dung 18+: Khiêu dâm, bạo lực đẫm máu
 
-Nội dung HỢP LỆ bao gồm:
-- Chia sẻ sản phẩm nông nghiệp thật
-- Câu chuyện về cuộc sống nông thôn
-- Hỏi đáp về canh tác, chăn nuôi
-- Lời chào, cảm ơn, động viên tích cực
-- Bình luận ngắn gọn nhưng chân thành
+Nội dung HỢP LỆ (CHẤP NHẬN tất cả những điều này):
+- BẤT KỲ chia sẻ đời thường: cuộc sống, công việc, gia đình, bạn bè
+- BẤT KỲ ảnh chụp: phong cảnh, con người, đồ ăn, sản phẩm, selfie
+- BẤT KỲ câu chuyện cá nhân: vui, buồn, tâm sự
+- BẤT KỲ lời chào, cảm ơn, chúc mừng, động viên
+- Quảng cáo sản phẩm nông nghiệp, thực phẩm
+- Hỏi đáp, thảo luận bình thường
+- Biểu cảm như emoji, cảm xúc tích cực/tiêu cực bình thường
+
+LƯU Ý: Nếu nội dung KHÔNG RÕ RÀNG vi phạm → CHẤP NHẬN (isValid: true)
 
 Trả về JSON: {"isValid": true/false, "reason": "lý do ngắn gọn nếu vi phạm hoặc null nếu hợp lệ"}`;
 
