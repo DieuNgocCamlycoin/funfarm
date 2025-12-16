@@ -2,11 +2,12 @@ import { Link } from "react-router-dom";
 import { Post } from "@/types/feed";
 import { Badge } from "@/components/ui/badge";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
-import { CheckCircle2, MapPin, ExternalLink } from "lucide-react";
+import { CheckCircle2, MapPin, ExternalLink, AlertCircle, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface SharedPostCardProps {
-  originalPost: Post;
+  originalPost: Post | null;
   className?: string;
 }
 
@@ -45,6 +46,30 @@ const timeAgo = (dateString: string): string => {
 };
 
 export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps) => {
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  // Handle case when original post is deleted
+  if (!originalPost) {
+    return (
+      <div className={cn(
+        "border border-border rounded-xl bg-muted/30 overflow-hidden p-6 text-center",
+        className
+      )}>
+        <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+        <p className="text-muted-foreground font-medium">Bài viết gốc đã bị xóa</p>
+        <p className="text-sm text-muted-foreground/70 mt-1">Nội dung này không còn khả dụng</p>
+      </div>
+    );
+  }
+
+  // Check if first media is video
+  const firstMedia = originalPost.images?.[0];
+  const isVideo = firstMedia && (
+    firstMedia.toLowerCase().includes('.mp4') || 
+    firstMedia.toLowerCase().includes('.webm') ||
+    firstMedia.toLowerCase().includes('.mov')
+  );
+
   return (
     <div className={cn(
       "border border-border rounded-xl bg-muted/30 overflow-hidden hover:bg-muted/50 transition-colors",
@@ -117,17 +142,43 @@ export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps)
         )}
       </div>
 
-      {/* Original Post Image (first image only) */}
+      {/* Original Post Media (image or video) */}
       {originalPost.images && originalPost.images.length > 0 && (
         <div className="relative">
-          <img 
-            src={originalPost.images[0]} 
-            alt="Shared post image"
-            className="w-full h-48 object-cover"
-          />
+          {isVideo ? (
+            // Video display
+            <div className="relative bg-black">
+              <video
+                src={firstMedia}
+                className="w-full h-48 object-contain"
+                controls={isVideoPlaying}
+                playsInline
+                muted
+                preload="metadata"
+                onClick={() => setIsVideoPlaying(true)}
+              />
+              {!isVideoPlaying && (
+                <button
+                  onClick={() => setIsVideoPlaying(true)}
+                  className="absolute inset-0 flex items-center justify-center bg-black/30"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center">
+                    <Play className="w-6 h-6 text-primary-foreground fill-primary-foreground ml-1" />
+                  </div>
+                </button>
+              )}
+            </div>
+          ) : (
+            // Image display
+            <img 
+              src={originalPost.images[0]} 
+              alt="Shared post image"
+              className="w-full h-48 object-cover"
+            />
+          )}
           {originalPost.images.length > 1 && (
             <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm text-xs px-2 py-1 rounded-full">
-              +{originalPost.images.length - 1} ảnh
+              +{originalPost.images.length - 1} {isVideo ? 'video/ảnh' : 'ảnh'}
             </div>
           )}
         </div>
