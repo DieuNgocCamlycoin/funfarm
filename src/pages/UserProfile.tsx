@@ -225,6 +225,30 @@ const UserProfile = () => {
     fetchData();
   }, [userId, user?.id, navigate]);
 
+  // Real-time subscription for post updates
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase.channel(`user-${userId}-posts`).on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'posts',
+    }, payload => {
+      const updatedPost = payload.new as any;
+      if (updatedPost.author_id === userId) {
+        setPosts(prev => prev.map(p => 
+          p.id === updatedPost.id 
+            ? { ...p, likes_count: updatedPost.likes_count, comments_count: updatedPost.comments_count, shares_count: updatedPost.shares_count }
+            : p
+        ));
+      }
+    }).subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
   const handleFriendAction = async (action: 'add' | 'cancel' | 'accept' | 'unfriend') => {
     if (!user?.id || !userId) {
       toast.error('Vui lòng đăng nhập để kết bạn');

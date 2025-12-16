@@ -24,9 +24,10 @@ interface Comment {
 interface CommentSectionProps {
   postId: string;
   isOpen: boolean;
+  onCommentAdded?: () => void;
 }
 
-const CommentSection = ({ postId, isOpen }: CommentSectionProps) => {
+const CommentSection = ({ postId, isOpen, onCommentAdded }: CommentSectionProps) => {
   const { user, profile } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -157,6 +158,9 @@ const CommentSection = ({ postId, isOpen }: CommentSectionProps) => {
         .from('posts')
         .update({ comments_count: comments.length + 1 })
         .eq('id', postId);
+
+      // Notify parent about new comment
+      onCommentAdded?.();
 
       // Show reward notification (+5,000 CAMLY for commenter via trigger)
       toast.success('+5.000 CAMLY cho bạn! 💬', { duration: 2000 });

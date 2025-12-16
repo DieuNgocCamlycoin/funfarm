@@ -310,20 +310,29 @@ const Feed = () => {
     const sharesChannel = supabase.channel('feed-shares').on('postgres_changes', {
       event: 'UPDATE',
       schema: 'public',
-      table: 'posts',
-      filter: 'shares_count=gt.0'
+      table: 'posts'
     }, payload => {
       const updatedPost = payload.new as any;
-      // Update the share count for the post in our list
+      // Update the counts for the post in our list
       setPosts(prev => prev.map(p => {
         if (p.id === updatedPost.id) {
-          return { ...p, shares: updatedPost.shares_count };
+          return { 
+            ...p, 
+            likes: updatedPost.likes_count,
+            comments: updatedPost.comments_count,
+            shares: updatedPost.shares_count 
+          };
         }
         // Also update if this post's original_post matches
         if (p.original_post && p.original_post.id === updatedPost.id) {
           return {
             ...p,
-            original_post: { ...p.original_post, shares: updatedPost.shares_count }
+            original_post: { 
+              ...p.original_post, 
+              likes: updatedPost.likes_count,
+              comments: updatedPost.comments_count,
+              shares: updatedPost.shares_count 
+            }
           };
         }
         return p;
