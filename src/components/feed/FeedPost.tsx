@@ -123,6 +123,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const [showShareConfirm, setShowShareConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [isRewardBanned, setIsRewardBanned] = useState(false);
+  const [hasBeenRewardedForLike, setHasBeenRewardedForLike] = useState(false);
   const [likes, setLikes] = useState(post.likes);
   const [shares, setShares] = useState(post.shares);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -140,7 +141,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
   const contentNeedsTruncation = (post.content?.length || 0) > MAX_CONTENT_LENGTH || 
     (post.content?.split('\n').length || 0) > MAX_LINES;
 
-  // Check if user already liked this post and if user is reward banned
+  // Check if user already liked this post, if reward was already given, and ban status
   useEffect(() => {
     const checkLikeStatus = async () => {
       if (!user?.id) return;
@@ -153,8 +154,25 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
       
       if (data) {
         setIsLiked(true);
+        setHasBeenRewardedForLike(true); // Already liked = already rewarded
         const foundReaction = reactions.find(r => r.id === data.reaction_type);
         setCurrentReaction(foundReaction || reactions[0]);
+      }
+    };
+
+    const checkRewardStatus = async () => {
+      if (!user?.id) return;
+      // Check if reward was already given for this user liking this post
+      const { data } = await supabase
+        .from('user_reward_tracking')
+        .select('id')
+        .eq('user_id', post.author.id)
+        .eq('post_id', post.id)
+        .eq('action_type', `like_received_${user.id}`)
+        .maybeSingle();
+      
+      if (data) {
+        setHasBeenRewardedForLike(true);
       }
     };
 
@@ -173,8 +191,9 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
     };
 
     checkLikeStatus();
+    checkRewardStatus();
     checkBanStatus();
-  }, [post.id, user?.id]);
+  }, [post.id, post.author.id, user?.id]);
 
   const handleLikeClick = async () => {
     if (!user?.id) {
@@ -195,7 +214,7 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         setIsLiked(false);
         setLikes(prev => Math.max(0, prev - 1));
       } else {
-        // Like - add to database (trigger will add CAMLY reward)
+        // Like - add to database (trigger will add CAMLY reward only if first time)
         await supabase
           .from('post_likes')
           .insert({
@@ -208,12 +227,17 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
         setIsLiked(true);
         setLikes(prev => prev + 1);
         
-        // Show reward notification
-        const currentLikes = likes + 1;
-        if (currentLikes <= 3) {
-          toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
-        } else {
-          toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
+        // Only show reward notification if this is the FIRST time liking this post
+        if (!hasBeenRewardedForLike && user.id !== post.author.id) {
+          const currentLikes = likes + 1;
+          if (currentLikes <= 3) {
+            toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
+          } else {
+            toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
+          }
+          setHasBeenRewardedForLike(true);
+        } else if (hasBeenRewardedForLike) {
+          toast.info('Bạn đã lan tỏa tình yêu cho bài này rồi ❤️', { duration: 2000 });
         }
       }
       refreshProfile();
@@ -259,11 +283,17 @@ const FeedPost = ({ post: initialPost }: FeedPostProps) => {
           });
         setLikes(prev => prev + 1);
         
-        const currentLikes = likes + 1;
-        if (currentLikes <= 3) {
-          toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
-        } else {
-          toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
+        // Only show reward notification if this is the FIRST time reacting
+        if (!hasBeenRewardedForLike && user.id !== post.author.id) {
+          const currentLikes = likes + 1;
+          if (currentLikes <= 3) {
+            toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
+          } else {
+            toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
+          }
+          setHasBeenRewardedForLike(true);
+        } else if (hasBeenRewardedForLike) {
+          toast.info('Bạn đã lan tỏa tình yêu cho bài này rồi ❤️', { duration: 2000 });
         }
         refreshProfile();
       } else {
