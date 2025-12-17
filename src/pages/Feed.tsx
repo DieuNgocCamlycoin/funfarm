@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
@@ -8,6 +9,7 @@ import FloatingCreateButton from "@/components/feed/FloatingCreateButton";
 import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
+import VerificationNotice from "@/components/VerificationNotice";
 import { trendingHashtags, suggestedFarms } from "@/data/mockFeed";
 import { Post } from "@/types/feed";
 import { toast } from "sonner";
@@ -385,6 +387,17 @@ const Feed = () => {
                     
                   </div>
                 </div>
+
+                {/* Verification Notice */}
+                <VerificationNotice 
+                  onVerifyEmail={() => {
+                    toast.info('Vui lòng kiểm tra email của bạn để xác minh tài khoản');
+                  }}
+                  onConnectWallet={() => {
+                    window.location.href = '/reward';
+                  }}
+                  showDismiss
+                />
 
                 {/* Create Post Box - Facebook style */}
                 <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />

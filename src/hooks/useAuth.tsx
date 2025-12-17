@@ -20,6 +20,12 @@ interface Profile {
   wallet_connected: boolean;
   created_at: string;
   updated_at: string;
+  // New verification fields
+  email_verified: boolean;
+  avatar_verified: boolean;
+  verification_status: 'pending' | 'verified' | 'rejected';
+  verified_at: string | null;
+  wallet_bonus_claimed: boolean;
 }
 
 interface AuthContextType {
