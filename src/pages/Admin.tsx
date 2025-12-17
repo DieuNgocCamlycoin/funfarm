@@ -61,9 +61,14 @@ interface AllUserReward {
   last_violation_at: string | null;
   is_good_heart: boolean;
   created_at: string;
+  profile_type: string;
   is_banned?: boolean;
   ban_reason?: string;
   ban_expires_at?: string;
+  posts_count?: number;
+  comments_count?: number;
+  likes_received?: number;
+  shares_received?: number;
 }
 
 interface RewardAction {
@@ -181,7 +186,7 @@ const Admin = () => {
     // Fetch all users with full details
     const { data: usersData, error } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, wallet_address, is_verified, email_verified, avatar_verified, violation_level, last_violation_at, is_good_heart, created_at')
+      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, wallet_address, is_verified, email_verified, avatar_verified, violation_level, last_violation_at, is_good_heart, created_at, profile_type')
       .order('created_at', { ascending: false });
 
     if (error || !usersData) return;
@@ -192,18 +197,63 @@ const Admin = () => {
       .select('user_id, reason, expires_at')
       .gt('expires_at', new Date().toISOString());
 
-    // Merge ban info into users
-    const usersWithBans = usersData.map(user => {
+    // Fetch posts count per user
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('author_id');
+
+    // Fetch comments count per user
+    const { data: commentsData } = await supabase
+      .from('comments')
+      .select('author_id');
+
+    // Fetch likes received per user (on their posts)
+    const { data: likesData } = await supabase
+      .from('posts')
+      .select('author_id, likes_count');
+
+    // Fetch shares received per user (on their posts)
+    const { data: sharesData } = await supabase
+      .from('posts')
+      .select('author_id, shares_count');
+
+    // Calculate counts per user
+    const postsCountMap: Record<string, number> = {};
+    postsData?.forEach(p => {
+      postsCountMap[p.author_id] = (postsCountMap[p.author_id] || 0) + 1;
+    });
+
+    const commentsCountMap: Record<string, number> = {};
+    commentsData?.forEach(c => {
+      commentsCountMap[c.author_id] = (commentsCountMap[c.author_id] || 0) + 1;
+    });
+
+    const likesReceivedMap: Record<string, number> = {};
+    likesData?.forEach(p => {
+      likesReceivedMap[p.author_id] = (likesReceivedMap[p.author_id] || 0) + (p.likes_count || 0);
+    });
+
+    const sharesReceivedMap: Record<string, number> = {};
+    sharesData?.forEach(p => {
+      sharesReceivedMap[p.author_id] = (sharesReceivedMap[p.author_id] || 0) + (p.shares_count || 0);
+    });
+
+    // Merge all info into users
+    const usersWithFullInfo = usersData.map(user => {
       const ban = bansData?.find(b => b.user_id === user.id);
       return {
         ...user,
         is_banned: !!ban,
         ban_reason: ban?.reason || null,
-        ban_expires_at: ban?.expires_at || null
+        ban_expires_at: ban?.expires_at || null,
+        posts_count: postsCountMap[user.id] || 0,
+        comments_count: commentsCountMap[user.id] || 0,
+        likes_received: likesReceivedMap[user.id] || 0,
+        shares_received: sharesReceivedMap[user.id] || 0,
       };
     });
 
-    setAllUsers(usersWithBans as AllUserReward[]);
+    setAllUsers(usersWithFullInfo as AllUserReward[]);
   };
 
   const fetchBannedUsers = async () => {
@@ -726,11 +776,17 @@ const Admin = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 font-medium">#</th>
-                        <th className="text-left p-3 font-medium">Tên</th>
-                        <th className="text-left p-3 font-medium">Wallet Address</th>
-                        <th className="text-right p-3 font-medium">Đã Claim (CAMLY)</th>
-                        <th className="text-right p-3 font-medium">Đang chờ</th>
+                        <th className="text-left p-2 font-medium">#</th>
+                        <th className="text-left p-2 font-medium">Tên</th>
+                        <th className="text-center p-2 font-medium">Loại</th>
+                        <th className="text-left p-2 font-medium">Wallet</th>
+                        <th className="text-right p-2 font-medium">Đã Claim</th>
+                        <th className="text-right p-2 font-medium">Chờ</th>
+                        <th className="text-center p-2 font-medium">Bài</th>
+                        <th className="text-center p-2 font-medium">BL</th>
+                        <th className="text-center p-2 font-medium">Likes</th>
+                        <th className="text-center p-2 font-medium">Shares</th>
+                        <th className="text-center p-2 font-medium">TT</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -738,17 +794,17 @@ const Admin = () => {
                         .filter(u => u.camly_balance > 0)
                         .sort((a, b) => b.camly_balance - a.camly_balance)
                         .map((u, index) => (
-                          <tr key={u.id} className="border-b hover:bg-muted/30 transition-colors">
-                            <td className="p-3 text-muted-foreground">{index + 1}</td>
-                            <td className="p-3">
+                          <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                            <td className="p-2 text-muted-foreground">{index + 1}</td>
+                            <td className="p-2">
                               <div className="flex items-center gap-2">
-                                <Avatar className="h-7 w-7">
+                                <Avatar className="h-6 w-6">
                                   <AvatarImage src={u.avatar_url || undefined} />
                                   <AvatarFallback className="text-xs">
                                     {u.display_name?.charAt(0) || '?'}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="font-medium truncate max-w-[150px]">
+                                <span className="font-medium truncate max-w-[100px] text-xs">
                                   {u.display_name || '(không tên)'}
                                 </span>
                                 {u.is_good_heart && (
@@ -756,21 +812,31 @@ const Admin = () => {
                                 )}
                               </div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-2 text-center">
+                              <span className="text-xs">
+                                {u.profile_type === 'farmer' && '🌾'}
+                                {u.profile_type === 'fisher' && '🐟'}
+                                {u.profile_type === 'eater' && '🍽️'}
+                                {u.profile_type === 'restaurant' && '🏪'}
+                                {u.profile_type === 'distributor' && '🚚'}
+                                {u.profile_type === 'shipper' && '📦'}
+                              </span>
+                            </td>
+                            <td className="p-2">
                               {u.wallet_address ? (
-                                <code className="text-xs bg-muted px-2 py-1 rounded">
-                                  {u.wallet_address.slice(0, 6)}...{u.wallet_address.slice(-4)}
+                                <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                  {u.wallet_address.slice(0, 4)}...{u.wallet_address.slice(-4)}
                                 </code>
                               ) : (
                                 <span className="text-muted-foreground text-xs">—</span>
                               )}
                             </td>
-                            <td className="p-3 text-right">
+                            <td className="p-2 text-right">
                               <span className="text-green-600 dark:text-green-400 font-bold">
                                 {u.camly_balance.toLocaleString()}
                               </span>
                             </td>
-                            <td className="p-3 text-right">
+                            <td className="p-2 text-right">
                               {u.pending_reward > 0 ? (
                                 <span className="text-yellow-600 dark:text-yellow-400 font-medium">
                                   {u.pending_reward.toLocaleString()}
@@ -779,20 +845,46 @@ const Admin = () => {
                                 <span className="text-muted-foreground">0</span>
                               )}
                             </td>
+                            <td className="p-2 text-center text-xs">{u.posts_count || 0}</td>
+                            <td className="p-2 text-center text-xs">{u.comments_count || 0}</td>
+                            <td className="p-2 text-center text-xs text-blue-600">{u.likes_received || 0}</td>
+                            <td className="p-2 text-center text-xs text-purple-600">{u.shares_received || 0}</td>
+                            <td className="p-2 text-center">
+                              {u.is_banned ? (
+                                <Badge variant="destructive" className="text-xs">BAN</Badge>
+                              ) : u.is_verified ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                     </tbody>
                     <tfoot className="bg-muted/50 font-bold">
                       <tr>
-                        <td colSpan={3} className="p-3 text-right">
-                          Tổng cộng ({allUsers.filter(u => u.camly_balance > 0).length} tài khoản):
+                        <td colSpan={4} className="p-2 text-right text-xs">
+                          Tổng ({allUsers.filter(u => u.camly_balance > 0).length} TK):
                         </td>
-                        <td className="p-3 text-right text-green-600 dark:text-green-400">
+                        <td className="p-2 text-right text-green-600 dark:text-green-400">
                           {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
                         </td>
-                        <td className="p-3 text-right text-yellow-600 dark:text-yellow-400">
+                        <td className="p-2 text-right text-yellow-600 dark:text-yellow-400">
                           {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
                         </td>
+                        <td className="p-2 text-center text-xs">
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.posts_count || 0), 0)}
+                        </td>
+                        <td className="p-2 text-center text-xs">
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.comments_count || 0), 0)}
+                        </td>
+                        <td className="p-2 text-center text-xs text-blue-600">
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.likes_received || 0), 0)}
+                        </td>
+                        <td className="p-2 text-center text-xs text-purple-600">
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.shares_received || 0), 0)}
+                        </td>
+                        <td></td>
                       </tr>
                     </tfoot>
                   </table>
@@ -829,18 +921,22 @@ const Admin = () => {
                       );
                       
                       // Create CSV content with all data
-                      const headers = ['Tên', 'Email Verified', 'Avatar Verified', 'Verified', 'Ngày tạo', 'Chờ duyệt (CLC)', 'Đã duyệt (CLC)', 'Trong ví (CLC)', 'Địa chỉ ví', 'Kết nối ví', 'Vi phạm', 'Ngày vi phạm', 'Good Heart', 'Bị ban', 'Lý do ban', 'Hết ban'];
+                      const headers = ['Tên', 'Loại tài khoản', 'Ngày tạo', 'Tổng CAMLY', 'Chờ duyệt', 'Đã duyệt', 'Trong ví', 'Bài viết', 'Bình luận', 'Likes nhận', 'Shares nhận', 'Địa chỉ ví', 'Kết nối ví', 'Verified', 'Vi phạm', 'Ngày vi phạm', 'Good Heart', 'Bị ban', 'Lý do ban', 'Hết ban'];
                       const rows = filteredUsers.map(u => [
                         u.display_name || 'Người dùng',
-                        u.email_verified ? 'Có' : 'Không',
-                        u.avatar_verified ? 'Có' : 'Không',
-                        u.is_verified ? 'Có' : 'Không',
+                        u.profile_type,
                         format(new Date(u.created_at), 'dd/MM/yyyy HH:mm'),
+                        u.camly_balance + u.pending_reward + u.approved_reward,
                         u.pending_reward,
                         u.approved_reward,
                         u.camly_balance,
+                        u.posts_count || 0,
+                        u.comments_count || 0,
+                        u.likes_received || 0,
+                        u.shares_received || 0,
                         u.wallet_address || '',
                         u.wallet_connected ? 'Có' : 'Không',
+                        u.is_verified ? 'Có' : 'Không',
                         u.violation_level,
                         u.last_violation_at ? format(new Date(u.last_violation_at), 'dd/MM/yyyy') : '',
                         u.is_good_heart ? 'Có' : 'Không',
@@ -927,13 +1023,16 @@ const Admin = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 font-medium">User</th>
-                        <th className="text-right p-3 font-medium">Chờ duyệt</th>
-                        <th className="text-right p-3 font-medium">Đã duyệt</th>
-                        <th className="text-right p-3 font-medium">Trong ví</th>
-                        <th className="text-center p-3 font-medium">Xác minh</th>
-                        <th className="text-center p-3 font-medium">Vi phạm</th>
-                        <th className="text-center p-3 font-medium">Trạng thái</th>
+                        <th className="text-left p-2 font-medium">User</th>
+                        <th className="text-center p-2 font-medium">Loại</th>
+                        <th className="text-right p-2 font-medium">Tổng CAMLY</th>
+                        <th className="text-right p-2 font-medium">Chờ</th>
+                        <th className="text-right p-2 font-medium">Trong ví</th>
+                        <th className="text-center p-2 font-medium">Bài viết</th>
+                        <th className="text-center p-2 font-medium">Bình luận</th>
+                        <th className="text-center p-2 font-medium">Likes</th>
+                        <th className="text-center p-2 font-medium">Shares</th>
+                        <th className="text-center p-2 font-medium">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -945,10 +1044,10 @@ const Admin = () => {
                         )
                         .map((u) => (
                           <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
-                            <td className="p-3">
-                              <div className="flex items-center gap-3">
+                            <td className="p-2">
+                              <div className="flex items-center gap-2">
                                 <div className="relative">
-                                  <Avatar className="h-8 w-8">
+                                  <Avatar className="h-7 w-7">
                                     <AvatarImage src={u.avatar_url || undefined} />
                                     <AvatarFallback className="text-xs">
                                       {u.display_name?.charAt(0) || '?'}
@@ -959,70 +1058,84 @@ const Admin = () => {
                                   )}
                                 </div>
                                 <div>
-                                  <p className="font-medium truncate max-w-[120px]">
+                                  <p className="font-medium truncate max-w-[100px] text-xs">
                                     {u.display_name || 'Người dùng'}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {format(new Date(u.created_at), 'dd/MM/yyyy')}
+                                    {format(new Date(u.created_at), 'dd/MM/yy')}
                                   </p>
                                   {u.wallet_address && (
-                                    <p className="text-xs text-muted-foreground truncate max-w-[100px]">
-                                      {u.wallet_address.slice(0, 6)}...{u.wallet_address.slice(-4)}
-                                    </p>
+                                    <code className="text-xs text-muted-foreground">
+                                      {u.wallet_address.slice(0, 4)}...{u.wallet_address.slice(-3)}
+                                    </code>
                                   )}
                                 </div>
                               </div>
                             </td>
-                            <td className="p-3 text-right">
+                            <td className="p-2 text-center">
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {u.profile_type === 'farmer' && '🌾'}
+                                {u.profile_type === 'fisher' && '🐟'}
+                                {u.profile_type === 'eater' && '🍽️'}
+                                {u.profile_type === 'restaurant' && '🏪'}
+                                {u.profile_type === 'distributor' && '🚚'}
+                                {u.profile_type === 'shipper' && '📦'}
+                                {u.profile_type}
+                              </Badge>
+                            </td>
+                            <td className="p-2 text-right">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-primary">
+                                  {(u.camly_balance + u.pending_reward + u.approved_reward).toLocaleString()}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Ví: {u.camly_balance.toLocaleString()}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-right">
                               <span className={u.pending_reward > 0 ? "text-yellow-600 dark:text-yellow-400 font-medium" : "text-muted-foreground"}>
                                 {u.pending_reward.toLocaleString()}
                               </span>
                             </td>
-                            <td className="p-3 text-right">
-                              <span className={u.approved_reward > 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-muted-foreground"}>
-                                {u.approved_reward.toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="p-3 text-right">
-                              <span className={u.camly_balance > 0 ? "text-blue-600 dark:text-blue-400 font-medium" : "text-muted-foreground"}>
+                            <td className="p-2 text-right">
+                              <span className={u.camly_balance > 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-muted-foreground"}>
                                 {u.camly_balance.toLocaleString()}
                               </span>
                             </td>
-                            <td className="p-3">
-                              <div className="flex flex-col items-center gap-1">
-                                <div className="flex gap-1">
-                                  <span className={`text-xs ${u.email_verified ? 'text-green-600' : 'text-muted-foreground'}`} title="Email">
-                                    ✉️{u.email_verified ? '✓' : '✗'}
-                                  </span>
-                                  <span className={`text-xs ${u.avatar_verified ? 'text-green-600' : 'text-muted-foreground'}`} title="Avatar">
-                                    🖼️{u.avatar_verified ? '✓' : '✗'}
-                                  </span>
-                                </div>
-                                {u.is_verified && (
-                                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                    <CheckCircle className="h-3 w-3" />
-                                  </Badge>
-                                )}
+                            <td className="p-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <FileText className="h-3 w-3 text-muted-foreground" />
+                                <span className={u.posts_count && u.posts_count > 0 ? "font-medium" : "text-muted-foreground"}>
+                                  {u.posts_count || 0}
+                                </span>
                               </div>
                             </td>
-                            <td className="p-3 text-center">
-                              {u.violation_level > 0 ? (
-                                <div className="flex flex-col items-center">
-                                  <Badge variant="destructive" className="text-xs">
-                                    <AlertTriangle className="h-3 w-3 mr-1" />
-                                    Lv.{u.violation_level}
-                                  </Badge>
-                                  {u.last_violation_at && (
-                                    <span className="text-xs text-muted-foreground mt-1">
-                                      {format(new Date(u.last_violation_at), 'dd/MM')}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-green-600">Sạch</span>
-                              )}
+                            <td className="p-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <MessageCircle className="h-3 w-3 text-muted-foreground" />
+                                <span className={u.comments_count && u.comments_count > 0 ? "font-medium" : "text-muted-foreground"}>
+                                  {u.comments_count || 0}
+                                </span>
+                              </div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <ThumbsUp className="h-3 w-3 text-blue-500" />
+                                <span className={u.likes_received && u.likes_received > 0 ? "font-medium text-blue-600" : "text-muted-foreground"}>
+                                  {u.likes_received || 0}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Share2 className="h-3 w-3 text-purple-500" />
+                                <span className={u.shares_received && u.shares_received > 0 ? "font-medium text-purple-600" : "text-muted-foreground"}>
+                                  {u.shares_received || 0}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2">
                               <div className="flex flex-col items-center gap-1">
                                 {u.is_banned ? (
                                   <div className="text-center">
@@ -1030,32 +1143,40 @@ const Admin = () => {
                                       <Ban className="h-3 w-3 mr-1" />
                                       BAN
                                     </Badge>
-                                    <p className="text-xs text-muted-foreground mt-1 max-w-[80px] truncate" title={u.ban_reason || ''}>
+                                    <p className="text-xs text-red-500 mt-1 max-w-[70px] truncate" title={u.ban_reason || ''}>
                                       {u.ban_reason}
                                     </p>
                                     {u.ban_expires_at && (
                                       <p className="text-xs text-muted-foreground">
-                                        → {format(new Date(u.ban_expires_at), 'dd/MM/yy')}
+                                        → {format(new Date(u.ban_expires_at), 'dd/MM')}
                                       </p>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="flex gap-1 flex-wrap justify-center">
-                                    {u.wallet_connected && (
-                                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                        <Wallet className="h-3 w-3" />
+                                  <div className="flex flex-col gap-1 items-center">
+                                    {u.violation_level > 0 && (
+                                      <Badge variant="outline" className="text-xs text-orange-600 border-orange-500">
+                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                        Vi phạm {u.violation_level}
                                       </Badge>
                                     )}
-                                    {u.is_good_heart && (
-                                      <Badge variant="secondary" className="text-xs bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
-                                        <Heart className="h-3 w-3" />
-                                      </Badge>
-                                    )}
-                                    {!u.wallet_connected && !u.is_good_heart && (
-                                      <Badge variant="outline" className="text-xs text-muted-foreground">
-                                        Mới
-                                      </Badge>
-                                    )}
+                                    <div className="flex gap-1 flex-wrap justify-center">
+                                      {u.is_verified && (
+                                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                          <CheckCircle className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                      {u.wallet_connected && (
+                                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                          <Wallet className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                      {u.is_good_heart && (
+                                        <Badge variant="secondary" className="text-xs bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                                          <Heart className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
