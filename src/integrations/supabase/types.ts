@@ -821,6 +821,10 @@ export type Database = {
         Returns: number
       }
       calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
+      check_daily_limit: {
+        Args: { p_action_type: string; p_user_id: string }
+        Returns: boolean
+      }
       check_spam_behavior: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
@@ -903,6 +907,10 @@ export type Database = {
       reject_user_reward: {
         Args: { p_admin_id: string; p_note?: string; p_user_id: string }
         Returns: number
+      }
+      send_daily_limit_notification: {
+        Args: { p_action_type: string; p_user_id: string }
+        Returns: undefined
       }
       update_good_heart_badge: { Args: never; Returns: undefined }
     }
