@@ -69,6 +69,7 @@ interface AllUserReward {
   comments_count?: number;
   likes_received?: number;
   shares_received?: number;
+  total_approved_history?: number; // Total from reward_approvals table
 }
 
 interface RewardAction {
@@ -217,6 +218,12 @@ const Admin = () => {
       .from('posts')
       .select('author_id, shares_count');
 
+    // Fetch reward approvals history (total approved per user)
+    const { data: approvalsData } = await supabase
+      .from('reward_approvals')
+      .select('user_id, amount, status')
+      .eq('status', 'approved');
+
     // Calculate counts per user
     const postsCountMap: Record<string, number> = {};
     postsData?.forEach(p => {
@@ -238,6 +245,12 @@ const Admin = () => {
       sharesReceivedMap[p.author_id] = (sharesReceivedMap[p.author_id] || 0) + (p.shares_count || 0);
     });
 
+    // Calculate total approved from history per user
+    const approvedHistoryMap: Record<string, number> = {};
+    approvalsData?.forEach(a => {
+      approvedHistoryMap[a.user_id] = (approvedHistoryMap[a.user_id] || 0) + (a.amount || 0);
+    });
+
     // Merge all info into users
     const usersWithFullInfo = usersData.map(user => {
       const ban = bansData?.find(b => b.user_id === user.id);
@@ -250,6 +263,7 @@ const Admin = () => {
         comments_count: commentsCountMap[user.id] || 0,
         likes_received: likesReceivedMap[user.id] || 0,
         shares_received: sharesReceivedMap[user.id] || 0,
+        total_approved_history: approvedHistoryMap[user.id] || 0,
       };
     });
 
@@ -524,7 +538,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="claimed" className="flex items-center gap-2">
               <Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Đã Claim</span> ({allUsers.filter(u => u.camly_balance > 0).length})
+              <span className="hidden sm:inline">Đã Duyệt</span> ({allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length})
             </TabsTrigger>
             <TabsTrigger value="all-users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -724,49 +738,58 @@ const Admin = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-green-500" />
-                  Tài khoản đã CLAIM CAMLY về ví thật
+                  Tài khoản đã được DUYỆT thưởng CAMLY
                 </CardTitle>
                 <CardDescription>
-                  Danh sách {allUsers.filter(u => u.camly_balance > 0).length} tài khoản đã claim thành công
+                  Danh sách {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length} tài khoản đã được duyệt thưởng
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                   <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
                     <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                       <Users className="h-4 w-4" />
-                      <span className="text-xs font-medium">Tổng tài khoản claim</span>
+                      <span className="text-xs font-medium">Tài khoản đã duyệt</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
-                      {allUsers.filter(u => u.camly_balance > 0).length}
+                      {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length}
                     </p>
                   </div>
                   <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
                     <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                      <img src={camlyCoinLogo} alt="CAMLY" className="h-4 w-4" />
-                      <span className="text-xs font-medium">Tổng CAMLY đã claim</span>
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs font-medium">Tổng đã duyệt</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
-                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
+                      {allUsers.reduce((sum, u) => sum + (u.total_approved_history || 0), 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <img src={camlyCoinLogo} alt="CAMLY" className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đang trong ví</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
                     <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
                       <Clock className="h-4 w-4" />
-                      <span className="text-xs font-medium">Đang chờ claim thêm</span>
+                      <span className="text-xs font-medium">Đang chờ duyệt</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
-                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                      {allUsers.reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
                     <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
                       <TrendingUp className="h-4 w-4" />
-                      <span className="text-xs font-medium">Tổng cộng (claim + chờ)</span>
+                      <span className="text-xs font-medium">Tổng cộng</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
-                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance + u.pending_reward, 0).toLocaleString()}
+                      {allUsers.reduce((sum, u) => sum + (u.total_approved_history || 0) + u.camly_balance + u.pending_reward, 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -780,7 +803,8 @@ const Admin = () => {
                         <th className="text-left p-2 font-medium">Tên</th>
                         <th className="text-center p-2 font-medium">Loại</th>
                         <th className="text-left p-2 font-medium">Wallet</th>
-                        <th className="text-right p-2 font-medium">Đã Claim</th>
+                        <th className="text-right p-2 font-medium">Đã Duyệt</th>
+                        <th className="text-right p-2 font-medium">Trong Ví</th>
                         <th className="text-right p-2 font-medium">Chờ</th>
                         <th className="text-center p-2 font-medium">Bài</th>
                         <th className="text-center p-2 font-medium">BL</th>
@@ -791,8 +815,8 @@ const Admin = () => {
                     </thead>
                     <tbody>
                       {allUsers
-                        .filter(u => u.camly_balance > 0)
-                        .sort((a, b) => b.camly_balance - a.camly_balance)
+                        .filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0)
+                        .sort((a, b) => ((b.total_approved_history || 0) + b.camly_balance) - ((a.total_approved_history || 0) + a.camly_balance))
                         .map((u, index) => (
                           <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                             <td className="p-2 text-muted-foreground">{index + 1}</td>
@@ -832,6 +856,11 @@ const Admin = () => {
                               )}
                             </td>
                             <td className="p-2 text-right">
+                              <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                {(u.total_approved_history || 0).toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="p-2 text-right">
                               <span className="text-green-600 dark:text-green-400 font-bold">
                                 {u.camly_balance.toLocaleString()}
                               </span>
@@ -864,25 +893,28 @@ const Admin = () => {
                     <tfoot className="bg-muted/50 font-bold">
                       <tr>
                         <td colSpan={4} className="p-2 text-right text-xs">
-                          Tổng ({allUsers.filter(u => u.camly_balance > 0).length} TK):
+                          Tổng ({allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length} TK):
+                        </td>
+                        <td className="p-2 text-right text-blue-600 dark:text-blue-400">
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.total_approved_history || 0), 0).toLocaleString()}
                         </td>
                         <td className="p-2 text-right text-green-600 dark:text-green-400">
-                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
                         </td>
                         <td className="p-2 text-right text-yellow-600 dark:text-yellow-400">
-                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
                         </td>
                         <td className="p-2 text-center text-xs">
-                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.posts_count || 0), 0)}
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.posts_count || 0), 0)}
                         </td>
                         <td className="p-2 text-center text-xs">
-                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.comments_count || 0), 0)}
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.comments_count || 0), 0)}
                         </td>
                         <td className="p-2 text-center text-xs text-blue-600">
-                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.likes_received || 0), 0)}
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.likes_received || 0), 0)}
                         </td>
                         <td className="p-2 text-center text-xs text-purple-600">
-                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.shares_received || 0), 0)}
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.shares_received || 0), 0)}
                         </td>
                         <td></td>
                       </tr>
