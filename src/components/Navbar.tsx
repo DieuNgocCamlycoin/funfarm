@@ -1,8 +1,9 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Home, User, Search } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield } from "lucide-react";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
@@ -38,6 +39,27 @@ const Navbar = () => {
   const isHomePage = location.pathname === "/";
   const { user, profile, signOut, isLoading } = useAuth();
   const { t } = useTranslation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin role
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user?.id) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const { data } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
+        setIsAdmin(data === true);
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+    checkAdminRole();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -193,6 +215,14 @@ const Navbar = () => {
                         ⚙️ {t('nav.editProfile')}
                       </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="cursor-pointer text-primary">
+                          <Shield className="w-4 h-4 mr-2" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
                       <LogOut className="w-4 h-4 mr-2" />
@@ -271,6 +301,16 @@ const Navbar = () => {
                 >
                   <User className="w-4 h-4" />
                   Trang cá nhân
+                </Link>
+              )}
+              {isAdmin && (
+                <Link 
+                  to="/admin" 
+                  className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin Dashboard
                 </Link>
               )}
               {isWelcomePage ? (
