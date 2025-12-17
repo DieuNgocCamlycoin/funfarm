@@ -122,16 +122,16 @@ const Reward = () => {
     }
   };
 
-  // Bước 2: Claim thưởng thật (gọi Edge Function) - chuyển toàn bộ pending_reward
+  // Bước 2: Claim thưởng thật (gọi Edge Function) - chuyển approved_reward
   const claimReward = async () => {
     if (!profile?.wallet_address) {
       toast.error('Vui lòng kết nối ví trước khi claim thưởng');
       return;
     }
 
-    const amountToClaim = profile?.pending_reward || 0;
+    const amountToClaim = (profile as any)?.approved_reward || 0;
     if (amountToClaim === 0) {
-      toast.error('Không có thưởng để claim');
+      toast.error('Không có thưởng đã duyệt để claim');
       return;
     }
 
