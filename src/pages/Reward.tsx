@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gift, Wallet, CheckCircle2, Loader2, Sparkles, ArrowLeft, Heart, Link2 } from 'lucide-react';
+import { Gift, Wallet, CheckCircle2, Loader2, Sparkles, ArrowLeft, Heart, Link2, Info } from 'lucide-react';
+import { RewardPolicyNotice } from '@/components/RewardPolicyNotice';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CAMLY_CONTRACT, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS } from '@/lib/constants';
@@ -396,6 +397,9 @@ const Reward = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Chính sách thưởng đầy đủ */}
+          <RewardPolicyNotice showFullPolicy={true} />
 
           {/* Contract Info */}
           <div className="mt-6 text-center">
