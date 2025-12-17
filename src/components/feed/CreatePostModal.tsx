@@ -323,12 +323,12 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 bg-gradient-to-br from-card via-card to-primary/5 border-primary/20">
-        {/* Header with gradient */}
-        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border">
-          <DialogTitle className="flex items-center gap-3 font-display text-xl">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+      <DialogContent className="sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-card via-card to-primary/5 border-primary/20 flex flex-col">
+        {/* Header with gradient - fixed */}
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border flex-shrink-0">
+          <DialogTitle className="flex items-center gap-3 font-display text-lg sm:text-xl">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
             <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Tạo Bài Viết Mới
@@ -336,7 +336,8 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Post Type Tabs */}
           <Tabs value={postType} onValueChange={setPostType}>
             <TabsList className="grid grid-cols-4 bg-muted/50">
@@ -553,24 +554,25 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 <Users className="w-4 h-4" />
                 Tag bạn bè
               </Button>
-              <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-                <Smile className="w-4 h-4" />
-                Cảm xúc
-              </Button>
-            </div>
-          )}
+            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+              <Smile className="w-4 h-4" />
+              Cảm xúc
+            </Button>
+          </div>
+        )}
+          </div>
         </div>
 
-        {/* Footer - hide for product tab (has its own buttons) */}
+        {/* Footer - sticky at bottom for mobile, hide for product tab (has its own buttons) */}
         {postType !== "product" && (
-          <div className="p-6 pt-0 flex justify-end gap-3">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex-shrink-0 p-4 sm:p-6 pt-3 sm:pt-4 border-t border-border bg-card/95 backdrop-blur-sm flex justify-between sm:justify-end gap-3">
+            <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
               Hủy
             </Button>
             <Button
               onClick={handlePost}
               disabled={!content.trim() || isPosting}
-              className="gradient-hero border-0 gap-2 min-w-[140px]"
+              className="gradient-hero border-0 gap-2 flex-1 sm:flex-none sm:min-w-[140px]"
             >
               {isPosting ? (
                 <>
