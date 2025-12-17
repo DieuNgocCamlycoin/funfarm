@@ -173,6 +173,14 @@ const Admin = () => {
         return;
       }
 
+      // Check for API errors from BscScan
+      if (data?.error || data?.message === 'NOTOK') {
+        const errorMsg = data.apiKeyHint || data.error || 'Lỗi không xác định từ BscScan';
+        console.error('BscScan API error:', errorMsg);
+        toast.error(errorMsg, { duration: 8000 });
+        return;
+      }
+
       if (data?.aggregated) {
         // Map wallet addresses to user names
         const walletToName: Record<string, string> = {};
@@ -192,9 +200,14 @@ const Admin = () => {
 
         setBlockchainData(claimData);
         setBlockchainTotalClaimed(data.totalClaimed || claimData.reduce((sum, c) => sum + c.totalClaimed, 0));
+        
+        if (claimData.length > 0) {
+          toast.success(`Đã tải ${claimData.length} ví từ blockchain`);
+        }
       }
     } catch (err) {
       console.error('Error:', err);
+      toast.error('Lỗi kết nối đến BscScan API');
     } finally {
       setBlockchainLoading(false);
     }

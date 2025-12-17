@@ -44,15 +44,28 @@ serve(async (req) => {
     const response = await fetch(url);
     const data = await response.json();
 
+    console.log('BscScan full response:', JSON.stringify(data));
     console.log('BscScan response status:', data.status);
     console.log('BscScan message:', data.message);
+    console.log('BscScan result:', data.result);
 
     if (data.status !== '1') {
-      console.log('BscScan API error or no data:', data.message);
+      // Common BscScan error messages:
+      // - "NOTOK" with result "Invalid API Key" = wrong API key
+      // - "NOTOK" with result "Max rate limit reached" = too many requests
+      const errorDetail = typeof data.result === 'string' ? data.result : data.message;
+      console.error('BscScan API error:', errorDetail);
+      
       return new Response(JSON.stringify({ 
         transfers: [],
         aggregated: {},
-        message: data.message || 'No transfers found'
+        message: data.message || 'No transfers found',
+        error: errorDetail,
+        apiKeyHint: errorDetail?.toLowerCase().includes('invalid') 
+          ? 'API key có thể không đúng. Vui lòng kiểm tra lại BSCSCAN_API_KEY trong Supabase secrets.'
+          : errorDetail?.toLowerCase().includes('rate') 
+            ? 'API bị giới hạn tốc độ. Vui lòng thử lại sau vài giây.'
+            : null
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
