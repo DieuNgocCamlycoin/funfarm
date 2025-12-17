@@ -64,20 +64,13 @@ const Reward = () => {
 
       const walletAddress = accounts[0].toLowerCase();
       const isFirstWalletConnection = !profile?.wallet_connected;
-      
-      // Tính toán pending_reward mới (cộng thêm 50k nếu là lần đầu kết nối ví)
-      const currentPendingReward = profile?.pending_reward || 0;
-      const newPendingReward = isFirstWalletConnection 
-        ? currentPendingReward + WALLET_CONNECT_BONUS 
-        : currentPendingReward;
 
-      // Lưu wallet address + cộng thưởng nếu lần đầu kết nối
+      // Lưu wallet address - thưởng sẽ được tự động cộng bởi database trigger
       const { error } = await supabase
         .from('profiles')
         .update({ 
           wallet_address: walletAddress,
-          wallet_connected: true,
-          pending_reward: newPendingReward
+          wallet_connected: true
         })
         .eq('id', user.id);
 
