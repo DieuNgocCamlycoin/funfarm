@@ -28,8 +28,12 @@ import {
   MessageCircle,
   Share2,
   ThumbsUp,
-  Eye
+  Eye,
+  Wallet,
+  TrendingUp,
+  Clock
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
 interface PendingRewardUser {
@@ -38,6 +42,18 @@ interface PendingRewardUser {
   avatar_url: string | null;
   pending_reward: number;
   approved_reward: number;
+}
+
+interface AllUserReward {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  pending_reward: number;
+  approved_reward: number;
+  camly_balance: number;
+  wallet_connected: boolean;
+  is_verified: boolean;
+  created_at: string;
 }
 
 interface RewardAction {
@@ -66,12 +82,14 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [pendingUsers, setPendingUsers] = useState<PendingRewardUser[]>([]);
+  const [allUsers, setAllUsers] = useState<AllUserReward[]>([]);
   const [bannedUsers, setBannedUsers] = useState<BannedUser[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [userActions, setUserActions] = useState<Record<string, RewardAction[]>>({});
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [loadingActions, setLoadingActions] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Check admin role
   useEffect(() => {
@@ -111,6 +129,7 @@ const Admin = () => {
     if (!isAdmin) return;
     fetchPendingRewards();
     fetchBannedUsers();
+    fetchAllUsers();
   }, [isAdmin, selectedDate]);
 
   const fetchPendingRewards = async () => {
@@ -145,6 +164,17 @@ const Admin = () => {
         return b.pending_reward - a.pending_reward;
       });
       setPendingUsers(sorted);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, is_verified, created_at')
+      .order('approved_reward', { ascending: false });
+
+    if (!error && data) {
+      setAllUsers(data as AllUserReward[]);
     }
   };
 
@@ -409,14 +439,18 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="rewards" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
               Duyệt thưởng ({pendingUsers.length})
             </TabsTrigger>
+            <TabsTrigger value="all-users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Tất cả Users ({allUsers.length})
+            </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-2">
               <Ban className="h-4 w-4" />
-              Users bị ban ({bannedUsers.length})
+              Bị ban ({bannedUsers.length})
             </TabsTrigger>
           </TabsList>
 
@@ -598,6 +632,148 @@ const Admin = () => {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* All Users Tab */}
+          <TabsContent value="all-users" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Tổng hợp thưởng tất cả Users
+                </CardTitle>
+                <CardDescription>
+                  Danh sách tất cả users với số thưởng đã claim và đang chờ claim
+                </CardDescription>
+                <div className="mt-4">
+                  <Input
+                    placeholder="Tìm kiếm theo tên..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Wallet className="h-4 w-4" />
+                      <span className="text-sm font-medium">Tổng đã duyệt</span>
+                    </div>
+                    <p className="text-xl font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.approved_reward, 0).toLocaleString()} CLC
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-sm font-medium">Tổng chờ duyệt</span>
+                    </div>
+                    <p className="text-xl font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()} CLC
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                      <TrendingUp className="h-4 w-4" />
+                      <span className="text-sm font-medium">Trong ví</span>
+                    </div>
+                    <p className="text-xl font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()} CLC
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                      <Users className="h-4 w-4" />
+                      <span className="text-sm font-medium">Tổng users</span>
+                    </div>
+                    <p className="text-xl font-bold mt-1">{allUsers.length}</p>
+                  </div>
+                </div>
+
+                {/* Users Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium">User</th>
+                        <th className="text-right p-3 font-medium">Chờ duyệt</th>
+                        <th className="text-right p-3 font-medium">Đã duyệt</th>
+                        <th className="text-right p-3 font-medium">Trong ví</th>
+                        <th className="text-center p-3 font-medium">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers
+                        .filter(u => 
+                          !searchQuery || 
+                          u.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((u) => (
+                          <tr key={u.id} className="border-b hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={u.avatar_url || undefined} />
+                                  <AvatarFallback className="text-xs">
+                                    {u.display_name?.charAt(0) || '?'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium truncate max-w-[150px]">
+                                    {u.display_name || 'Người dùng'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(u.created_at), 'dd/MM/yyyy')}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 text-right">
+                              <span className={u.pending_reward > 0 ? "text-yellow-600 dark:text-yellow-400 font-medium" : "text-muted-foreground"}>
+                                {u.pending_reward.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              <span className={u.approved_reward > 0 ? "text-green-600 dark:text-green-400 font-medium" : "text-muted-foreground"}>
+                                {u.approved_reward.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              <span className={u.camly_balance > 0 ? "text-blue-600 dark:text-blue-400 font-medium" : "text-muted-foreground"}>
+                                {u.camly_balance.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center justify-center gap-1">
+                                {u.is_verified && (
+                                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Verified
+                                  </Badge>
+                                )}
+                                {u.wallet_connected && (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                    <Wallet className="h-3 w-3 mr-1" />
+                                    Ví
+                                  </Badge>
+                                )}
+                                {!u.is_verified && !u.wallet_connected && (
+                                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                                    Mới
+                                  </Badge>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
