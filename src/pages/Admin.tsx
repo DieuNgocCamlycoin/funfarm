@@ -467,18 +467,22 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="rewards" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
-              Duyệt thưởng ({pendingUsers.length})
+              <span className="hidden sm:inline">Duyệt thưởng</span> ({pendingUsers.length})
+            </TabsTrigger>
+            <TabsTrigger value="claimed" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              <span className="hidden sm:inline">Đã Claim</span> ({allUsers.filter(u => u.camly_balance > 0).length})
             </TabsTrigger>
             <TabsTrigger value="all-users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Tất cả Users ({allUsers.length})
+              <span className="hidden sm:inline">Tất cả</span> ({allUsers.length})
             </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-2">
               <Ban className="h-4 w-4" />
-              Bị ban ({bannedUsers.length})
+              <span className="hidden sm:inline">Bị ban</span> ({bannedUsers.length})
             </TabsTrigger>
           </TabsList>
 
@@ -660,6 +664,139 @@ const Admin = () => {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Claimed Users Tab */}
+          <TabsContent value="claimed" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-green-500" />
+                  Tài khoản đã CLAIM CAMLY về ví thật
+                </CardTitle>
+                <CardDescription>
+                  Danh sách {allUsers.filter(u => u.camly_balance > 0).length} tài khoản đã claim thành công
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Users className="h-4 w-4" />
+                      <span className="text-xs font-medium">Tổng tài khoản claim</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).length}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                      <img src={camlyCoinLogo} alt="CAMLY" className="h-4 w-4" />
+                      <span className="text-xs font-medium">Tổng CAMLY đã claim</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đang chờ claim thêm</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                      <TrendingUp className="h-4 w-4" />
+                      <span className="text-xs font-medium">Tổng cộng (claim + chờ)</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance + u.pending_reward, 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Claimed Users Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium">#</th>
+                        <th className="text-left p-3 font-medium">Tên</th>
+                        <th className="text-left p-3 font-medium">Wallet Address</th>
+                        <th className="text-right p-3 font-medium">Đã Claim (CAMLY)</th>
+                        <th className="text-right p-3 font-medium">Đang chờ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers
+                        .filter(u => u.camly_balance > 0)
+                        .sort((a, b) => b.camly_balance - a.camly_balance)
+                        .map((u, index) => (
+                          <tr key={u.id} className="border-b hover:bg-muted/30 transition-colors">
+                            <td className="p-3 text-muted-foreground">{index + 1}</td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-7 w-7">
+                                  <AvatarImage src={u.avatar_url || undefined} />
+                                  <AvatarFallback className="text-xs">
+                                    {u.display_name?.charAt(0) || '?'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium truncate max-w-[150px]">
+                                  {u.display_name || '(không tên)'}
+                                </span>
+                                {u.is_good_heart && (
+                                  <Heart className="h-3 w-3 text-pink-500 fill-pink-500" />
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              {u.wallet_address ? (
+                                <code className="text-xs bg-muted px-2 py-1 rounded">
+                                  {u.wallet_address.slice(0, 6)}...{u.wallet_address.slice(-4)}
+                                </code>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
+                              <span className="text-green-600 dark:text-green-400 font-bold">
+                                {u.camly_balance.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              {u.pending_reward > 0 ? (
+                                <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+                                  {u.pending_reward.toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">0</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot className="bg-muted/50 font-bold">
+                      <tr>
+                        <td colSpan={3} className="p-3 text-right">
+                          Tổng cộng ({allUsers.filter(u => u.camly_balance > 0).length} tài khoản):
+                        </td>
+                        <td className="p-3 text-right text-green-600 dark:text-green-400">
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right text-yellow-600 dark:text-yellow-400">
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
