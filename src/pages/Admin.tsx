@@ -53,8 +53,17 @@ interface AllUserReward {
   approved_reward: number;
   camly_balance: number;
   wallet_connected: boolean;
+  wallet_address: string | null;
   is_verified: boolean;
+  email_verified: boolean;
+  avatar_verified: boolean;
+  violation_level: number;
+  last_violation_at: string | null;
+  is_good_heart: boolean;
   created_at: string;
+  is_banned?: boolean;
+  ban_reason?: string;
+  ban_expires_at?: string;
 }
 
 interface RewardAction {
@@ -169,14 +178,32 @@ const Admin = () => {
   };
 
   const fetchAllUsers = async () => {
-    const { data, error } = await supabase
+    // Fetch all users with full details
+    const { data: usersData, error } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, is_verified, created_at')
-      .order('approved_reward', { ascending: false });
+      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, wallet_address, is_verified, email_verified, avatar_verified, violation_level, last_violation_at, is_good_heart, created_at')
+      .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setAllUsers(data as AllUserReward[]);
-    }
+    if (error || !usersData) return;
+
+    // Fetch all active bans
+    const { data: bansData } = await supabase
+      .from('reward_bans')
+      .select('user_id, reason, expires_at')
+      .gt('expires_at', new Date().toISOString());
+
+    // Merge ban info into users
+    const usersWithBans = usersData.map(user => {
+      const ban = bansData?.find(b => b.user_id === user.id);
+      return {
+        ...user,
+        is_banned: !!ban,
+        ban_reason: ban?.reason || null,
+        ban_expires_at: ban?.expires_at || null
+      };
+    });
+
+    setAllUsers(usersWithBans as AllUserReward[]);
   };
 
   const fetchBannedUsers = async () => {
@@ -664,16 +691,25 @@ const Admin = () => {
                         u.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
                       );
                       
-                      // Create CSV content
-                      const headers = ['Tên', 'Ngày tạo', 'Chờ duyệt (CLC)', 'Đã duyệt (CLC)', 'Trong ví (CLC)', 'Verified', 'Kết nối ví'];
+                      // Create CSV content with all data
+                      const headers = ['Tên', 'Email Verified', 'Avatar Verified', 'Verified', 'Ngày tạo', 'Chờ duyệt (CLC)', 'Đã duyệt (CLC)', 'Trong ví (CLC)', 'Địa chỉ ví', 'Kết nối ví', 'Vi phạm', 'Ngày vi phạm', 'Good Heart', 'Bị ban', 'Lý do ban', 'Hết ban'];
                       const rows = filteredUsers.map(u => [
                         u.display_name || 'Người dùng',
-                        format(new Date(u.created_at), 'dd/MM/yyyy'),
+                        u.email_verified ? 'Có' : 'Không',
+                        u.avatar_verified ? 'Có' : 'Không',
+                        u.is_verified ? 'Có' : 'Không',
+                        format(new Date(u.created_at), 'dd/MM/yyyy HH:mm'),
                         u.pending_reward,
                         u.approved_reward,
                         u.camly_balance,
-                        u.is_verified ? 'Có' : 'Không',
-                        u.wallet_connected ? 'Có' : 'Không'
+                        u.wallet_address || '',
+                        u.wallet_connected ? 'Có' : 'Không',
+                        u.violation_level,
+                        u.last_violation_at ? format(new Date(u.last_violation_at), 'dd/MM/yyyy') : '',
+                        u.is_good_heart ? 'Có' : 'Không',
+                        u.is_banned ? 'Có' : 'Không',
+                        u.ban_reason || '',
+                        u.ban_expires_at ? format(new Date(u.ban_expires_at), 'dd/MM/yyyy') : ''
                       ]);
                       
                       const csvContent = [
@@ -698,40 +734,54 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
                   <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                     <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                       <Wallet className="h-4 w-4" />
-                      <span className="text-sm font-medium">Tổng đã duyệt</span>
+                      <span className="text-xs font-medium">Tổng đã duyệt</span>
                     </div>
-                    <p className="text-xl font-bold mt-1">
-                      {allUsers.reduce((sum, u) => sum + u.approved_reward, 0).toLocaleString()} CLC
+                    <p className="text-lg font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.approved_reward, 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
                     <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
                       <Clock className="h-4 w-4" />
-                      <span className="text-sm font-medium">Tổng chờ duyệt</span>
+                      <span className="text-xs font-medium">Chờ duyệt</span>
                     </div>
-                    <p className="text-xl font-bold mt-1">
-                      {allUsers.reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()} CLC
+                    <p className="text-lg font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
                     <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                       <TrendingUp className="h-4 w-4" />
-                      <span className="text-sm font-medium">Trong ví</span>
+                      <span className="text-xs font-medium">Trong ví</span>
                     </div>
-                    <p className="text-xl font-bold mt-1">
-                      {allUsers.reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()} CLC
+                    <p className="text-lg font-bold mt-1">
+                      {allUsers.reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
                     <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
                       <Users className="h-4 w-4" />
-                      <span className="text-sm font-medium">Tổng users</span>
+                      <span className="text-xs font-medium">Tổng users</span>
                     </div>
-                    <p className="text-xl font-bold mt-1">{allUsers.length}</p>
+                    <p className="text-lg font-bold mt-1">{allUsers.length}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                      <Ban className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đang bị ban</span>
+                    </div>
+                    <p className="text-lg font-bold mt-1">{allUsers.filter(u => u.is_banned).length}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đã xác minh</span>
+                    </div>
+                    <p className="text-lg font-bold mt-1">{allUsers.filter(u => u.is_verified).length}</p>
                   </div>
                 </div>
 
@@ -744,6 +794,8 @@ const Admin = () => {
                         <th className="text-right p-3 font-medium">Chờ duyệt</th>
                         <th className="text-right p-3 font-medium">Đã duyệt</th>
                         <th className="text-right p-3 font-medium">Trong ví</th>
+                        <th className="text-center p-3 font-medium">Xác minh</th>
+                        <th className="text-center p-3 font-medium">Vi phạm</th>
                         <th className="text-center p-3 font-medium">Trạng thái</th>
                       </tr>
                     </thead>
@@ -751,25 +803,36 @@ const Admin = () => {
                       {allUsers
                         .filter(u => 
                           !searchQuery || 
-                          u.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+                          u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          u.wallet_address?.toLowerCase().includes(searchQuery.toLowerCase())
                         )
                         .map((u) => (
-                          <tr key={u.id} className="border-b hover:bg-muted/30 transition-colors">
+                          <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                             <td className="p-3">
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={u.avatar_url || undefined} />
-                                  <AvatarFallback className="text-xs">
-                                    {u.display_name?.charAt(0) || '?'}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <div className="relative">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={u.avatar_url || undefined} />
+                                    <AvatarFallback className="text-xs">
+                                      {u.display_name?.charAt(0) || '?'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {u.is_good_heart && (
+                                    <Heart className="h-3 w-3 text-pink-500 absolute -top-1 -right-1 fill-pink-500" />
+                                  )}
+                                </div>
                                 <div>
-                                  <p className="font-medium truncate max-w-[150px]">
+                                  <p className="font-medium truncate max-w-[120px]">
                                     {u.display_name || 'Người dùng'}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
                                     {format(new Date(u.created_at), 'dd/MM/yyyy')}
                                   </p>
+                                  {u.wallet_address && (
+                                    <p className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                      {u.wallet_address.slice(0, 6)}...{u.wallet_address.slice(-4)}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -789,23 +852,74 @@ const Admin = () => {
                               </span>
                             </td>
                             <td className="p-3">
-                              <div className="flex items-center justify-center gap-1">
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex gap-1">
+                                  <span className={`text-xs ${u.email_verified ? 'text-green-600' : 'text-muted-foreground'}`} title="Email">
+                                    ✉️{u.email_verified ? '✓' : '✗'}
+                                  </span>
+                                  <span className={`text-xs ${u.avatar_verified ? 'text-green-600' : 'text-muted-foreground'}`} title="Avatar">
+                                    🖼️{u.avatar_verified ? '✓' : '✗'}
+                                  </span>
+                                </div>
                                 {u.is_verified && (
                                   <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Verified
+                                    <CheckCircle className="h-3 w-3" />
                                   </Badge>
                                 )}
-                                {u.wallet_connected && (
-                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                    <Wallet className="h-3 w-3 mr-1" />
-                                    Ví
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              {u.violation_level > 0 ? (
+                                <div className="flex flex-col items-center">
+                                  <Badge variant="destructive" className="text-xs">
+                                    <AlertTriangle className="h-3 w-3 mr-1" />
+                                    Lv.{u.violation_level}
                                   </Badge>
-                                )}
-                                {!u.is_verified && !u.wallet_connected && (
-                                  <Badge variant="outline" className="text-xs text-muted-foreground">
-                                    Mới
-                                  </Badge>
+                                  {u.last_violation_at && (
+                                    <span className="text-xs text-muted-foreground mt-1">
+                                      {format(new Date(u.last_violation_at), 'dd/MM')}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-green-600">Sạch</span>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex flex-col items-center gap-1">
+                                {u.is_banned ? (
+                                  <div className="text-center">
+                                    <Badge variant="destructive" className="text-xs">
+                                      <Ban className="h-3 w-3 mr-1" />
+                                      BAN
+                                    </Badge>
+                                    <p className="text-xs text-muted-foreground mt-1 max-w-[80px] truncate" title={u.ban_reason || ''}>
+                                      {u.ban_reason}
+                                    </p>
+                                    {u.ban_expires_at && (
+                                      <p className="text-xs text-muted-foreground">
+                                        → {format(new Date(u.ban_expires_at), 'dd/MM/yy')}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-1 flex-wrap justify-center">
+                                    {u.wallet_connected && (
+                                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                        <Wallet className="h-3 w-3" />
+                                      </Badge>
+                                    )}
+                                    {u.is_good_heart && (
+                                      <Badge variant="secondary" className="text-xs bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                                        <Heart className="h-3 w-3" />
+                                      </Badge>
+                                    )}
+                                    {!u.wallet_connected && !u.is_good_heart && (
+                                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                                        Mới
+                                      </Badge>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </td>
