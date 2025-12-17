@@ -457,11 +457,13 @@ export type Database = {
         Row: {
           approved_reward: number
           avatar_url: string | null
+          avatar_verified: boolean
           bio: string | null
           camly_balance: number
           cover_url: string | null
           created_at: string
           display_name: string | null
+          email_verified: boolean
           good_heart_since: string | null
           id: string
           is_good_heart: boolean
@@ -477,19 +479,24 @@ export type Database = {
           referral_code: string | null
           reputation_score: number
           updated_at: string
+          verification_status: string
+          verified_at: string | null
           violation_level: number
           wallet_address: string
+          wallet_bonus_claimed: boolean
           wallet_connected: boolean
           welcome_bonus_claimed: boolean
         }
         Insert: {
           approved_reward?: number
           avatar_url?: string | null
+          avatar_verified?: boolean
           bio?: string | null
           camly_balance?: number
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          email_verified?: boolean
           good_heart_since?: string | null
           id: string
           is_good_heart?: boolean
@@ -505,19 +512,24 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
           violation_level?: number
           wallet_address: string
+          wallet_bonus_claimed?: boolean
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
         }
         Update: {
           approved_reward?: number
           avatar_url?: string | null
+          avatar_verified?: boolean
           bio?: string | null
           camly_balance?: number
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          email_verified?: boolean
           good_heart_since?: string | null
           id?: string
           is_good_heart?: boolean
@@ -533,8 +545,11 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
           violation_level?: number
           wallet_address?: string
+          wallet_bonus_claimed?: boolean
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
         }

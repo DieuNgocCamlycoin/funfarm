@@ -14,6 +14,7 @@ import ImageGallery, { imagesToMediaItems } from "./ImageGallery";
 import ImageGrid from "./ImageGrid";
 import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { ReportModal } from "@/components/ReportModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,6 @@ import {
   MapPin, 
   ShoppingCart, 
   MoreHorizontal,
-  CheckCircle2,
   Radio,
   Leaf,
   Clock,
@@ -395,7 +395,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
             <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               <h3 className="font-display font-semibold text-foreground text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">{post.author.name}</h3>
               {post.author.verified && (
-                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary fill-primary/20 flex-shrink-0" />
+                <VerifiedBadge size="sm" />
               )}
               {post.author.isGoodHeart && (
                 <GoodHeartBadge size="sm" />
