@@ -531,22 +531,26 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="rewards" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
               <Gift className="h-4 w-4" />
-              <span className="hidden sm:inline">Duyệt thưởng</span> ({pendingUsers.length})
+              <span className="hidden sm:inline">Duyệt</span> ({pendingUsers.length})
             </TabsTrigger>
-            <TabsTrigger value="claimed" className="flex items-center gap-2">
+            <TabsTrigger value="approved" className="flex items-center gap-2 text-xs sm:text-sm">
+              <CheckCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Đã Duyệt</span> ({allUsers.filter(u => (u.total_approved_history || 0) > 0).length})
+            </TabsTrigger>
+            <TabsTrigger value="claimed" className="flex items-center gap-2 text-xs sm:text-sm">
               <Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Đã Duyệt</span> ({allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length})
+              <span className="hidden sm:inline">Đã Claim</span> ({allUsers.filter(u => u.camly_balance > 0).length})
             </TabsTrigger>
-            <TabsTrigger value="all-users" className="flex items-center gap-2">
+            <TabsTrigger value="all-users" className="flex items-center gap-2 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Tất cả</span> ({allUsers.length})
             </TabsTrigger>
-            <TabsTrigger value="bans" className="flex items-center gap-2">
+            <TabsTrigger value="bans" className="flex items-center gap-2 text-xs sm:text-sm">
               <Ban className="h-4 w-4" />
-              <span className="hidden sm:inline">Bị ban</span> ({bannedUsers.length})
+              <span className="hidden sm:inline">Ban</span> ({bannedUsers.length})
             </TabsTrigger>
           </TabsList>
 
@@ -732,46 +736,37 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          {/* Claimed Users Tab */}
-          <TabsContent value="claimed" className="mt-4">
+          {/* Approved Users Tab */}
+          <TabsContent value="approved" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-green-500" />
+                  <CheckCircle className="h-5 w-5 text-blue-500" />
                   Tài khoản đã được DUYỆT thưởng CAMLY
                 </CardTitle>
                 <CardDescription>
-                  Danh sách {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length} tài khoản đã được duyệt thưởng
+                  Danh sách {allUsers.filter(u => (u.total_approved_history || 0) > 0).length} tài khoản đã được admin duyệt thưởng
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                       <Users className="h-4 w-4" />
                       <span className="text-xs font-medium">Tài khoản đã duyệt</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
-                      {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length}
+                      {allUsers.filter(u => (u.total_approved_history || 0) > 0).length}
                     </p>
                   </div>
-                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                       <CheckCircle className="h-4 w-4" />
                       <span className="text-xs font-medium">Tổng đã duyệt</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
                       {allUsers.reduce((sum, u) => sum + (u.total_approved_history || 0), 0).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                      <img src={camlyCoinLogo} alt="CAMLY" className="h-4 w-4" />
-                      <span className="text-xs font-medium">Đang trong ví</span>
-                    </div>
-                    <p className="text-2xl font-bold mt-1">
-                      {allUsers.reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
@@ -783,13 +778,159 @@ const Admin = () => {
                       {allUsers.reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
                     </p>
                   </div>
+                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                      <Ban className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đã duyệt (bị ban)</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => (u.total_approved_history || 0) > 0 && u.is_banned).length}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Approved Users Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-2 font-medium">#</th>
+                        <th className="text-left p-2 font-medium">Tên</th>
+                        <th className="text-center p-2 font-medium">Loại</th>
+                        <th className="text-right p-2 font-medium">Đã Duyệt</th>
+                        <th className="text-right p-2 font-medium">Chờ</th>
+                        <th className="text-center p-2 font-medium">Bài</th>
+                        <th className="text-center p-2 font-medium">BL</th>
+                        <th className="text-center p-2 font-medium">Likes</th>
+                        <th className="text-center p-2 font-medium">Shares</th>
+                        <th className="text-center p-2 font-medium">TT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers
+                        .filter(u => (u.total_approved_history || 0) > 0)
+                        .sort((a, b) => (b.total_approved_history || 0) - (a.total_approved_history || 0))
+                        .map((u, index) => (
+                          <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                            <td className="p-2 text-muted-foreground">{index + 1}</td>
+                            <td className="p-2">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={u.avatar_url || undefined} />
+                                  <AvatarFallback className="text-xs">{u.display_name?.charAt(0) || '?'}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium truncate max-w-[100px] text-xs">{u.display_name || '(không tên)'}</span>
+                                {u.is_good_heart && <Heart className="h-3 w-3 text-pink-500 fill-pink-500" />}
+                              </div>
+                            </td>
+                            <td className="p-2 text-center">
+                              <span className="text-xs">
+                                {u.profile_type === 'farmer' && '🌾'}{u.profile_type === 'fisher' && '🐟'}{u.profile_type === 'eater' && '🍽️'}
+                                {u.profile_type === 'restaurant' && '🏪'}{u.profile_type === 'distributor' && '🚚'}{u.profile_type === 'shipper' && '📦'}
+                              </span>
+                            </td>
+                            <td className="p-2 text-right">
+                              <span className="text-blue-600 dark:text-blue-400 font-bold">{(u.total_approved_history || 0).toLocaleString()}</span>
+                            </td>
+                            <td className="p-2 text-right">
+                              {u.pending_reward > 0 ? (
+                                <span className="text-yellow-600 dark:text-yellow-400 font-medium">{u.pending_reward.toLocaleString()}</span>
+                              ) : <span className="text-muted-foreground">0</span>}
+                            </td>
+                            <td className="p-2 text-center text-xs">{u.posts_count || 0}</td>
+                            <td className="p-2 text-center text-xs">{u.comments_count || 0}</td>
+                            <td className="p-2 text-center text-xs text-blue-600">{u.likes_received || 0}</td>
+                            <td className="p-2 text-center text-xs text-purple-600">{u.shares_received || 0}</td>
+                            <td className="p-2 text-center">
+                              {u.is_banned ? <Badge variant="destructive" className="text-xs">BAN</Badge> : u.is_verified ? <CheckCircle className="h-4 w-4 text-green-500 mx-auto" /> : <span className="text-muted-foreground text-xs">—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot className="bg-muted/50 font-bold">
+                      <tr>
+                        <td colSpan={3} className="p-2 text-right text-xs">
+                          Tổng ({allUsers.filter(u => (u.total_approved_history || 0) > 0).length} TK):
+                        </td>
+                        <td className="p-2 text-right text-blue-600 dark:text-blue-400">
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0).reduce((sum, u) => sum + (u.total_approved_history || 0), 0).toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right text-yellow-600 dark:text-yellow-400">
+                          {allUsers.filter(u => (u.total_approved_history || 0) > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                        </td>
+                        <td className="p-2 text-center text-xs">{allUsers.filter(u => (u.total_approved_history || 0) > 0).reduce((sum, u) => sum + (u.posts_count || 0), 0)}</td>
+                        <td className="p-2 text-center text-xs">{allUsers.filter(u => (u.total_approved_history || 0) > 0).reduce((sum, u) => sum + (u.comments_count || 0), 0)}</td>
+                        <td className="p-2 text-center text-xs text-blue-600">{allUsers.filter(u => (u.total_approved_history || 0) > 0).reduce((sum, u) => sum + (u.likes_received || 0), 0)}</td>
+                        <td className="p-2 text-center text-xs text-purple-600">{allUsers.filter(u => (u.total_approved_history || 0) > 0).reduce((sum, u) => sum + (u.shares_received || 0), 0)}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Claimed to Wallet Tab */}
+          <TabsContent value="claimed" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-green-500" />
+                  Tài khoản đã CLAIM CAMLY về ví thật
+                </CardTitle>
+                <CardDescription>
+                  Danh sách {allUsers.filter(u => u.camly_balance > 0).length} tài khoản đã rút CAMLY về ví blockchain (bao gồm cả tài khoản bị ban)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <Users className="h-4 w-4" />
+                      <span className="text-xs font-medium">Tài khoản đã claim</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).length}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <img src={camlyCoinLogo} alt="CAMLY" className="h-4 w-4" />
+                      <span className="text-xs font-medium">Tổng đã Claim về ví</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đang chờ duyệt</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                      <Ban className="h-4 w-4" />
+                      <span className="text-xs font-medium">Đã claim (bị ban)</span>
+                    </div>
+                    <p className="text-2xl font-bold mt-1">
+                      {allUsers.filter(u => u.camly_balance > 0 && u.is_banned).length}
+                    </p>
+                  </div>
                   <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
                     <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
                       <TrendingUp className="h-4 w-4" />
-                      <span className="text-xs font-medium">Tổng cộng</span>
+                      <span className="text-xs font-medium">Avg claim/user</span>
                     </div>
                     <p className="text-2xl font-bold mt-1">
-                      {allUsers.reduce((sum, u) => sum + (u.total_approved_history || 0) + u.camly_balance + u.pending_reward, 0).toLocaleString()}
+                      {allUsers.filter(u => u.camly_balance > 0).length > 0 
+                        ? Math.round(allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0) / allUsers.filter(u => u.camly_balance > 0).length).toLocaleString()
+                        : 0}
                     </p>
                   </div>
                 </div>
@@ -802,10 +943,9 @@ const Admin = () => {
                         <th className="text-left p-2 font-medium">#</th>
                         <th className="text-left p-2 font-medium">Tên</th>
                         <th className="text-center p-2 font-medium">Loại</th>
-                        <th className="text-left p-2 font-medium">Wallet</th>
-                        <th className="text-right p-2 font-medium">Đã Duyệt</th>
-                        <th className="text-right p-2 font-medium">Trong Ví</th>
-                        <th className="text-right p-2 font-medium">Chờ</th>
+                        <th className="text-left p-2 font-medium">Wallet Address</th>
+                        <th className="text-right p-2 font-medium">Đã Claim về ví</th>
+                        <th className="text-right p-2 font-medium">Chờ duyệt</th>
                         <th className="text-center p-2 font-medium">Bài</th>
                         <th className="text-center p-2 font-medium">BL</th>
                         <th className="text-center p-2 font-medium">Likes</th>
@@ -815,8 +955,8 @@ const Admin = () => {
                     </thead>
                     <tbody>
                       {allUsers
-                        .filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0)
-                        .sort((a, b) => ((b.total_approved_history || 0) + b.camly_balance) - ((a.total_approved_history || 0) + a.camly_balance))
+                        .filter(u => u.camly_balance > 0)
+                        .sort((a, b) => b.camly_balance - a.camly_balance)
                         .map((u, index) => (
                           <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                             <td className="p-2 text-muted-foreground">{index + 1}</td>
@@ -824,68 +964,41 @@ const Admin = () => {
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage src={u.avatar_url || undefined} />
-                                  <AvatarFallback className="text-xs">
-                                    {u.display_name?.charAt(0) || '?'}
-                                  </AvatarFallback>
+                                  <AvatarFallback className="text-xs">{u.display_name?.charAt(0) || '?'}</AvatarFallback>
                                 </Avatar>
-                                <span className="font-medium truncate max-w-[100px] text-xs">
-                                  {u.display_name || '(không tên)'}
-                                </span>
-                                {u.is_good_heart && (
-                                  <Heart className="h-3 w-3 text-pink-500 fill-pink-500" />
-                                )}
+                                <span className="font-medium truncate max-w-[100px] text-xs">{u.display_name || '(không tên)'}</span>
+                                {u.is_good_heart && <Heart className="h-3 w-3 text-pink-500 fill-pink-500" />}
                               </div>
                             </td>
                             <td className="p-2 text-center">
                               <span className="text-xs">
-                                {u.profile_type === 'farmer' && '🌾'}
-                                {u.profile_type === 'fisher' && '🐟'}
-                                {u.profile_type === 'eater' && '🍽️'}
-                                {u.profile_type === 'restaurant' && '🏪'}
-                                {u.profile_type === 'distributor' && '🚚'}
-                                {u.profile_type === 'shipper' && '📦'}
+                                {u.profile_type === 'farmer' && '🌾'}{u.profile_type === 'fisher' && '🐟'}{u.profile_type === 'eater' && '🍽️'}
+                                {u.profile_type === 'restaurant' && '🏪'}{u.profile_type === 'distributor' && '🚚'}{u.profile_type === 'shipper' && '📦'}
                               </span>
                             </td>
                             <td className="p-2">
                               {u.wallet_address ? (
-                                <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                                  {u.wallet_address.slice(0, 4)}...{u.wallet_address.slice(-4)}
+                                <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono">
+                                  {u.wallet_address.slice(0, 6)}...{u.wallet_address.slice(-4)}
                                 </code>
                               ) : (
                                 <span className="text-muted-foreground text-xs">—</span>
                               )}
                             </td>
                             <td className="p-2 text-right">
-                              <span className="text-blue-600 dark:text-blue-400 font-bold">
-                                {(u.total_approved_history || 0).toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="p-2 text-right">
-                              <span className="text-green-600 dark:text-green-400 font-bold">
-                                {u.camly_balance.toLocaleString()}
-                              </span>
+                              <span className="text-green-600 dark:text-green-400 font-bold">{u.camly_balance.toLocaleString()}</span>
                             </td>
                             <td className="p-2 text-right">
                               {u.pending_reward > 0 ? (
-                                <span className="text-yellow-600 dark:text-yellow-400 font-medium">
-                                  {u.pending_reward.toLocaleString()}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">0</span>
-                              )}
+                                <span className="text-yellow-600 dark:text-yellow-400 font-medium">{u.pending_reward.toLocaleString()}</span>
+                              ) : <span className="text-muted-foreground">0</span>}
                             </td>
                             <td className="p-2 text-center text-xs">{u.posts_count || 0}</td>
                             <td className="p-2 text-center text-xs">{u.comments_count || 0}</td>
                             <td className="p-2 text-center text-xs text-blue-600">{u.likes_received || 0}</td>
                             <td className="p-2 text-center text-xs text-purple-600">{u.shares_received || 0}</td>
                             <td className="p-2 text-center">
-                              {u.is_banned ? (
-                                <Badge variant="destructive" className="text-xs">BAN</Badge>
-                              ) : u.is_verified ? (
-                                <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                              ) : (
-                                <span className="text-muted-foreground text-xs">—</span>
-                              )}
+                              {u.is_banned ? <Badge variant="destructive" className="text-xs">BAN</Badge> : u.is_verified ? <CheckCircle className="h-4 w-4 text-green-500 mx-auto" /> : <span className="text-muted-foreground text-xs">—</span>}
                             </td>
                           </tr>
                         ))}
@@ -893,29 +1006,18 @@ const Admin = () => {
                     <tfoot className="bg-muted/50 font-bold">
                       <tr>
                         <td colSpan={4} className="p-2 text-right text-xs">
-                          Tổng ({allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).length} TK):
-                        </td>
-                        <td className="p-2 text-right text-blue-600 dark:text-blue-400">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.total_approved_history || 0), 0).toLocaleString()}
+                          Tổng ({allUsers.filter(u => u.camly_balance > 0).length} TK):
                         </td>
                         <td className="p-2 text-right text-green-600 dark:text-green-400">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.camly_balance, 0).toLocaleString()}
                         </td>
                         <td className="p-2 text-right text-yellow-600 dark:text-yellow-400">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
+                          {allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + u.pending_reward, 0).toLocaleString()}
                         </td>
-                        <td className="p-2 text-center text-xs">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.posts_count || 0), 0)}
-                        </td>
-                        <td className="p-2 text-center text-xs">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.comments_count || 0), 0)}
-                        </td>
-                        <td className="p-2 text-center text-xs text-blue-600">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.likes_received || 0), 0)}
-                        </td>
-                        <td className="p-2 text-center text-xs text-purple-600">
-                          {allUsers.filter(u => (u.total_approved_history || 0) > 0 || u.camly_balance > 0).reduce((sum, u) => sum + (u.shares_received || 0), 0)}
-                        </td>
+                        <td className="p-2 text-center text-xs">{allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.posts_count || 0), 0)}</td>
+                        <td className="p-2 text-center text-xs">{allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.comments_count || 0), 0)}</td>
+                        <td className="p-2 text-center text-xs text-blue-600">{allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.likes_received || 0), 0)}</td>
+                        <td className="p-2 text-center text-xs text-purple-600">{allUsers.filter(u => u.camly_balance > 0).reduce((sum, u) => sum + (u.shares_received || 0), 0)}</td>
                         <td></td>
                       </tr>
                     </tfoot>
