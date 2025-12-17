@@ -1090,15 +1090,54 @@ const Admin = () => {
                 <CardTitle className="flex items-center gap-2">
                   <Link className="h-5 w-5 text-cyan-500" />
                   Lịch sử Claim từ Blockchain (BscScan)
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => fetchBlockchainData()}
-                    disabled={blockchainLoading}
-                    className="ml-auto"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${blockchainLoading ? 'animate-spin' : ''}`} />
-                  </Button>
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (blockchainData.length === 0) {
+                          toast.error('Không có dữ liệu để export');
+                          return;
+                        }
+                        const headers = ['#', 'Wallet Address', 'Tên trong app', 'Tổng đã Claim', 'Số lần claim', 'Claim gần nhất'];
+                        const rows = blockchainData.map((claim, index) => [
+                          index + 1,
+                          claim.walletAddress,
+                          claim.userName || 'Không xác định',
+                          claim.totalClaimed,
+                          claim.transactions,
+                          claim.lastClaimAt ? format(new Date(claim.lastClaimAt), 'dd/MM/yyyy HH:mm') : ''
+                        ]);
+                        
+                        const csvContent = [
+                          headers.join(','),
+                          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                        ].join('\n');
+                        
+                        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `blockchain_claims_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                        toast.success(`Đã export ${blockchainData.length} ví!`);
+                      }}
+                      disabled={blockchainLoading || blockchainData.length === 0}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export CSV
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fetchBlockchainData()}
+                      disabled={blockchainLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${blockchainLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                 </CardTitle>
                 <CardDescription>
                   Dữ liệu thực từ BscScan API - Tổng giao dịch chuyển CAMLY từ ví quỹ
