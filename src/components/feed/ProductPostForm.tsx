@@ -467,8 +467,8 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex gap-3 pt-4 border-t">
+      {/* Action buttons - sticky on mobile */}
+      <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-card/95 backdrop-blur-sm pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:static sm:bg-transparent sm:backdrop-blur-none">
         <Button
           variant="outline"
           onClick={onCancel}
