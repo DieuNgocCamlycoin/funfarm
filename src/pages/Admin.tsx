@@ -31,7 +31,8 @@ import {
   Eye,
   Wallet,
   TrendingUp,
-  Clock
+  Clock,
+  Download
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
@@ -647,13 +648,52 @@ const Admin = () => {
                 <CardDescription>
                   Danh sách tất cả users với số thưởng đã claim và đang chờ claim
                 </CardDescription>
-                <div className="mt-4">
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
                   <Input
                     placeholder="Tìm kiếm theo tên..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="max-w-sm"
                   />
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      const filteredUsers = allUsers.filter(u => 
+                        !searchQuery || 
+                        u.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+                      );
+                      
+                      // Create CSV content
+                      const headers = ['Tên', 'Ngày tạo', 'Chờ duyệt (CLC)', 'Đã duyệt (CLC)', 'Trong ví (CLC)', 'Verified', 'Kết nối ví'];
+                      const rows = filteredUsers.map(u => [
+                        u.display_name || 'Người dùng',
+                        format(new Date(u.created_at), 'dd/MM/yyyy'),
+                        u.pending_reward,
+                        u.approved_reward,
+                        u.camly_balance,
+                        u.is_verified ? 'Có' : 'Không',
+                        u.wallet_connected ? 'Có' : 'Không'
+                      ]);
+                      
+                      const csvContent = [
+                        headers.join(','),
+                        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                      ].join('\n');
+                      
+                      // Download file
+                      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      link.href = URL.createObjectURL(blob);
+                      link.download = `fun-farm-users-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                      link.click();
+                      
+                      toast.success(`Đã xuất ${filteredUsers.length} users ra file CSV`);
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
