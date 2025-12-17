@@ -31,6 +31,8 @@ import {
   Eye,
   Wallet,
   TrendingUp,
+  Link,
+  RefreshCw,
   Clock,
   Download
 } from "lucide-react";
@@ -92,6 +94,14 @@ interface BannedUser {
   };
 }
 
+interface BlockchainClaimData {
+  walletAddress: string;
+  totalClaimed: number;
+  transactions: number;
+  lastClaimAt: string;
+  userName?: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -106,6 +116,9 @@ const Admin = () => {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [loadingActions, setLoadingActions] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [blockchainData, setBlockchainData] = useState<BlockchainClaimData[]>([]);
+  const [blockchainLoading, setBlockchainLoading] = useState(false);
+  const [blockchainTotalClaimed, setBlockchainTotalClaimed] = useState(0);
 
   // Check admin role
   useEffect(() => {
@@ -146,7 +159,46 @@ const Admin = () => {
     fetchPendingRewards();
     fetchBannedUsers();
     fetchAllUsers();
+    fetchBlockchainData();
   }, [isAdmin, selectedDate]);
+
+  const fetchBlockchainData = async () => {
+    setBlockchainLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-bscscan-history');
+      
+      if (error) {
+        console.error('Error fetching blockchain data:', error);
+        toast.error('Không thể lấy dữ liệu từ BscScan');
+        return;
+      }
+
+      if (data?.aggregated) {
+        // Map wallet addresses to user names
+        const walletToName: Record<string, string> = {};
+        allUsers.forEach(u => {
+          if (u.wallet_address) {
+            walletToName[u.wallet_address.toLowerCase()] = u.display_name || '(không tên)';
+          }
+        });
+
+        const claimData: BlockchainClaimData[] = Object.entries(data.aggregated).map(([wallet, info]: [string, any]) => ({
+          walletAddress: info.walletAddress || wallet,
+          totalClaimed: info.totalClaimed,
+          transactions: info.transactions,
+          lastClaimAt: info.lastClaimAt,
+          userName: walletToName[wallet.toLowerCase()] || undefined,
+        }));
+
+        setBlockchainData(claimData);
+        setBlockchainTotalClaimed(data.totalClaimed || claimData.reduce((sum, c) => sum + c.totalClaimed, 0));
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setBlockchainLoading(false);
+    }
+  };
 
   const fetchPendingRewards = async () => {
     const startOfDay = new Date(selectedDate);
@@ -531,7 +583,7 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
               <Gift className="h-4 w-4" />
               <span className="hidden sm:inline">Duyệt</span> ({pendingUsers.length})
@@ -543,6 +595,10 @@ const Admin = () => {
             <TabsTrigger value="claimed" className="flex items-center gap-2 text-xs sm:text-sm">
               <Wallet className="h-4 w-4" />
               <span className="hidden sm:inline">Đã Claim</span> ({allUsers.filter(u => u.camly_balance > 0).length})
+            </TabsTrigger>
+            <TabsTrigger value="blockchain" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Link className="h-4 w-4" />
+              <span className="hidden sm:inline">BSC</span> ({blockchainData.length})
             </TabsTrigger>
             <TabsTrigger value="all-users" className="flex items-center gap-2 text-xs sm:text-sm">
               <Users className="h-4 w-4" />
@@ -1023,6 +1079,154 @@ const Admin = () => {
                     </tfoot>
                   </table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Blockchain Claims Tab */}
+          <TabsContent value="blockchain" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link className="h-5 w-5 text-cyan-500" />
+                  Lịch sử Claim từ Blockchain (BscScan)
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => fetchBlockchainData()}
+                    disabled={blockchainLoading}
+                    className="ml-auto"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${blockchainLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </CardTitle>
+                <CardDescription>
+                  Dữ liệu thực từ BscScan API - Tổng giao dịch chuyển CAMLY từ ví quỹ
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {blockchainLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-2 text-muted-foreground">Đang tải dữ liệu từ BscScan...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                      <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
+                          <Wallet className="h-4 w-4" />
+                          <span className="text-xs font-medium">Ví đã nhận</span>
+                        </div>
+                        <p className="text-2xl font-bold mt-1">
+                          {blockchainData.length}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                          <img src={camlyCoinLogo} alt="CAMLY" className="h-4 w-4" />
+                          <span className="text-xs font-medium">Tổng CAMLY đã chuyển</span>
+                        </div>
+                        <p className="text-2xl font-bold mt-1">
+                          {blockchainTotalClaimed.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                        <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                          <FileText className="h-4 w-4" />
+                          <span className="text-xs font-medium">Tổng giao dịch</span>
+                        </div>
+                        <p className="text-2xl font-bold mt-1">
+                          {blockchainData.reduce((sum, c) => sum + c.transactions, 0)}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                        <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="text-xs font-medium">Avg/ví</span>
+                        </div>
+                        <p className="text-2xl font-bold mt-1">
+                          {blockchainData.length > 0 
+                            ? Math.round(blockchainTotalClaimed / blockchainData.length).toLocaleString()
+                            : 0}
+                        </p>
+                      </div>
+                    </div>
+
+                    {blockchainData.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Link className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>Không tìm thấy giao dịch nào từ blockchain</p>
+                        <p className="text-sm mt-1">Hãy đảm bảo API key BscScan đã được cấu hình</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left p-2 font-medium">#</th>
+                              <th className="text-left p-2 font-medium">Wallet Address</th>
+                              <th className="text-left p-2 font-medium">Tên (trong app)</th>
+                              <th className="text-right p-2 font-medium">Tổng đã Claim</th>
+                              <th className="text-center p-2 font-medium">Số lần</th>
+                              <th className="text-right p-2 font-medium">Claim gần nhất</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {blockchainData.map((claim, index) => (
+                              <tr key={claim.walletAddress} className="border-b hover:bg-muted/30 transition-colors">
+                                <td className="p-2 text-muted-foreground">{index + 1}</td>
+                                <td className="p-2">
+                                  <a 
+                                    href={`https://bscscan.com/address/${claim.walletAddress}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono text-xs text-cyan-600 hover:underline"
+                                  >
+                                    {claim.walletAddress.slice(0, 10)}...{claim.walletAddress.slice(-6)}
+                                  </a>
+                                </td>
+                                <td className="p-2">
+                                  {claim.userName ? (
+                                    <span className="font-medium text-xs">{claim.userName}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs italic">Không xác định</span>
+                                  )}
+                                </td>
+                                <td className="p-2 text-right">
+                                  <span className="text-green-600 dark:text-green-400 font-bold">
+                                    {claim.totalClaimed.toLocaleString()}
+                                  </span>
+                                </td>
+                                <td className="p-2 text-center">
+                                  <Badge variant="secondary">{claim.transactions}</Badge>
+                                </td>
+                                <td className="p-2 text-right text-xs text-muted-foreground">
+                                  {claim.lastClaimAt ? format(new Date(claim.lastClaimAt), 'dd/MM/yyyy HH:mm', { locale: vi }) : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-muted/50 font-bold">
+                            <tr>
+                              <td colSpan={3} className="p-2 text-right text-xs">
+                                Tổng ({blockchainData.length} ví):
+                              </td>
+                              <td className="p-2 text-right text-green-600 dark:text-green-400">
+                                {blockchainTotalClaimed.toLocaleString()}
+                              </td>
+                              <td className="p-2 text-center">
+                                {blockchainData.reduce((sum, c) => sum + c.transactions, 0)}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
