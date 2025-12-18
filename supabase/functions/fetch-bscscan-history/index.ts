@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CAMLY Token contract address on BSC
-const CAMLY_CONTRACT = "0x3a1311B8C404629E38f61D566cefEaEd8Da1c0C8";
+// CAMLY Token contract address on BSC (lowercase to avoid checksum issues)
+const CAMLY_CONTRACT = "0x3a1311b8c404629e38f61d566cefeaed8da1c0c8";
 // Wallet that sends CAMLY rewards
 const SENDER_WALLET = "0xBBa78598Be65520DD892C771Cf17B8D53aFfF68c";
 
