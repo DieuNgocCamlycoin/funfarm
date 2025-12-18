@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // Contract CAMLY và ví trả thưởng
-const CAMLY_CONTRACT = '0x3a1311b8c404629e38f61d566cefeaed8da1c0c8';
+const CAMLY_CONTRACT = '0x0910320181889fefde0bb1ca63962b0a8882e413';
 const SENDER_WALLET = '0xbba78598be65520dd892c771cf17b8d53afff68c';
 
 interface MoralisTransfer {
