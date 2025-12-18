@@ -13,6 +13,7 @@ interface MoralisTransfer {
   from_address: string;
   to_address: string;
   value: string;
+  value_decimal?: string; // Moralis có thể trả về field này
   block_number: string;
   block_timestamp: string;
   transaction_hash: string;
@@ -84,22 +85,29 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
       // Log first result to debug structure
       if (pageCount === 0 && results.length > 0) {
         console.log('First result sample:', JSON.stringify(results[0]));
+        console.log('Available keys:', Object.keys(results[0]));
       }
 
       // Filter chỉ các transfer FROM ví trả thưởng (claim thực sự)
       const claimTransfers = results
         .filter(t => t.from_address.toLowerCase() === SENDER_WALLET.toLowerCase())
         .map(t => {
-          // Log value để debug
-          if (transfers.length < 3) {
-            console.log(`Transfer value: ${t.value}, to: ${t.to_address}`);
+          // Moralis trả về value_decimal là số token thực tế (đã chia decimals)
+          // value là raw value nhưng với decimals của token (có thể 4, 6, 18...)
+          // Sử dụng value_decimal để lấy số CAMLY chính xác
+          const actualValue = t.value_decimal || t.value || '0';
+          
+          // Log chi tiết để debug
+          if (transfers.length < 5) {
+            console.log(`Transfer: value="${t.value}", value_decimal="${t.value_decimal}", using: ${actualValue}, to: ${t.to_address}`);
           }
+          
           return {
             blockNumber: parseInt(t.block_number),
             transactionHash: t.transaction_hash,
             from: t.from_address,
             to: t.to_address,
-            value: t.value || '0',
+            value: actualValue, // Số CAMLY thực tế
             timestamp: t.block_timestamp
           };
         });
@@ -139,7 +147,6 @@ serve(async (req) => {
 
     // Aggregate by wallet
     const walletMap: Record<string, WalletData> = {};
-    const decimals = 18; // CAMLY có 18 decimals
 
     for (const tx of transfers) {
       const receiver = tx.to.toLowerCase();
@@ -152,9 +159,10 @@ serve(async (req) => {
         };
       }
 
-      // Add to total (BigInt math)
-      const current = BigInt(walletMap[receiver].totalClaimed);
-      const adding = BigInt(tx.value);
+      // value_decimal từ Moralis đã là số CAMLY thực tế
+      // Cộng dồn trực tiếp (dùng number vì giá trị không quá lớn)
+      const current = parseFloat(walletMap[receiver].totalClaimed) || 0;
+      const adding = parseFloat(tx.value) || 0;
       walletMap[receiver].totalClaimed = (current + adding).toString();
       walletMap[receiver].transactions += 1;
 
@@ -166,17 +174,12 @@ serve(async (req) => {
 
     // Convert to array and format
     const aggregatedArray = Object.entries(walletMap).map(([wallet, data]) => {
-      // Convert from wei to token units
-      const totalInWei = BigInt(data.totalClaimed);
-      const divisor = BigInt(10 ** decimals);
-      const wholePart = totalInWei / divisor;
-      const decimalPart = totalInWei % divisor;
-      const formattedTotal = `${wholePart}.${decimalPart.toString().padStart(decimals, '0').slice(0, 4)}`;
+      const totalClaimed = parseFloat(data.totalClaimed) || 0;
 
       return {
         wallet,
         walletAddress: wallet,
-        totalClaimed: parseFloat(formattedTotal),
+        totalClaimed: totalClaimed,
         totalClaimedRaw: data.totalClaimed,
         transactions: data.transactions,
         lastClaimAt: data.lastClaimAt
@@ -199,12 +202,12 @@ serve(async (req) => {
     const uniqueWallets = aggregatedArray.length;
     const totalTransactions = transfers.length;
 
-    console.log(`Summary: ${uniqueWallets} wallets, ${totalTransactions} transactions, ${totalClaimedAll.toFixed(2)} CAMLY total`);
+    console.log(`Summary: ${uniqueWallets} wallets, ${totalTransactions} transactions, ${totalClaimedAll.toLocaleString()} CAMLY total`);
 
     return new Response(JSON.stringify({
       transfers: transfers.slice(0, 100).map(t => ({
         ...t,
-        value: (parseFloat(t.value) / Math.pow(10, decimals)).toFixed(4)
+        value: parseFloat(t.value) || 0 // Đã là số CAMLY thực tế
       })),
       aggregated: aggregatedObject,
       totalTransfers: totalTransactions,
