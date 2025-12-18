@@ -79,9 +79,8 @@ serve(async (req) => {
     const currentBlock = await provider.getBlockNumber();
     console.log('Current block:', currentBlock);
     
-    // Search last ~30 days of blocks (BSC ~3s per block = ~28800 blocks/day)
-    // Limit to avoid timeout - search last 7 days (~200k blocks)
-    const blocksToSearch = 200000;
+    // Search last ~3 days of blocks to avoid rate limits (BSC ~3s per block = ~28800 blocks/day)
+    const blocksToSearch = 50000; // Reduced to ~2 days
     const fromBlock = Math.max(0, currentBlock - blocksToSearch);
     
     console.log(`Searching from block ${fromBlock} to ${currentBlock}`);
@@ -89,21 +88,62 @@ serve(async (req) => {
     // Pad sender address to 32 bytes for topic filter
     const senderPadded = ethers.zeroPadValue(SENDER_WALLET.toLowerCase(), 32);
 
-    // Fetch Transfer events FROM sender wallet
-    const filter = {
-      address: CAMLY_CONTRACT,
-      topics: [
-        TRANSFER_EVENT_TOPIC,
-        senderPadded, // from address (topic1)
-        null // to address (topic2) - any
-      ],
-      fromBlock: fromBlock,
-      toBlock: currentBlock
-    };
-
-    console.log('Fetching logs with filter...');
-    const logs = await provider.getLogs(filter);
-    console.log(`Found ${logs.length} transfer events`);
+    // Split into smaller chunks to avoid rate limits
+    const CHUNK_SIZE = 10000;
+    const logs: any[] = [];
+    
+    for (let start = fromBlock; start < currentBlock; start += CHUNK_SIZE) {
+      const end = Math.min(start + CHUNK_SIZE - 1, currentBlock);
+      console.log(`Fetching logs from block ${start} to ${end}...`);
+      
+      try {
+        const filter = {
+          address: CAMLY_CONTRACT,
+          topics: [
+            TRANSFER_EVENT_TOPIC,
+            senderPadded,
+            null
+          ],
+          fromBlock: start,
+          toBlock: end
+        };
+        
+        const chunkLogs = await provider.getLogs(filter);
+        logs.push(...chunkLogs);
+        console.log(`Found ${chunkLogs.length} events in chunk`);
+        
+        // Small delay between chunks to avoid rate limiting
+        if (start + CHUNK_SIZE < currentBlock) {
+          await new Promise(r => setTimeout(r, 200));
+        }
+      } catch (chunkError: any) {
+        console.log(`Chunk ${start}-${end} failed, trying next RPC...`);
+        // Try with a different RPC if this one fails
+        for (let i = 1; i < RPC_URLS.length; i++) {
+          try {
+            const fallbackProvider = new ethers.JsonRpcProvider(RPC_URLS[i]);
+            const filter = {
+              address: CAMLY_CONTRACT,
+              topics: [
+                TRANSFER_EVENT_TOPIC,
+                senderPadded,
+                null
+              ],
+              fromBlock: start,
+              toBlock: end
+            };
+            const chunkLogs = await fallbackProvider.getLogs(filter);
+            logs.push(...chunkLogs);
+            console.log(`Fallback RPC ${i} succeeded with ${chunkLogs.length} events`);
+            break;
+          } catch (fallbackError) {
+            console.log(`Fallback RPC ${i} also failed`);
+          }
+        }
+      }
+    }
+    
+    console.log(`Found ${logs.length} total transfer events`);
 
     // Parse transfer events
     const transfers: TokenTransfer[] = [];
