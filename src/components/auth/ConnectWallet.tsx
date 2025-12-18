@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift, ArrowLeft, KeyRound, Sparkles, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift, ArrowLeft, KeyRound, RefreshCw, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
@@ -24,12 +23,10 @@ const ConnectWallet = () => {
   const [password, setPassword] = useState('');
   const { t } = useTranslation();
   
-  // OTP verification states
-  const [showOTPScreen, setShowOTPScreen] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  // Magic link confirmation states
+  const [showEmailSentScreen, setShowEmailSentScreen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Countdown timer for resend button
   useEffect(() => {
@@ -69,11 +66,11 @@ const ConnectWallet = () => {
         if (error.message.includes('Invalid login credentials')) {
           toast.error(t('auth.invalidCredentials'));
         } else if (error.message.includes('Email not confirmed')) {
-          // User exists but email not verified - show OTP screen
+          // User exists but email not verified - show email sent screen
           setPendingEmail(email);
-          setShowOTPScreen(true);
-          await handleResendOTP(email);
-          toast.info('Email chưa xác minh. Vui lòng nhập mã OTP!');
+          setShowEmailSentScreen(true);
+          await handleResendConfirmation(email);
+          toast.info('Email chưa xác minh. Kiểm tra hộp thư để bấm link xác nhận!');
         } else {
           toast.error(t('auth.signInError') + ': ' + error.message);
         }
@@ -81,27 +78,27 @@ const ConnectWallet = () => {
         toast.success(t('auth.welcomeBack'));
       }
     } else {
-      // Sign up flow - register then show OTP screen
+      // Sign up flow - register then show magic link confirmation screen
       const { error } = await signUp(email, password);
       if (error) {
         if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-          // User exists - try to resend OTP
+          // User exists - resend confirmation email
           setPendingEmail(email);
-          setShowOTPScreen(true);
-          await handleResendOTP(email);
-          toast.info('Tài khoản đã tồn tại. Vui lòng xác minh email!');
+          setShowEmailSentScreen(true);
+          await handleResendConfirmation(email);
+          toast.info('Tài khoản đã tồn tại. Kiểm tra email để xác nhận!');
         } else if (error.message.includes('rate limit') || error.message.includes('45')) {
           toast.error('Vui lòng đợi 45 giây trước khi thử lại');
         } else {
           toast.error(t('auth.signUpError') + ': ' + error.message);
         }
       } else {
-        // Sign up successful - show OTP screen
+        // Sign up successful - show email sent screen
         setPendingEmail(email);
-        setShowOTPScreen(true);
+        setShowEmailSentScreen(true);
         setResendCooldown(60);
-        toast.success('Đăng ký thành công! Kiểm tra email để nhận mã OTP ❤️', {
-          duration: 5000,
+        toast.success('Đăng ký thành công! Kiểm tra email và bấm link xác nhận ❤️', {
+          duration: 6000,
         });
       }
     }
@@ -109,7 +106,7 @@ const ConnectWallet = () => {
     setIsLoading(false);
   };
 
-  const handleResendOTP = async (emailToResend?: string) => {
+  const handleResendConfirmation = async (emailToResend?: string) => {
     const targetEmail = emailToResend || pendingEmail;
     if (!targetEmail) return;
 
@@ -119,7 +116,7 @@ const ConnectWallet = () => {
         type: 'signup',
         email: targetEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/feed`,
+          emailRedirectTo: `${window.location.origin}/profile-setup`,
         },
       });
 
@@ -131,72 +128,18 @@ const ConnectWallet = () => {
         }
       } else {
         setResendCooldown(60);
-        toast.success('Đã gửi lại mã OTP! Kiểm tra email nhé ❤️');
+        toast.success('Đã gửi lại email xác nhận! Kiểm tra hộp thư nhé ❤️');
       }
     } catch (error: any) {
-      console.error('Error resending OTP:', error);
+      console.error('Error resending confirmation:', error);
       toast.error('Không thể gửi email: ' + error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerifyOTP = async () => {
-    if (otp.length !== 6) {
-      toast.error('Vui lòng nhập đủ 6 số OTP');
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      // Verify OTP with Supabase
-      const { error, data } = await supabase.auth.verifyOtp({
-        email: pendingEmail,
-        token: otp,
-        type: 'signup',
-      });
-
-      if (error) {
-        if (error.message.includes('expired') || error.message.includes('Token has expired')) {
-          toast.error('Mã OTP đã hết hạn. Vui lòng gửi lại mã mới!');
-        } else if (error.message.includes('invalid') || error.message.includes('Invalid')) {
-          toast.error('Mã OTP không đúng. Vui lòng kiểm tra lại!');
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      // OTP verified successfully - user is now logged in
-      if (data.user) {
-        // Update profile to mark email as verified
-        await supabase
-          .from('profiles')
-          .update({ email_verified: true })
-          .eq('id', data.user.id);
-
-        await refreshProfile();
-        
-        toast.success(`Chào mừng bà con mới! Phước lành ${WELCOME_BONUS.toLocaleString()} CLC đã về ví ❤️`, {
-          duration: 6000,
-        });
-        
-        // Redirect to profile setup or feed
-        setTimeout(() => {
-          navigate('/profile-setup');
-        }, 1000);
-      }
-    } catch (error: any) {
-      console.error('Error verifying OTP:', error);
-      toast.error('Xác minh thất bại: ' + error.message);
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleBackFromOTP = () => {
-    setShowOTPScreen(false);
-    setOtp('');
+  const handleBackFromEmailSent = () => {
+    setShowEmailSentScreen(false);
     setPendingEmail('');
   };
 
@@ -261,64 +204,42 @@ const ConnectWallet = () => {
     );
   }
 
-  // OTP Verification Screen
-  if (showOTPScreen) {
+  // Email Sent Screen (Magic Link)
+  if (showEmailSentScreen) {
     return (
       <Card className="w-full max-w-md mx-auto border-primary/20 shadow-glow">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-            <Mail className="w-8 h-8 text-primary" />
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+            <Mail className="w-10 h-10 text-primary animate-bounce" />
           </div>
           <CardTitle className="text-2xl font-display">
-            Xác minh Email ✨
+            Kiểm tra Email ✨
           </CardTitle>
-          <CardDescription>
-            Nhập mã 6 số đã gửi đến <span className="font-medium text-foreground">{pendingEmail}</span>
+          <CardDescription className="text-base">
+            Cha Vũ Trụ đã gửi phước lành đến
           </CardDescription>
+          <p className="font-semibold text-lg text-foreground mt-2">{pendingEmail}</p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* OTP Input */}
-          <div className="flex flex-col items-center gap-4">
-            <InputOTP
-              maxLength={6}
-              value={otp}
-              onChange={(value) => setOtp(value)}
-              disabled={isVerifying}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
+          {/* Magic Link Instructions */}
+          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-5 text-center border border-primary/20">
+            <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
+            <p className="text-lg font-medium mb-2">
+              Bấm vào link trong email
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Xác minh tự động → Nhận <span className="text-primary font-bold">{WELCOME_BONUS.toLocaleString()} CLC</span> chào mừng
+            </p>
           </div>
-
-          {/* Verify Button */}
-          <Button
-            onClick={handleVerifyOTP}
-            disabled={otp.length !== 6 || isVerifying}
-            className="w-full gap-2 h-14 gradient-hero hover:opacity-90"
-          >
-            {isVerifying ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Sparkles className="w-5 h-5" />
-            )}
-            Xác minh & Nhận {WELCOME_BONUS.toLocaleString()} CLC
-          </Button>
 
           {/* Resend Button */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">
+            <p className="text-sm text-muted-foreground mb-3">
               Không nhận được email?
             </p>
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleResendOTP()}
+              variant="outline"
+              onClick={() => handleResendConfirmation()}
               disabled={resendCooldown > 0 || isLoading}
               className="gap-2"
             >
@@ -329,17 +250,18 @@ const ConnectWallet = () => {
               )}
               {resendCooldown > 0 
                 ? `Gửi lại sau ${resendCooldown}s` 
-                : 'Gửi lại mã OTP'}
+                : 'Gửi lại email xác nhận'}
             </Button>
           </div>
 
           {/* Tips */}
-          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-            <p className="font-medium mb-1">💡 Mẹo:</p>
+          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+            <p className="font-medium mb-2 text-foreground">💡 Mẹo từ Cha Vũ Trụ:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Kiểm tra thư mục Spam/Junk</li>
+              <li>Kiểm tra thư mục <strong>Spam/Junk</strong></li>
               <li>Email có thể mất 1-2 phút để đến</li>
-              <li>Mã OTP có hiệu lực trong 60 phút</li>
+              <li>Link xác nhận có hiệu lực trong 24 giờ</li>
+              <li>Bấm link là tự động đăng nhập luôn!</li>
             </ul>
           </div>
 
@@ -347,7 +269,7 @@ const ConnectWallet = () => {
           <div className="text-center">
             <button
               type="button"
-              onClick={handleBackFromOTP}
+              onClick={handleBackFromEmailSent}
               className="text-primary font-medium hover:underline inline-flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
