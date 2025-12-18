@@ -122,6 +122,9 @@ const Admin = () => {
   const [blockchainData, setBlockchainData] = useState<BlockchainClaimData[]>([]);
   const [blockchainLoading, setBlockchainLoading] = useState(false);
   const [blockchainTotalClaimed, setBlockchainTotalClaimed] = useState(0);
+  const [blockchainDataSource, setBlockchainDataSource] = useState<string>('');
+  const [blockchainLastUpdated, setBlockchainLastUpdated] = useState<string | null>(null);
+  const [blockchainError, setBlockchainError] = useState<string | null>(null);
 
   // Check admin role
   useEffect(() => {
@@ -165,49 +168,56 @@ const Admin = () => {
     fetchBlockchainData();
   }, [isAdmin, selectedDate]);
 
-  const fetchBlockchainData = async () => {
+  const fetchBlockchainData = async (forceRefresh = false) => {
     setBlockchainLoading(true);
+    setBlockchainError(null);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-bscscan-history');
+      const { data, error } = await supabase.functions.invoke('fetch-bscscan-history', {
+        body: { forceRefresh }
+      });
       
       if (error) {
         console.error('Error fetching blockchain data:', error);
-        toast.error('Không thể lấy dữ liệu từ BscScan');
+        setBlockchainError('Không thể kết nối đến API');
+        toast.error('Không thể lấy dữ liệu blockchain');
         return;
       }
 
-      // Check for API errors from BscScan
-      if (data?.error || data?.message === 'NOTOK') {
-        const errorMsg = data.apiKeyHint || data.error || 'Lỗi không xác định từ BscScan';
-        console.error('BscScan API error:', errorMsg);
-        toast.error(errorMsg, { duration: 8000 });
-        return;
-      }
-
-      if (data?.aggregated) {
-        // Edge function đã join với profiles và trả về userName
-        const claimData: BlockchainClaimData[] = Object.entries(data.aggregated).map(([wallet, info]: [string, any]) => ({
+      // Xử lý dữ liệu từ response (có thể là live hoặc cache)
+      if (data) {
+        const claimData: BlockchainClaimData[] = Object.entries(data.aggregated || {}).map(([wallet, info]: [string, any]) => ({
           walletAddress: info.walletAddress || wallet,
-          totalClaimed: info.totalClaimed,
-          transactions: info.transactions,
+          totalClaimed: info.totalClaimed || 0,
+          transactions: info.transactions || 0,
           lastClaimAt: info.lastClaimAt,
-          userName: info.userName || undefined, // Lấy từ backend
+          userName: info.userName || undefined,
         }));
 
         // Sort theo totalClaimed giảm dần
         claimData.sort((a, b) => b.totalClaimed - a.totalClaimed);
 
         setBlockchainData(claimData);
-        setBlockchainTotalClaimed(data.totalClaimed || claimData.reduce((sum, c) => sum + c.totalClaimed, 0));
+        setBlockchainTotalClaimed(data.totalClaimed || 0);
+        setBlockchainDataSource(data.dataSource || 'Unknown');
+        setBlockchainLastUpdated(data.lastUpdated || null);
         
-        const walletsWithNames = claimData.filter(c => c.userName).length;
-        if (claimData.length > 0) {
-          toast.success(`Đã tải ${claimData.length} ví từ blockchain (${walletsWithNames} có tên)`);
+        // Hiển thị thông báo phù hợp với nguồn dữ liệu
+        if (data.cacheNote) {
+          toast.info(data.cacheNote, { duration: 5000 });
+        } else if (data.hint) {
+          toast.warning(data.hint, { duration: 5000 });
+        } else {
+          const walletsWithNames = claimData.filter(c => c.userName).length;
+          const sourceLabel = data.dataSource?.includes('Cache') ? '(từ cache)' : '(live)';
+          if (data.totalClaimed > 0) {
+            toast.success(`Đã tải ${claimData.length} ví ${sourceLabel} - ${data.totalClaimed.toLocaleString()} CAMLY`);
+          }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error:', err);
-      toast.error('Lỗi kết nối đến BscScan API');
+      setBlockchainError(err.message || 'Lỗi không xác định');
+      toast.error('Lỗi kết nối đến blockchain API');
     } finally {
       setBlockchainLoading(false);
     }
@@ -1117,9 +1127,14 @@ const Admin = () => {
           <TabsContent value="blockchain" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 flex-wrap">
                   <Link className="h-5 w-5 text-cyan-500" />
-                  Lịch sử Claim từ Blockchain (BscScan)
+                  Lịch sử Claim từ Blockchain
+                  {blockchainDataSource && (
+                    <Badge variant={blockchainDataSource.includes('Live') ? 'default' : 'secondary'} className="text-xs">
+                      {blockchainDataSource}
+                    </Badge>
+                  )}
                   <div className="ml-auto flex gap-2">
                     <Button
                       variant="outline"
@@ -1160,24 +1175,39 @@ const Admin = () => {
                       Export CSV
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => fetchBlockchainData()}
+                      onClick={() => fetchBlockchainData(true)}
                       disabled={blockchainLoading}
+                      className="gap-2"
                     >
                       <RefreshCw className={`h-4 w-4 ${blockchainLoading ? 'animate-spin' : ''}`} />
+                      Refresh
                     </Button>
                   </div>
                 </CardTitle>
-                <CardDescription>
-                  Dữ liệu thực từ BscScan API - Tổng giao dịch chuyển CAMLY từ ví quỹ
+                <CardDescription className="flex items-center gap-2 flex-wrap">
+                  Dữ liệu giao dịch chuyển CAMLY từ ví quỹ trả thưởng
+                  {blockchainLastUpdated && (
+                    <span className="text-xs text-muted-foreground">
+                      • Cập nhật: {format(new Date(blockchainLastUpdated), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                    </span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {blockchainLoading ? (
                   <div className="text-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    <p className="mt-2 text-muted-foreground">Đang tải dữ liệu từ BscScan...</p>
+                    <p className="mt-2 text-muted-foreground">Đang tải dữ liệu blockchain...</p>
+                  </div>
+                ) : blockchainError ? (
+                  <div className="text-center py-8 text-red-500">
+                    <AlertTriangle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Lỗi: {blockchainError}</p>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => fetchBlockchainData()}>
+                      Thử lại
+                    </Button>
                   </div>
                 ) : (
                   <>
@@ -1223,11 +1253,11 @@ const Admin = () => {
                       </div>
                     </div>
 
-                    {blockchainData.length === 0 ? (
+                    {blockchainData.length === 0 && blockchainTotalClaimed === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <Link className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         <p>Không tìm thấy giao dịch nào từ blockchain</p>
-                        <p className="text-sm mt-1">Hãy đảm bảo API key BscScan đã được cấu hình</p>
+                        <p className="text-sm mt-1">Moralis API có thể đang hết quota. Nhấn Refresh để thử lại.</p>
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
