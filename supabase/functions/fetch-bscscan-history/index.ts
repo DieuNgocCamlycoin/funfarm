@@ -81,17 +81,28 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
       const data = await response.json();
       const results: MoralisTransfer[] = data.result || [];
 
+      // Log first result to debug structure
+      if (pageCount === 0 && results.length > 0) {
+        console.log('First result sample:', JSON.stringify(results[0]));
+      }
+
       // Filter chỉ các transfer FROM ví trả thưởng (claim thực sự)
       const claimTransfers = results
         .filter(t => t.from_address.toLowerCase() === SENDER_WALLET.toLowerCase())
-        .map(t => ({
-          blockNumber: parseInt(t.block_number),
-          transactionHash: t.transaction_hash,
-          from: t.from_address,
-          to: t.to_address,
-          value: t.value,
-          timestamp: t.block_timestamp
-        }));
+        .map(t => {
+          // Log value để debug
+          if (transfers.length < 3) {
+            console.log(`Transfer value: ${t.value}, to: ${t.to_address}`);
+          }
+          return {
+            blockNumber: parseInt(t.block_number),
+            transactionHash: t.transaction_hash,
+            from: t.from_address,
+            to: t.to_address,
+            value: t.value || '0',
+            timestamp: t.block_timestamp
+          };
+        });
 
       transfers.push(...claimTransfers);
       console.log(`Page ${pageCount + 1}: found ${claimTransfers.length} claims, total: ${transfers.length}`);
