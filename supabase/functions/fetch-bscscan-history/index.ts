@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +14,7 @@ interface MoralisTransfer {
   from_address: string;
   to_address: string;
   value: string;
-  value_decimal?: string; // Moralis có thể trả về field này
+  value_decimal?: string;
   block_number: string;
   block_timestamp: string;
   transaction_hash: string;
@@ -51,7 +52,7 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
   };
 
   let pageCount = 0;
-  const maxPages = 50; // Giới hạn số trang để tránh quá nhiều requests
+  const maxPages = 50;
 
   do {
     const params = new URLSearchParams({
@@ -82,22 +83,15 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
       const data = await response.json();
       const results: MoralisTransfer[] = data.result || [];
 
-      // Log first result to debug structure
       if (pageCount === 0 && results.length > 0) {
         console.log('First result sample:', JSON.stringify(results[0]));
-        console.log('Available keys:', Object.keys(results[0]));
       }
 
-      // Filter chỉ các transfer FROM ví trả thưởng (claim thực sự)
       const claimTransfers = results
         .filter(t => t.from_address.toLowerCase() === SENDER_WALLET.toLowerCase())
         .map(t => {
-          // Moralis trả về value_decimal là số token thực tế (đã chia decimals)
-          // value là raw value nhưng với decimals của token (có thể 4, 6, 18...)
-          // Sử dụng value_decimal để lấy số CAMLY chính xác
           const actualValue = t.value_decimal || t.value || '0';
           
-          // Log chi tiết để debug
           if (transfers.length < 5) {
             console.log(`Transfer: value="${t.value}", value_decimal="${t.value_decimal}", using: ${actualValue}, to: ${t.to_address}`);
           }
@@ -107,7 +101,7 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
             transactionHash: t.transaction_hash,
             from: t.from_address,
             to: t.to_address,
-            value: actualValue, // Số CAMLY thực tế
+            value: actualValue,
             timestamp: t.block_timestamp
           };
         });
@@ -118,7 +112,6 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
       cursor = data.cursor || undefined;
       pageCount++;
 
-      // Delay nhẹ để an toàn
       if (cursor && pageCount < maxPages) {
         await new Promise(r => setTimeout(r, 200));
       }
@@ -133,7 +126,6 @@ async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -159,41 +151,87 @@ serve(async (req) => {
         };
       }
 
-      // value_decimal từ Moralis đã là số CAMLY thực tế
-      // Cộng dồn trực tiếp (dùng number vì giá trị không quá lớn)
       const current = parseFloat(walletMap[receiver].totalClaimed) || 0;
       const adding = parseFloat(tx.value) || 0;
       walletMap[receiver].totalClaimed = (current + adding).toString();
       walletMap[receiver].transactions += 1;
 
-      // Update last claim if this is more recent
       if (tx.timestamp > walletMap[receiver].lastClaimAt) {
         walletMap[receiver].lastClaimAt = tx.timestamp;
       }
     }
 
-    // Convert to array and format
+    // Convert to array
     const aggregatedArray = Object.entries(walletMap).map(([wallet, data]) => {
       const totalClaimed = parseFloat(data.totalClaimed) || 0;
-
       return {
         wallet,
         walletAddress: wallet,
         totalClaimed: totalClaimed,
         totalClaimedRaw: data.totalClaimed,
         transactions: data.transactions,
-        lastClaimAt: data.lastClaimAt
+        lastClaimAt: data.lastClaimAt,
+        userName: undefined as string | undefined
       };
     }).sort((a, b) => b.totalClaimed - a.totalClaimed);
 
-    // Convert back to object format for compatibility
+    // ========== JOIN VỚI PROFILES ĐỂ LẤY TÊN USER ==========
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const walletList = aggregatedArray.map(item => item.wallet);
+        
+        // Query profiles để lấy display_name theo wallet_address
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('wallet_address, display_name')
+          .filter('wallet_address', 'neq', '')
+          .filter('wallet_address', 'neq', null);
+        
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError.message);
+        } else if (profiles && profiles.length > 0) {
+          console.log(`Fetched ${profiles.length} profiles with wallet addresses`);
+          
+          // Tạo map wallet -> name (case insensitive)
+          const walletToName: Record<string, string> = {};
+          profiles.forEach((p: any) => {
+            if (p.wallet_address) {
+              walletToName[p.wallet_address.toLowerCase()] = p.display_name || '';
+            }
+          });
+          
+          // Map tên vào aggregatedArray
+          let matchedCount = 0;
+          aggregatedArray.forEach(item => {
+            const name = walletToName[item.wallet.toLowerCase()];
+            if (name) {
+              item.userName = name;
+              matchedCount++;
+            }
+          });
+          
+          console.log(`Matched ${matchedCount}/${aggregatedArray.length} wallets with user names`);
+        }
+      } catch (dbError: any) {
+        console.error('Database error:', dbError.message);
+      }
+    } else {
+      console.log('Supabase credentials not available, skipping user name lookup');
+    }
+
+    // Convert back to object format
     const aggregatedObject: Record<string, any> = {};
     for (const item of aggregatedArray) {
       aggregatedObject[item.wallet] = {
         totalClaimed: item.totalClaimed,
         transactions: item.transactions,
         lastClaimAt: item.lastClaimAt,
-        walletAddress: item.walletAddress
+        walletAddress: item.walletAddress,
+        userName: item.userName || null
       };
     }
 
@@ -201,18 +239,20 @@ serve(async (req) => {
     const totalClaimedAll = aggregatedArray.reduce((sum, w) => sum + w.totalClaimed, 0);
     const uniqueWallets = aggregatedArray.length;
     const totalTransactions = transfers.length;
+    const walletsWithNames = aggregatedArray.filter(a => a.userName).length;
 
-    console.log(`Summary: ${uniqueWallets} wallets, ${totalTransactions} transactions, ${totalClaimedAll.toLocaleString()} CAMLY total`);
+    console.log(`Summary: ${uniqueWallets} wallets (${walletsWithNames} with names), ${totalTransactions} transactions, ${totalClaimedAll.toLocaleString()} CAMLY total`);
 
     return new Response(JSON.stringify({
       transfers: transfers.slice(0, 100).map(t => ({
         ...t,
-        value: parseFloat(t.value) || 0 // Đã là số CAMLY thực tế
+        value: parseFloat(t.value) || 0
       })),
       aggregated: aggregatedObject,
       totalTransfers: totalTransactions,
       totalWallets: uniqueWallets,
       totalClaimed: totalClaimedAll,
+      walletsWithNames: walletsWithNames,
       dataSource: 'Moralis API'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

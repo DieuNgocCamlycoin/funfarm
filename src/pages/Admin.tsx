@@ -182,27 +182,24 @@ const Admin = () => {
       }
 
       if (data?.aggregated) {
-        // Map wallet addresses to user names
-        const walletToName: Record<string, string> = {};
-        allUsers.forEach(u => {
-          if (u.wallet_address) {
-            walletToName[u.wallet_address.toLowerCase()] = u.display_name || '(không tên)';
-          }
-        });
-
+        // Edge function đã join với profiles và trả về userName
         const claimData: BlockchainClaimData[] = Object.entries(data.aggregated).map(([wallet, info]: [string, any]) => ({
           walletAddress: info.walletAddress || wallet,
           totalClaimed: info.totalClaimed,
           transactions: info.transactions,
           lastClaimAt: info.lastClaimAt,
-          userName: walletToName[wallet.toLowerCase()] || undefined,
+          userName: info.userName || undefined, // Lấy từ backend
         }));
+
+        // Sort theo totalClaimed giảm dần
+        claimData.sort((a, b) => b.totalClaimed - a.totalClaimed);
 
         setBlockchainData(claimData);
         setBlockchainTotalClaimed(data.totalClaimed || claimData.reduce((sum, c) => sum + c.totalClaimed, 0));
         
+        const walletsWithNames = claimData.filter(c => c.userName).length;
         if (claimData.length > 0) {
-          toast.success(`Đã tải ${claimData.length} ví từ blockchain`);
+          toast.success(`Đã tải ${claimData.length} ví từ blockchain (${walletsWithNames} có tên)`);
         }
       }
     } catch (err) {
