@@ -1,13 +1,50 @@
-import { AlertTriangle, Clock, Ban } from "lucide-react";
+import { AlertTriangle, Clock, Ban, ShieldOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ViolationWarningProps {
   level: number;
   expiresAt?: string;
   reason?: string;
+  banned?: boolean;
+  banReason?: string;
 }
 
-export const ViolationWarning = ({ level, expiresAt, reason }: ViolationWarningProps) => {
+export const ViolationWarning = ({ level, expiresAt, reason, banned, banReason }: ViolationWarningProps) => {
+  const { signOut } = useAuth();
+
+  // Show banned message with highest priority
+  if (banned) {
+    return (
+      <Alert className="mb-4 border-red-600/50 bg-red-600/10">
+        <ShieldOff className="h-5 w-5 text-red-600" />
+        <AlertTitle className="text-red-600 dark:text-red-400 text-lg font-bold">
+          TÀI KHOẢN ĐÃ BỊ KHÓA VĨNH VIỄN
+        </AlertTitle>
+        <AlertDescription className="text-muted-foreground mt-2">
+          <p className="font-medium text-red-500">
+            Tài khoản của bạn đã bị khóa vĩnh viễn vì lạm dụng hệ thống FUN FARM.
+          </p>
+          <p className="text-sm mt-2">
+            Lý do: <span className="font-medium">{banReason || 'Vi phạm nghiêm trọng quy tắc cộng đồng'}</span>
+          </p>
+          <p className="text-xs mt-2 opacity-70">
+            Bạn không thể sử dụng các tính năng của FUN FARM nữa. 
+            Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ hỗ trợ.
+          </p>
+          <Button 
+            variant="destructive" 
+            className="mt-4"
+            onClick={() => signOut()}
+          >
+            Đăng xuất
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (level === 0) return null;
 
   const getWarningInfo = () => {

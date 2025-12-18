@@ -10,6 +10,7 @@ import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
 import VerificationNotice from "@/components/VerificationNotice";
+import { ViolationWarning } from "@/components/ViolationWarning";
 import { trendingHashtags, suggestedFarms } from "@/data/mockFeed";
 import { Post } from "@/types/feed";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import HonorBoard from "@/components/HonorBoard";
 import TopRanking from "@/components/TopRanking";
+import { useAuth } from "@/hooks/useAuth";
 
 // Map profile_type to UserType - defined outside component to avoid hook issues
 const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer' => {
@@ -31,6 +33,7 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
   return mapping[profileType] || 'farm';
 };
 const Feed = () => {
+  const { profile } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -388,16 +391,29 @@ const Feed = () => {
                   </div>
                 </div>
 
-                {/* Verification Notice */}
-                <VerificationNotice 
-                  onConnectWallet={() => {
-                    window.location.href = '/reward';
-                  }}
-                  showDismiss
-                />
+                {/* Banned Warning */}
+                {profile?.banned && (
+                  <ViolationWarning 
+                    level={3} 
+                    banned={true} 
+                    banReason={profile.ban_reason || undefined}
+                  />
+                )}
 
-                {/* Create Post Box - Facebook style */}
-                <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
+                {/* Verification Notice */}
+                {!profile?.banned && (
+                  <VerificationNotice 
+                    onConnectWallet={() => {
+                      window.location.href = '/reward';
+                    }}
+                    showDismiss
+                  />
+                )}
+
+                {/* Create Post Box - Facebook style - Hide if banned */}
+                {!profile?.banned && (
+                  <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
+                )}
 
                 {/* Mobile Honor Board & Top Ranking */}
                 <div className="lg:hidden space-y-4">
@@ -459,13 +475,17 @@ const Feed = () => {
 
       <Footer />
 
-      {/* Floating Create Button (Mobile only) */}
-      <div className="lg:hidden">
-        <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
-      </div>
+      {/* Floating Create Button (Mobile only) - Hide if banned */}
+      {!profile?.banned && (
+        <div className="lg:hidden">
+          <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
+        </div>
+      )}
 
-      {/* Create Post Modal */}
-      <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
+      {/* Create Post Modal - Hide if banned */}
+      {!profile?.banned && (
+        <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
+      )}
     </div>;
 };
 export default Feed;

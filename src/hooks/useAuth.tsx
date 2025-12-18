@@ -26,6 +26,10 @@ interface Profile {
   verification_status: 'pending' | 'verified' | 'rejected';
   verified_at: string | null;
   wallet_bonus_claimed: boolean;
+  // Ban fields
+  banned: boolean;
+  banned_at: string | null;
+  ban_reason: string | null;
 }
 
 interface AuthContextType {
