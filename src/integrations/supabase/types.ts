@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      blockchain_cache: {
+        Row: {
+          aggregated_data: Json | null
+          created_at: string | null
+          id: string
+          last_updated_at: string | null
+          total_claimed: number | null
+          total_transactions: number | null
+          total_wallets: number | null
+          transfers_sample: Json | null
+          wallets_with_names: number | null
+        }
+        Insert: {
+          aggregated_data?: Json | null
+          created_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          total_claimed?: number | null
+          total_transactions?: number | null
+          total_wallets?: number | null
+          transfers_sample?: Json | null
+          wallets_with_names?: number | null
+        }
+        Update: {
+          aggregated_data?: Json | null
+          created_at?: string | null
+          id?: string
+          last_updated_at?: string | null
+          total_claimed?: number | null
+          total_transactions?: number | null
+          total_wallets?: number | null
+          transfers_sample?: Json | null
+          wallets_with_names?: number | null
+        }
+        Relationships: []
+      }
       bonus_requests: {
         Row: {
           bonus_amount: number
