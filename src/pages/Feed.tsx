@@ -390,9 +390,6 @@ const Feed = () => {
 
                 {/* Verification Notice */}
                 <VerificationNotice 
-                  onVerifyEmail={() => {
-                    toast.info('Vui lòng kiểm tra email của bạn để xác minh tài khoản');
-                  }}
                   onConnectWallet={() => {
                     window.location.href = '/reward';
                   }}
