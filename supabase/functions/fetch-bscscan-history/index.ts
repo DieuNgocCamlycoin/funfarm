@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { ethers } from "https://esm.sh/ethers@6.9.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,16 +11,46 @@ const CAMLY_CONTRACT = "0x3a1311B8C404629E38f61D566cefEaEd8Da1c0C8";
 // Wallet that sends CAMLY rewards
 const SENDER_WALLET = "0xBBa78598Be65520DD892C771Cf17B8D53aFfF68c";
 
+// ERC20 Transfer event signature
+const TRANSFER_EVENT_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f631f5d357878678da80a64f65";
+
+// Public RPC endpoints for BSC (fallback list)
+const RPC_URLS = [
+  "https://bsc-dataseed.binance.org/",
+  "https://rpc.ankr.com/bsc",
+  "https://bsc-rpc.publicnode.com",
+  "https://bscrpc.com"
+];
+
+// ERC20 ABI for decimals
+const ERC20_ABI = [
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+  "function name() view returns (string)"
+];
+
 interface TokenTransfer {
-  blockNumber: string;
-  timeStamp: string;
-  hash: string;
+  blockNumber: number;
+  transactionHash: string;
   from: string;
   to: string;
   value: string;
-  tokenName: string;
-  tokenSymbol: string;
-  tokenDecimal: string;
+  timestamp?: number;
+}
+
+async function getProviderWithFallback(): Promise<ethers.JsonRpcProvider> {
+  for (const rpcUrl of RPC_URLS) {
+    try {
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Test connection
+      await provider.getBlockNumber();
+      console.log(`Connected to RPC: ${rpcUrl}`);
+      return provider;
+    } catch (error) {
+      console.log(`Failed to connect to ${rpcUrl}, trying next...`);
+    }
+  }
+  throw new Error("All RPC endpoints failed");
 }
 
 serve(async (req) => {
@@ -28,57 +59,70 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('BSCSCAN_API_KEY');
-    if (!apiKey) {
-      throw new Error('BSCSCAN_API_KEY not configured');
-    }
-
-    console.log('Fetching token transfers from BscScan...');
+    console.log('Fetching token transfers using public RPC...');
     console.log('CAMLY Contract:', CAMLY_CONTRACT);
     console.log('Sender Wallet:', SENDER_WALLET);
 
-    // Fetch token transfers from sender wallet
-    const url = `https://api.bscscan.com/api?module=account&action=tokentx&contractaddress=${CAMLY_CONTRACT}&address=${SENDER_WALLET}&page=1&offset=10000&sort=desc&apikey=${apiKey}`;
+    const provider = await getProviderWithFallback();
     
-    console.log('Fetching from BscScan API...');
-    const response = await fetch(url);
-    const data = await response.json();
+    // Get token decimals
+    const tokenContract = new ethers.Contract(CAMLY_CONTRACT, ERC20_ABI, provider);
+    let tokenDecimals = 18;
+    try {
+      tokenDecimals = await tokenContract.decimals();
+      console.log('Token decimals:', tokenDecimals);
+    } catch (e) {
+      console.log('Could not fetch decimals, using default 18');
+    }
 
-    console.log('BscScan full response:', JSON.stringify(data));
-    console.log('BscScan response status:', data.status);
-    console.log('BscScan message:', data.message);
-    console.log('BscScan result:', data.result);
+    // Get current block number
+    const currentBlock = await provider.getBlockNumber();
+    console.log('Current block:', currentBlock);
+    
+    // Search last ~30 days of blocks (BSC ~3s per block = ~28800 blocks/day)
+    // Limit to avoid timeout - search last 7 days (~200k blocks)
+    const blocksToSearch = 200000;
+    const fromBlock = Math.max(0, currentBlock - blocksToSearch);
+    
+    console.log(`Searching from block ${fromBlock} to ${currentBlock}`);
 
-    if (data.status !== '1') {
-      // Common BscScan error messages:
-      // - "NOTOK" with result "Invalid API Key" = wrong API key
-      // - "NOTOK" with result "Max rate limit reached" = too many requests
-      const errorDetail = typeof data.result === 'string' ? data.result : data.message;
-      console.error('BscScan API error:', errorDetail);
+    // Pad sender address to 32 bytes for topic filter
+    const senderPadded = ethers.zeroPadValue(SENDER_WALLET.toLowerCase(), 32);
+
+    // Fetch Transfer events FROM sender wallet
+    const filter = {
+      address: CAMLY_CONTRACT,
+      topics: [
+        TRANSFER_EVENT_TOPIC,
+        senderPadded, // from address (topic1)
+        null // to address (topic2) - any
+      ],
+      fromBlock: fromBlock,
+      toBlock: currentBlock
+    };
+
+    console.log('Fetching logs with filter...');
+    const logs = await provider.getLogs(filter);
+    console.log(`Found ${logs.length} transfer events`);
+
+    // Parse transfer events
+    const transfers: TokenTransfer[] = [];
+    
+    for (const log of logs) {
+      const from = ethers.getAddress('0x' + log.topics[1].slice(26));
+      const to = ethers.getAddress('0x' + log.topics[2].slice(26));
+      const value = ethers.toBigInt(log.data);
       
-      return new Response(JSON.stringify({ 
-        transfers: [],
-        aggregated: {},
-        message: data.message || 'No transfers found',
-        error: errorDetail,
-        apiKeyHint: errorDetail?.toLowerCase().includes('invalid') 
-          ? 'API key có thể không đúng. Vui lòng kiểm tra lại BSCSCAN_API_KEY trong Supabase secrets.'
-          : errorDetail?.toLowerCase().includes('rate') 
-            ? 'API bị giới hạn tốc độ. Vui lòng thử lại sau vài giây.'
-            : null
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      transfers.push({
+        blockNumber: log.blockNumber,
+        transactionHash: log.transactionHash,
+        from: from,
+        to: to,
+        value: value.toString()
       });
     }
 
-    const transfers: TokenTransfer[] = data.result || [];
-    console.log(`Found ${transfers.length} total transfers`);
-
-    // Filter only outgoing transfers from sender wallet (claims)
-    const claimTransfers = transfers.filter(tx => 
-      tx.from.toLowerCase() === SENDER_WALLET.toLowerCase()
-    );
-    console.log(`Found ${claimTransfers.length} claim transfers`);
+    console.log(`Parsed ${transfers.length} transfers`);
 
     // Aggregate by receiver wallet
     const aggregated: Record<string, { 
@@ -86,11 +130,12 @@ serve(async (req) => {
       transactions: number;
       lastClaimAt: string;
       walletAddress: string;
+      lastBlockNumber: number;
     }> = {};
 
-    for (const tx of claimTransfers) {
+    for (const tx of transfers) {
       const receiver = tx.to.toLowerCase();
-      const amount = parseInt(tx.value) / Math.pow(10, parseInt(tx.tokenDecimal || '18'));
+      const amount = Number(ethers.formatUnits(tx.value, tokenDecimals));
       
       if (!aggregated[receiver]) {
         aggregated[receiver] = {
@@ -98,16 +143,43 @@ serve(async (req) => {
           transactions: 0,
           lastClaimAt: '',
           walletAddress: tx.to,
+          lastBlockNumber: 0
         };
       }
       
       aggregated[receiver].totalClaimed += amount;
       aggregated[receiver].transactions += 1;
       
-      // Keep track of latest claim
-      const txTime = new Date(parseInt(tx.timeStamp) * 1000).toISOString();
-      if (!aggregated[receiver].lastClaimAt || txTime > aggregated[receiver].lastClaimAt) {
-        aggregated[receiver].lastClaimAt = txTime;
+      // Track latest block for this receiver
+      if (tx.blockNumber > aggregated[receiver].lastBlockNumber) {
+        aggregated[receiver].lastBlockNumber = tx.blockNumber;
+      }
+    }
+
+    // Get timestamps for the latest blocks (sample a few)
+    const uniqueBlocks = [...new Set(Object.values(aggregated).map(a => a.lastBlockNumber))].slice(0, 50);
+    const blockTimestamps: Record<number, number> = {};
+    
+    for (const blockNum of uniqueBlocks) {
+      try {
+        const block = await provider.getBlock(blockNum);
+        if (block) {
+          blockTimestamps[blockNum] = block.timestamp;
+        }
+      } catch (e) {
+        console.log(`Could not fetch block ${blockNum} timestamp`);
+      }
+    }
+
+    // Update lastClaimAt with actual timestamps
+    for (const receiver in aggregated) {
+      const blockNum = aggregated[receiver].lastBlockNumber;
+      if (blockTimestamps[blockNum]) {
+        aggregated[receiver].lastClaimAt = new Date(blockTimestamps[blockNum] * 1000).toISOString();
+      } else {
+        // Estimate timestamp based on block number
+        const estimatedTimestamp = Date.now() - ((currentBlock - blockNum) * 3000);
+        aggregated[receiver].lastClaimAt = new Date(estimatedTimestamp).toISOString();
       }
     }
 
@@ -121,23 +193,35 @@ serve(async (req) => {
         return acc;
       }, {} as typeof aggregated);
 
+    const totalClaimed = Object.values(aggregated).reduce((sum, w) => sum + w.totalClaimed, 0);
+
     return new Response(JSON.stringify({ 
-      transfers: claimTransfers.slice(0, 100), // Return last 100 transactions
+      transfers: transfers.slice(0, 100).map(t => ({
+        ...t,
+        value: ethers.formatUnits(t.value, tokenDecimals)
+      })),
       aggregated: sortedAggregated,
-      totalTransfers: claimTransfers.length,
+      totalTransfers: transfers.length,
       totalWallets: Object.keys(aggregated).length,
-      totalClaimed: Object.values(aggregated).reduce((sum, w) => sum + w.totalClaimed, 0)
+      totalClaimed: totalClaimed,
+      blocksSearched: blocksToSearch,
+      fromBlock: fromBlock,
+      toBlock: currentBlock
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: unknown) {
-    console.error('Error fetching BscScan data:', error);
+    console.error('Error fetching blockchain data:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      transfers: [],
+      aggregated: {},
+      hint: 'Đang sử dụng public RPC. Nếu lỗi, vui lòng thử lại sau vài giây.'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-
