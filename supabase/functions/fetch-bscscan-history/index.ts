@@ -1,33 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { ethers } from "https://esm.sh/ethers@6.9.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CAMLY Token contract address on BSC (lowercase to avoid checksum issues)
-const CAMLY_CONTRACT = "0x3a1311b8c404629e38f61d566cefeaed8da1c0c8";
-// Wallet that sends CAMLY rewards
-const SENDER_WALLET = "0xBBa78598Be65520DD892C771Cf17B8D53aFfF68c";
+// Contract CAMLY và ví trả thưởng
+const CAMLY_CONTRACT = '0x3a1311b8c404629e38f61d566cefeaed8da1c0c8';
+const SENDER_WALLET = '0xbba78598be65520dd892c771cf17b8d53afff68c';
 
-// ERC20 Transfer event signature
-const TRANSFER_EVENT_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f631f5d357878678da80a64f65";
-
-// Public RPC endpoints for BSC (fallback list)
-const RPC_URLS = [
-  "https://bsc-dataseed.binance.org/",
-  "https://rpc.ankr.com/bsc",
-  "https://bsc-rpc.publicnode.com",
-  "https://bscrpc.com"
-];
-
-// ERC20 ABI for decimals
-const ERC20_ABI = [
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
-  "function name() view returns (string)"
-];
+interface MoralisTransfer {
+  from_address: string;
+  to_address: string;
+  value: string;
+  block_number: string;
+  block_timestamp: string;
+  transaction_hash: string;
+}
 
 interface TokenTransfer {
   blockNumber: number;
@@ -35,233 +24,196 @@ interface TokenTransfer {
   from: string;
   to: string;
   value: string;
-  timestamp?: number;
+  timestamp: string;
 }
 
-async function getProviderWithFallback(): Promise<ethers.JsonRpcProvider> {
-  for (const rpcUrl of RPC_URLS) {
-    try {
-      const provider = new ethers.JsonRpcProvider(rpcUrl);
-      // Test connection
-      await provider.getBlockNumber();
-      console.log(`Connected to RPC: ${rpcUrl}`);
-      return provider;
-    } catch (error) {
-      console.log(`Failed to connect to ${rpcUrl}, trying next...`);
-    }
+interface WalletData {
+  totalClaimed: string;
+  transactions: number;
+  lastClaimAt: string;
+}
+
+async function getCamlyClaimsFromMoralis(): Promise<TokenTransfer[]> {
+  const MORALIS_API_KEY = Deno.env.get('MORALIS_API_KEY');
+  
+  if (!MORALIS_API_KEY) {
+    throw new Error('MORALIS_API_KEY not configured');
   }
-  throw new Error("All RPC endpoints failed");
+
+  const transfers: TokenTransfer[] = [];
+  let cursor: string | undefined = undefined;
+  const limit = 100;
+
+  const headers = {
+    'X-API-Key': MORALIS_API_KEY,
+    'accept': 'application/json'
+  };
+
+  let pageCount = 0;
+  const maxPages = 50; // Giới hạn số trang để tránh quá nhiều requests
+
+  do {
+    const params = new URLSearchParams({
+      chain: 'bsc',
+      limit: limit.toString(),
+      order: 'DESC',
+    });
+
+    if (cursor) {
+      params.append('cursor', cursor);
+    }
+
+    try {
+      const url = `https://deep-index.moralis.io/api/v2.2/erc20/${CAMLY_CONTRACT}/transfers?${params.toString()}`;
+      console.log(`Fetching page ${pageCount + 1} from Moralis...`);
+      
+      const response = await fetch(url, { 
+        headers, 
+        signal: AbortSignal.timeout(30000) 
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Moralis API error:', response.status, errorText);
+        throw new Error(`Moralis API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const results: MoralisTransfer[] = data.result || [];
+
+      // Filter chỉ các transfer FROM ví trả thưởng (claim thực sự)
+      const claimTransfers = results
+        .filter(t => t.from_address.toLowerCase() === SENDER_WALLET.toLowerCase())
+        .map(t => ({
+          blockNumber: parseInt(t.block_number),
+          transactionHash: t.transaction_hash,
+          from: t.from_address,
+          to: t.to_address,
+          value: t.value,
+          timestamp: t.block_timestamp
+        }));
+
+      transfers.push(...claimTransfers);
+      console.log(`Page ${pageCount + 1}: found ${claimTransfers.length} claims, total: ${transfers.length}`);
+
+      cursor = data.cursor || undefined;
+      pageCount++;
+
+      // Delay nhẹ để an toàn
+      if (cursor && pageCount < maxPages) {
+        await new Promise(r => setTimeout(r, 200));
+      }
+    } catch (error: any) {
+      console.error('Moralis API error:', error.message);
+      break;
+    }
+  } while (cursor && pageCount < maxPages);
+
+  console.log(`Total claims fetched from Moralis: ${transfers.length}`);
+  return transfers;
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Fetching token transfers using public RPC...');
-    console.log('CAMLY Contract:', CAMLY_CONTRACT);
-    console.log('Sender Wallet:', SENDER_WALLET);
+    console.log('Starting Moralis fetch for CAMLY transfers...');
+    console.log('Contract:', CAMLY_CONTRACT);
+    console.log('Sender wallet:', SENDER_WALLET);
 
-    const provider = await getProviderWithFallback();
-    
-    // Get token decimals
-    const tokenContract = new ethers.Contract(CAMLY_CONTRACT, ERC20_ABI, provider);
-    let tokenDecimals = 18;
-    try {
-      tokenDecimals = await tokenContract.decimals();
-      console.log('Token decimals:', tokenDecimals);
-    } catch (e) {
-      console.log('Could not fetch decimals, using default 18');
-    }
+    const transfers = await getCamlyClaimsFromMoralis();
 
-    // Get current block number
-    const currentBlock = await provider.getBlockNumber();
-    console.log('Current block:', currentBlock);
-    
-    // Search last ~3 days of blocks to avoid rate limits (BSC ~3s per block = ~28800 blocks/day)
-    const blocksToSearch = 50000; // Reduced to ~2 days
-    const fromBlock = Math.max(0, currentBlock - blocksToSearch);
-    
-    console.log(`Searching from block ${fromBlock} to ${currentBlock}`);
-
-    // Pad sender address to 32 bytes for topic filter
-    const senderPadded = ethers.zeroPadValue(SENDER_WALLET.toLowerCase(), 32);
-
-    // Split into smaller chunks to avoid rate limits
-    const CHUNK_SIZE = 10000;
-    const logs: any[] = [];
-    
-    for (let start = fromBlock; start < currentBlock; start += CHUNK_SIZE) {
-      const end = Math.min(start + CHUNK_SIZE - 1, currentBlock);
-      console.log(`Fetching logs from block ${start} to ${end}...`);
-      
-      try {
-        const filter = {
-          address: CAMLY_CONTRACT,
-          topics: [
-            TRANSFER_EVENT_TOPIC,
-            senderPadded,
-            null
-          ],
-          fromBlock: start,
-          toBlock: end
-        };
-        
-        const chunkLogs = await provider.getLogs(filter);
-        logs.push(...chunkLogs);
-        console.log(`Found ${chunkLogs.length} events in chunk`);
-        
-        // Small delay between chunks to avoid rate limiting
-        if (start + CHUNK_SIZE < currentBlock) {
-          await new Promise(r => setTimeout(r, 200));
-        }
-      } catch (chunkError: any) {
-        console.log(`Chunk ${start}-${end} failed, trying next RPC...`);
-        // Try with a different RPC if this one fails
-        for (let i = 1; i < RPC_URLS.length; i++) {
-          try {
-            const fallbackProvider = new ethers.JsonRpcProvider(RPC_URLS[i]);
-            const filter = {
-              address: CAMLY_CONTRACT,
-              topics: [
-                TRANSFER_EVENT_TOPIC,
-                senderPadded,
-                null
-              ],
-              fromBlock: start,
-              toBlock: end
-            };
-            const chunkLogs = await fallbackProvider.getLogs(filter);
-            logs.push(...chunkLogs);
-            console.log(`Fallback RPC ${i} succeeded with ${chunkLogs.length} events`);
-            break;
-          } catch (fallbackError) {
-            console.log(`Fallback RPC ${i} also failed`);
-          }
-        }
-      }
-    }
-    
-    console.log(`Found ${logs.length} total transfer events`);
-
-    // Parse transfer events
-    const transfers: TokenTransfer[] = [];
-    
-    for (const log of logs) {
-      const from = ethers.getAddress('0x' + log.topics[1].slice(26));
-      const to = ethers.getAddress('0x' + log.topics[2].slice(26));
-      const value = ethers.toBigInt(log.data);
-      
-      transfers.push({
-        blockNumber: log.blockNumber,
-        transactionHash: log.transactionHash,
-        from: from,
-        to: to,
-        value: value.toString()
-      });
-    }
-
-    console.log(`Parsed ${transfers.length} transfers`);
-
-    // Aggregate by receiver wallet
-    const aggregated: Record<string, { 
-      totalClaimed: number; 
-      transactions: number;
-      lastClaimAt: string;
-      walletAddress: string;
-      lastBlockNumber: number;
-    }> = {};
+    // Aggregate by wallet
+    const walletMap: Record<string, WalletData> = {};
+    const decimals = 18; // CAMLY có 18 decimals
 
     for (const tx of transfers) {
       const receiver = tx.to.toLowerCase();
-      const amount = Number(ethers.formatUnits(tx.value, tokenDecimals));
       
-      if (!aggregated[receiver]) {
-        aggregated[receiver] = {
-          totalClaimed: 0,
+      if (!walletMap[receiver]) {
+        walletMap[receiver] = {
+          totalClaimed: '0',
           transactions: 0,
-          lastClaimAt: '',
-          walletAddress: tx.to,
-          lastBlockNumber: 0
+          lastClaimAt: tx.timestamp
         };
       }
-      
-      aggregated[receiver].totalClaimed += amount;
-      aggregated[receiver].transactions += 1;
-      
-      // Track latest block for this receiver
-      if (tx.blockNumber > aggregated[receiver].lastBlockNumber) {
-        aggregated[receiver].lastBlockNumber = tx.blockNumber;
+
+      // Add to total (BigInt math)
+      const current = BigInt(walletMap[receiver].totalClaimed);
+      const adding = BigInt(tx.value);
+      walletMap[receiver].totalClaimed = (current + adding).toString();
+      walletMap[receiver].transactions += 1;
+
+      // Update last claim if this is more recent
+      if (tx.timestamp > walletMap[receiver].lastClaimAt) {
+        walletMap[receiver].lastClaimAt = tx.timestamp;
       }
     }
 
-    // Get timestamps for the latest blocks (sample a few)
-    const uniqueBlocks = [...new Set(Object.values(aggregated).map(a => a.lastBlockNumber))].slice(0, 50);
-    const blockTimestamps: Record<number, number> = {};
-    
-    for (const blockNum of uniqueBlocks) {
-      try {
-        const block = await provider.getBlock(blockNum);
-        if (block) {
-          blockTimestamps[blockNum] = block.timestamp;
-        }
-      } catch (e) {
-        console.log(`Could not fetch block ${blockNum} timestamp`);
-      }
+    // Convert to array and format
+    const aggregatedArray = Object.entries(walletMap).map(([wallet, data]) => {
+      // Convert from wei to token units
+      const totalInWei = BigInt(data.totalClaimed);
+      const divisor = BigInt(10 ** decimals);
+      const wholePart = totalInWei / divisor;
+      const decimalPart = totalInWei % divisor;
+      const formattedTotal = `${wholePart}.${decimalPart.toString().padStart(decimals, '0').slice(0, 4)}`;
+
+      return {
+        wallet,
+        walletAddress: wallet,
+        totalClaimed: parseFloat(formattedTotal),
+        totalClaimedRaw: data.totalClaimed,
+        transactions: data.transactions,
+        lastClaimAt: data.lastClaimAt
+      };
+    }).sort((a, b) => b.totalClaimed - a.totalClaimed);
+
+    // Convert back to object format for compatibility
+    const aggregatedObject: Record<string, any> = {};
+    for (const item of aggregatedArray) {
+      aggregatedObject[item.wallet] = {
+        totalClaimed: item.totalClaimed,
+        transactions: item.transactions,
+        lastClaimAt: item.lastClaimAt,
+        walletAddress: item.walletAddress
+      };
     }
 
-    // Update lastClaimAt with actual timestamps
-    for (const receiver in aggregated) {
-      const blockNum = aggregated[receiver].lastBlockNumber;
-      if (blockTimestamps[blockNum]) {
-        aggregated[receiver].lastClaimAt = new Date(blockTimestamps[blockNum] * 1000).toISOString();
-      } else {
-        // Estimate timestamp based on block number
-        const estimatedTimestamp = Date.now() - ((currentBlock - blockNum) * 3000);
-        aggregated[receiver].lastClaimAt = new Date(estimatedTimestamp).toISOString();
-      }
-    }
+    // Calculate summary
+    const totalClaimedAll = aggregatedArray.reduce((sum, w) => sum + w.totalClaimed, 0);
+    const uniqueWallets = aggregatedArray.length;
+    const totalTransactions = transfers.length;
 
-    console.log(`Aggregated ${Object.keys(aggregated).length} unique wallets`);
+    console.log(`Summary: ${uniqueWallets} wallets, ${totalTransactions} transactions, ${totalClaimedAll.toFixed(2)} CAMLY total`);
 
-    // Sort by total claimed descending
-    const sortedAggregated = Object.entries(aggregated)
-      .sort(([, a], [, b]) => b.totalClaimed - a.totalClaimed)
-      .reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as typeof aggregated);
-
-    const totalClaimed = Object.values(aggregated).reduce((sum, w) => sum + w.totalClaimed, 0);
-
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       transfers: transfers.slice(0, 100).map(t => ({
         ...t,
-        value: ethers.formatUnits(t.value, tokenDecimals)
+        value: (parseFloat(t.value) / Math.pow(10, decimals)).toFixed(4)
       })),
-      aggregated: sortedAggregated,
-      totalTransfers: transfers.length,
-      totalWallets: Object.keys(aggregated).length,
-      totalClaimed: totalClaimed,
-      blocksSearched: blocksToSearch,
-      fromBlock: fromBlock,
-      toBlock: currentBlock
+      aggregated: aggregatedObject,
+      totalTransfers: totalTransactions,
+      totalWallets: uniqueWallets,
+      totalClaimed: totalClaimedAll,
+      dataSource: 'Moralis API'
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: unknown) {
-    console.error('Error fetching blockchain data:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
+  } catch (error: any) {
+    console.error('Error:', error.message);
+    return new Response(JSON.stringify({
+      error: error.message,
       transfers: [],
       aggregated: {},
-      hint: 'Đang sử dụng public RPC. Nếu lỗi, vui lòng thử lại sau vài giây.'
+      hint: 'Vui lòng kiểm tra MORALIS_API_KEY đã được cấu hình đúng chưa.'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
