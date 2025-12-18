@@ -323,7 +323,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-card via-card to-primary/5 border-primary/20 flex flex-col">
+      <DialogContent className="w-full h-full sm:w-auto sm:h-auto sm:max-w-2xl sm:max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-card via-card to-primary/5 border-primary/20 flex flex-col overflow-hidden">
         {/* Header with gradient - fixed */}
         <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border flex-shrink-0">
           <DialogTitle className="flex items-center gap-3 font-display text-lg sm:text-xl">
@@ -336,7 +336,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
+        <div className="flex-1 overflow-y-auto overscroll-contain">
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Post Type Tabs */}
           <Tabs value={postType} onValueChange={setPostType}>
