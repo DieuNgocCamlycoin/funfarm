@@ -179,11 +179,10 @@ const Admin = () => {
       if (error) {
         console.error('Error fetching blockchain data:', error);
         setBlockchainError('Không thể kết nối đến API');
-        toast.error('Không thể lấy dữ liệu blockchain');
         return;
       }
 
-      // Xử lý dữ liệu từ response (có thể là live hoặc cache)
+      // Xử lý dữ liệu từ response (có thể là live, cache hoặc default)
       if (data) {
         const claimData: BlockchainClaimData[] = Object.entries(data.aggregated || {}).map(([wallet, info]: [string, any]) => ({
           walletAddress: info.walletAddress || wallet,
@@ -201,23 +200,20 @@ const Admin = () => {
         setBlockchainDataSource(data.dataSource || 'Unknown');
         setBlockchainLastUpdated(data.lastUpdated || null);
         
-        // Hiển thị thông báo phù hợp với nguồn dữ liệu
-        if (data.cacheNote) {
-          toast.info(data.cacheNote, { duration: 5000 });
-        } else if (data.hint) {
-          toast.warning(data.hint, { duration: 5000 });
-        } else {
-          const walletsWithNames = claimData.filter(c => c.userName).length;
-          const sourceLabel = data.dataSource?.includes('Cache') ? '(từ cache)' : '(live)';
-          if (data.totalClaimed > 0) {
-            toast.success(`Đã tải ${claimData.length} ví ${sourceLabel} - ${data.totalClaimed.toLocaleString()} CAMLY`);
-          }
+        // Chỉ hiển thị toast khi force refresh
+        if (forceRefresh) {
+          const sourceLabel = data.dataSource?.includes('Cache') ? '(từ cache)' 
+            : data.dataSource?.includes('BscScan') ? '(BscScan backup)'
+            : data.dataSource?.includes('Moralis') ? '(Moralis live)'
+            : '';
+          toast.success(`Đã tải ${claimData.length} ví ${sourceLabel}`, { duration: 3000 });
         }
+        
+        // Không báo lỗi, data luôn có từ cache/default
       }
     } catch (err: any) {
       console.error('Error:', err);
       setBlockchainError(err.message || 'Lỗi không xác định');
-      toast.error('Lỗi kết nối đến blockchain API');
     } finally {
       setBlockchainLoading(false);
     }
@@ -1131,7 +1127,10 @@ const Admin = () => {
                   <Link className="h-5 w-5 text-cyan-500" />
                   Lịch sử Claim từ Blockchain
                   {blockchainDataSource && (
-                    <Badge variant={blockchainDataSource.includes('Live') ? 'default' : 'secondary'} className="text-xs">
+                    <Badge 
+                      variant={blockchainDataSource.includes('Live') || blockchainDataSource.includes('Moralis') ? 'default' : blockchainDataSource.includes('BscScan') ? 'default' : 'secondary'} 
+                      className={`text-xs ${blockchainDataSource.includes('BscScan') ? 'bg-blue-500' : ''}`}
+                    >
                       {blockchainDataSource}
                     </Badge>
                   )}
