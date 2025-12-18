@@ -458,6 +458,9 @@ export type Database = {
           approved_reward: number
           avatar_url: string | null
           avatar_verified: boolean
+          ban_reason: string | null
+          banned: boolean
+          banned_at: string | null
           bio: string | null
           camly_balance: number
           cover_url: string | null
@@ -491,6 +494,9 @@ export type Database = {
           approved_reward?: number
           avatar_url?: string | null
           avatar_verified?: boolean
+          ban_reason?: string | null
+          banned?: boolean
+          banned_at?: string | null
           bio?: string | null
           camly_balance?: number
           cover_url?: string | null
@@ -524,6 +530,9 @@ export type Database = {
           approved_reward?: number
           avatar_url?: string | null
           avatar_verified?: boolean
+          ban_reason?: string | null
+          banned?: boolean
+          banned_at?: string | null
           bio?: string | null
           camly_balance?: number
           cover_url?: string | null
@@ -835,6 +844,10 @@ export type Database = {
         Args: { p_admin_id: string; p_note?: string; p_user_id: string }
         Returns: number
       }
+      ban_user_permanently: {
+        Args: { p_admin_id: string; p_reason?: string; p_user_id: string }
+        Returns: boolean
+      }
       calculate_user_rewards: { Args: { p_user_id: string }; Returns: number }
       check_daily_limit: {
         Args: { p_action_type: string; p_user_id: string }
@@ -902,6 +915,7 @@ export type Database = {
         Returns: boolean
       }
       is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
+      is_user_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_wallet_blacklisted: { Args: { p_wallet: string }; Returns: boolean }
       process_order: {
         Args: {
