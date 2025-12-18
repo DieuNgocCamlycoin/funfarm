@@ -34,8 +34,10 @@ import {
   Link,
   RefreshCw,
   Clock,
-  Download
+  Download,
+  Search
 } from "lucide-react";
+import UserReviewTab from "@/components/admin/UserReviewTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
@@ -64,8 +66,9 @@ interface AllUserReward {
   is_good_heart: boolean;
   created_at: string;
   profile_type: string;
+  banned?: boolean;
+  ban_reason?: string | null;
   is_banned?: boolean;
-  ban_reason?: string;
   ban_expires_at?: string;
   posts_count?: number;
   comments_count?: number;
@@ -246,10 +249,10 @@ const Admin = () => {
   };
 
   const fetchAllUsers = async () => {
-    // Fetch all users with full details
+    // Fetch all users with full details including banned status
     const { data: usersData, error } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, wallet_address, is_verified, email_verified, avatar_verified, violation_level, last_violation_at, is_good_heart, created_at, profile_type')
+      .select('id, display_name, avatar_url, pending_reward, approved_reward, camly_balance, wallet_connected, wallet_address, is_verified, email_verified, avatar_verified, violation_level, last_violation_at, is_good_heart, created_at, profile_type, banned, ban_reason')
       .order('created_at', { ascending: false });
 
     if (error || !usersData) return;
@@ -318,8 +321,9 @@ const Admin = () => {
       const ban = bansData?.find(b => b.user_id === user.id);
       return {
         ...user,
-        is_banned: !!ban,
-        ban_reason: ban?.reason || null,
+        banned: (user as any).banned || false,
+        ban_reason: (user as any).ban_reason || ban?.reason || null,
+        is_banned: (user as any).banned || !!ban,
         ban_expires_at: ban?.expires_at || null,
         posts_count: postsCountMap[user.id] || 0,
         comments_count: commentsCountMap[user.id] || 0,
@@ -593,10 +597,14 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
               <Gift className="h-4 w-4" />
               <span className="hidden sm:inline">Duyệt</span> ({pendingUsers.length})
+            </TabsTrigger>
+            <TabsTrigger value="review" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Rà soát</span>
             </TabsTrigger>
             <TabsTrigger value="approved" className="flex items-center gap-2 text-xs sm:text-sm">
               <CheckCircle className="h-4 w-4" />
@@ -746,6 +754,18 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Review Tab */}
+          <TabsContent value="review" className="mt-4">
+            <UserReviewTab 
+              allUsers={allUsers} 
+              adminId={user?.id || ''} 
+              onRefresh={() => {
+                fetchAllUsers();
+                fetchBannedUsers();
+              }} 
+            />
           </TabsContent>
 
           {/* Bans Tab */}
