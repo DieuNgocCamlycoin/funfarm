@@ -31,10 +31,12 @@ const ProfileSetup = () => {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
   const [agreedToLightLaw, setAgreedToLightLaw] = useState(false);
+  const [highlightCheckbox, setHighlightCheckbox] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isCheckingAvatar, setIsCheckingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const checkboxRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || '',
     location: '',
@@ -149,8 +151,32 @@ const ProfileSetup = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleCheckboxReminder = () => {
+    // Show warm toast
+    toast(
+      <div className="flex items-center gap-2">
+        <Heart className="w-5 h-5 text-primary" />
+        <span>Bà con ơi, vui lòng tick đồng ý với Luật Ánh Sáng để hoàn tất và nhận phước lành ❤️</span>
+      </div>,
+      { duration: 4000 }
+    );
+    
+    // Scroll to checkbox smoothly
+    checkboxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Highlight checkbox
+    setHighlightCheckbox(true);
+    setTimeout(() => setHighlightCheckbox(false), 3000);
+  };
+
   const handleSubmit = async () => {
-    if (!user || !selectedType || !agreedToLightLaw) return;
+    if (!user || !selectedType) return;
+
+    // If not agreed, show reminder instead of proceeding
+    if (!agreedToLightLaw) {
+      handleCheckboxReminder();
+      return;
+    }
 
     if (!formData.display_name.trim()) {
       toast.error('Vui lòng nhập tên thật của bạn');
@@ -530,15 +556,27 @@ const ProfileSetup = () => {
                 </ScrollArea>
 
                 {/* Agreement Checkbox */}
-                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                <div 
+                  ref={checkboxRef}
+                  className={`p-4 rounded-xl transition-all duration-500 ${
+                    highlightCheckbox 
+                      ? 'bg-primary/20 border-2 border-primary shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse' 
+                      : 'bg-primary/5 border border-primary/20'
+                  }`}
+                >
                   <label className="flex items-start gap-3 cursor-pointer">
                     <Checkbox
                       checked={agreedToLightLaw}
-                      onCheckedChange={(checked) => setAgreedToLightLaw(checked as boolean)}
-                      className="mt-0.5"
+                      onCheckedChange={(checked) => {
+                        setAgreedToLightLaw(checked as boolean);
+                        if (checked) setHighlightCheckbox(false);
+                      }}
+                      className={`mt-0.5 transition-all ${highlightCheckbox ? 'scale-125' : ''}`}
                     />
                     <div>
-                      <p className="font-medium text-sm">Tôi đồng ý với Luật Ánh Sáng</p>
+                      <p className={`font-medium text-sm transition-colors ${highlightCheckbox ? 'text-primary' : ''}`}>
+                        Tôi đồng ý với Luật Ánh Sáng
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Tôi cam kết sống chân thật, yêu thương và hướng về ánh sáng trong FUN Ecosystem
                       </p>
@@ -563,10 +601,11 @@ const ProfileSetup = () => {
                     Quay lại
                   </Button>
                   <Button
-                    onClick={agreedToLightLaw ? handleSubmit : handleDeclineLightLaw}
+                    onClick={handleSubmit}
                     disabled={isLoading}
                     className={`flex-1 gap-2 ${agreedToLightLaw ? 'gradient-hero border-0' : ''}`}
                     variant={agreedToLightLaw ? 'default' : 'outline'}
+                    title={!agreedToLightLaw ? 'Vui lòng đồng ý Luật Ánh Sáng để tiếp tục' : undefined}
                   >
                     {isLoading ? (
                       <>
