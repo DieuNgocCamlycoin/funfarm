@@ -111,19 +111,20 @@ const ConnectWallet = () => {
     if (!targetEmail) return;
 
     setIsLoading(true);
-    // Determine production redirect URL (prioritize farm.fun.rich domain)
+    // Determine redirect URL for confirmation email (must be absolute)
     const getRedirectUrl = () => {
-      const origin = window.location.origin;
-      // In production, use farm.fun.rich as primary domain
-      if (origin.includes('farm.fun.rich') || origin.includes('funfarm.life')) {
-        return `${origin}/profile-setup`;
+      const hostname = window.location.hostname;
+
+      // Production domains
+      if (hostname === 'funfarm.life' || hostname === 'www.funfarm.life') {
+        return 'https://funfarm.life/profile-setup';
       }
-      // For lovable preview, use the current origin
-      if (origin.includes('lovableproject.com') || origin.includes('lovable.app')) {
-        return `${origin}/profile-setup`;
+      if (hostname === 'farm.fun.rich' || hostname === 'www.farm.fun.rich') {
+        return 'https://farm.fun.rich/profile-setup';
       }
-      // Default to farm.fun.rich for production
-      return 'https://farm.fun.rich/profile-setup';
+
+      // Lovable preview / other environments
+      return `${window.location.origin}/profile-setup`;
     };
 
     try {
