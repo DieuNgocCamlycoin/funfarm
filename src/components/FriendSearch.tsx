@@ -50,15 +50,22 @@ export function FriendSearch({ compact = false }: FriendSearchProps) {
     
     setIsLoading(true);
     try {
+      const trimmedQuery = searchQuery.trim();
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedQuery);
+
       let query = supabase
         .from('profiles')
         .select('id, display_name, avatar_url, location, profile_type, bio, is_verified')
         .neq('id', user.id)
         .limit(20);
 
-      // Filter by name
-      if (searchQuery.trim()) {
-        query = query.ilike('display_name', `%${searchQuery.trim()}%`);
+      // Filter by UID or name
+      if (trimmedQuery) {
+        if (isUUID) {
+          query = query.eq('id', trimmedQuery);
+        } else {
+          query = query.ilike('display_name', `%${trimmedQuery}%`);
+        }
       }
 
       // Filter by profile type
@@ -279,7 +286,7 @@ export function FriendSearch({ compact = false }: FriendSearchProps) {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm theo tên..."
+            placeholder="Tìm theo tên hoặc UID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -372,7 +379,7 @@ export function FriendSearch({ compact = false }: FriendSearchProps) {
       ) : (
         <div className="text-center py-8 text-muted-foreground">
           <UserPlus className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p>Nhập tên, chọn loại thành viên hoặc vị trí để tìm bạn bè</p>
+          <p>Nhập tên, UID, chọn loại thành viên hoặc vị trí để tìm bạn bè</p>
         </div>
       )}
     </div>
