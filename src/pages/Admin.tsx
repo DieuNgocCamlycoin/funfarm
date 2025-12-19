@@ -38,6 +38,7 @@ import {
   Search
 } from "lucide-react";
 import UserReviewTab from "@/components/admin/UserReviewTab";
+import WalletAbuseTab from "@/components/admin/WalletAbuseTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
@@ -603,10 +604,14 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
               <Gift className="h-4 w-4" />
               <span className="hidden sm:inline">Duyệt</span> ({pendingUsers.length})
+            </TabsTrigger>
+            <TabsTrigger value="abuse" className="flex items-center gap-2 text-xs sm:text-sm">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="hidden sm:inline">Lạm dụng</span>
             </TabsTrigger>
             <TabsTrigger value="review" className="flex items-center gap-2 text-xs sm:text-sm">
               <Search className="h-4 w-4" />
@@ -765,6 +770,18 @@ const Admin = () => {
           {/* Review Tab */}
           <TabsContent value="review" className="mt-4">
             <UserReviewTab 
+              allUsers={allUsers} 
+              adminId={user?.id || ''} 
+              onRefresh={() => {
+                fetchAllUsers();
+                fetchBannedUsers();
+              }} 
+            />
+          </TabsContent>
+
+          {/* Wallet Abuse Tab */}
+          <TabsContent value="abuse" className="mt-4">
+            <WalletAbuseTab 
               allUsers={allUsers} 
               adminId={user?.id || ''} 
               onRefresh={() => {
