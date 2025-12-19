@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import UserReviewTab from "@/components/admin/UserReviewTab";
 import WalletAbuseTab from "@/components/admin/WalletAbuseTab";
+import QuickDeleteTab from "@/components/admin/QuickDeleteTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
@@ -604,7 +605,11 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
+            <TabsTrigger value="quick-delete" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Search className="h-4 w-4 text-red-500" />
+              <span className="hidden sm:inline text-red-500 font-medium">Xóa nhanh</span>
+            </TabsTrigger>
             <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
               <Gift className="h-4 w-4" />
               <span className="hidden sm:inline">Duyệt</span> ({pendingUsers.length})
@@ -638,6 +643,18 @@ const Admin = () => {
               <span className="hidden sm:inline">Ban</span> ({bannedUsers.length})
             </TabsTrigger>
           </TabsList>
+
+          {/* Quick Delete Tab */}
+          <TabsContent value="quick-delete" className="mt-4">
+            <QuickDeleteTab 
+              adminId={user?.id || ''} 
+              onRefresh={() => {
+                fetchPendingRewards();
+                fetchBannedUsers();
+                fetchAllUsers();
+              }} 
+            />
+          </TabsContent>
 
           {/* Rewards Tab */}
           <TabsContent value="rewards" className="mt-4">
