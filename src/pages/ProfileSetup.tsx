@@ -20,7 +20,7 @@ import { useConfetti } from '@/components/ConfettiProvider';
 type ProfileType = 'farmer' | 'fisher' | 'eater' | 'restaurant' | 'distributor' | 'shipper';
 
 const ProfileSetup = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { triggerConfetti } = useConfetti();
@@ -244,6 +244,19 @@ const ProfileSetup = () => {
       navigate('/feed');
     }
   };
+
+  // Wait for auth to settle before redirecting
+  // This prevents redirect to /auth when user clicks magic link (session is being parsed from URL)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Đang xác thực...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     navigate('/auth');
