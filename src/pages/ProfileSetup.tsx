@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Sparkles, ChevronRight, MapPin } from 'lucide-react';
+import { Loader2, Sparkles, ChevronRight, MapPin, PartyPopper } from 'lucide-react';
 import { WELCOME_BONUS, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS } from '@/lib/constants';
 import WelcomeBonusModal from '@/components/WelcomeBonusModal';
+import { useConfetti } from '@/components/ConfettiProvider';
 
 type ProfileType = 'farmer' | 'fisher' | 'eater' | 'restaurant' | 'distributor' | 'shipper';
 
@@ -20,15 +21,43 @@ const ProfileSetup = () => {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { triggerConfetti } = useConfetti();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<ProfileType | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
   const [formData, setFormData] = useState({
     display_name: profile?.display_name || '',
     location: '',
     bio: '',
   });
+
+  // Trigger confetti when user lands on profile-setup after email verification
+  useEffect(() => {
+    if (user && !hasTriggeredConfetti) {
+      // Small delay to ensure page is rendered
+      const timer = setTimeout(() => {
+        triggerConfetti('celebration');
+        setHasTriggeredConfetti(true);
+        
+        // Show welcome toast
+        toast.success(
+          <div className="flex items-center gap-2">
+            <PartyPopper className="w-5 h-5 text-yellow-500" />
+            <div>
+              <p className="font-bold">Xác minh email thành công!</p>
+              <p className="text-sm opacity-80">Chào mừng bà con đến FUN FARM ❤️</p>
+            </div>
+          </div>,
+          { duration: 5000 }
+        );
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, hasTriggeredConfetti, triggerConfetti]);
 
   const profileTypes: { type: ProfileType; emoji: string; titleKey: string; descKey: string }[] = [
     { type: 'farmer', emoji: '🧑‍🌾', titleKey: 'roles.farmer', descKey: 'roles.farmerDesc' },
