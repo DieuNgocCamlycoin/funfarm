@@ -111,12 +111,27 @@ const ConnectWallet = () => {
     if (!targetEmail) return;
 
     setIsLoading(true);
+    // Determine production redirect URL (prioritize farm.fun.rich domain)
+    const getRedirectUrl = () => {
+      const origin = window.location.origin;
+      // In production, use farm.fun.rich as primary domain
+      if (origin.includes('farm.fun.rich') || origin.includes('funfarm.life')) {
+        return `${origin}/profile-setup`;
+      }
+      // For lovable preview, use the current origin
+      if (origin.includes('lovableproject.com') || origin.includes('lovable.app')) {
+        return `${origin}/profile-setup`;
+      }
+      // Default to farm.fun.rich for production
+      return 'https://farm.fun.rich/profile-setup';
+    };
+
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: targetEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/profile-setup`,
+          emailRedirectTo: getRedirectUrl(),
         },
       });
 

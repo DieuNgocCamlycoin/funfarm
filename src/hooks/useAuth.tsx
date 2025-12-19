@@ -105,11 +105,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
+      // Determine production redirect URL (prioritize farm.fun.rich domain)
+      const getRedirectUrl = () => {
+        const origin = window.location.origin;
+        // In production, use farm.fun.rich as primary domain
+        if (origin.includes('farm.fun.rich') || origin.includes('funfarm.life')) {
+          return `${origin}/profile-setup`;
+        }
+        // For lovable preview, use the current origin
+        if (origin.includes('lovableproject.com') || origin.includes('lovable.app')) {
+          return `${origin}/profile-setup`;
+        }
+        // Default to farm.fun.rich for production
+        return 'https://farm.fun.rich/profile-setup';
+      };
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: getRedirectUrl(),
         },
       });
       if (error) {
