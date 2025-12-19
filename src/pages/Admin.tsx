@@ -1359,10 +1359,10 @@ const Admin = () => {
                 </CardDescription>
                 <div className="mt-4 flex flex-col sm:flex-row gap-3">
                   <Input
-                    placeholder="Tìm kiếm theo tên..."
+                  placeholder="Tìm theo tên, UID hoặc wallet..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="max-w-sm"
+                    className="max-w-md"
                   />
                   <Button
                     variant="outline"
@@ -1490,11 +1490,15 @@ const Admin = () => {
                     </thead>
                     <tbody>
                       {allUsers
-                        .filter(u => 
-                          !searchQuery || 
-                          u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          u.wallet_address?.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
+                        .filter(u => {
+                          if (!searchQuery) return true;
+                          const query = searchQuery.toLowerCase().trim();
+                          return (
+                            u.display_name?.toLowerCase().includes(query) ||
+                            u.wallet_address?.toLowerCase().includes(query) ||
+                            u.id.toLowerCase().includes(query)
+                          );
+                        })
                         .map((u) => (
                           <tr key={u.id} className={`border-b hover:bg-muted/30 transition-colors ${u.is_banned ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
                             <td className="p-2">
