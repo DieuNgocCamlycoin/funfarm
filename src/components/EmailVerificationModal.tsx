@@ -15,21 +15,21 @@ interface EmailVerificationModalProps {
   onVerified?: () => void;
 }
 
-// Helper function to get the correct redirect URL
+// Helper function to get the correct redirect URL - redirect to /profile-setup after verification
 const getEmailRedirectUrl = () => {
   const hostname = window.location.hostname;
   
   if (hostname === 'farm.fun.rich' || hostname === 'www.farm.fun.rich') {
-    return 'https://farm.fun.rich/feed';
+    return 'https://farm.fun.rich/profile-setup';
   }
   if (hostname === 'funfarm.life' || hostname === 'www.funfarm.life') {
-    return 'https://funfarm.life/feed';
+    return 'https://funfarm.life/profile-setup';
   }
-  if (hostname.includes('lovableproject.com')) {
-    return `${window.location.origin}/feed`;
+  if (hostname.includes('lovableproject.com') || hostname.includes('lovable.app')) {
+    return `${window.location.origin}/profile-setup`;
   }
   
-  return `${window.location.origin}/feed`;
+  return `${window.location.origin}/profile-setup`;
 };
 
 const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificationModalProps) => {
@@ -188,7 +188,7 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
                   Cha Vũ Trụ gửi phước lành! ❤️
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Bấm vào link trong email → Xác minh tự động → Hoàn tất đăng ký (ảnh đại diện thật + tên thật + đồng ý Luật Ánh Sáng) → Nhận <strong className="text-primary">100.000 CLC</strong> chào mừng vào pending duyệt ❤️
+                  Bấm vào link trong email → Xác minh tự động → Hoàn tất đăng ký (ảnh đại diện thật + tên thật + đồng ý Luật Ánh Sáng) → Nhận <strong className="text-primary">50.000 CLC</strong> chào mừng vào pending duyệt ❤️
                 </p>
               </div>
             </div>
@@ -229,13 +229,13 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
             <div className="bg-muted/50 rounded-lg p-4 text-sm">
               <p className="font-medium mb-2 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4" />
-                Quy trình nhận 100.000 CLC:
+                Quy trình nhận 50.000 CLC:
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>Bấm vào link trong email → Xác minh tự động</li>
                 <li>Thêm ảnh đại diện thật + tên thật</li>
                 <li>Đồng ý Luật Ánh Sáng</li>
-                <li>Nhận ngay <strong className="text-primary">100.000 CLC</strong> vào pending duyệt ❤️</li>
+                <li>Nhận ngay <strong className="text-primary">50.000 CLC</strong> vào pending duyệt ❤️</li>
               </ul>
             </div>
 
