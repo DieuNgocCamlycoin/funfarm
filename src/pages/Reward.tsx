@@ -65,6 +65,49 @@ const Reward = () => {
       const walletAddress = accounts[0].toLowerCase();
       const isFirstWalletConnection = !profile?.wallet_connected;
 
+      // Kiểm tra ví đã được dùng bởi tài khoản khác chưa
+      const { data: existingWallet, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .eq('wallet_address', walletAddress)
+        .neq('id', user.id)
+        .limit(1);
+
+      if (checkError) {
+        console.error('Error checking wallet:', checkError);
+      }
+
+      if (existingWallet && existingWallet.length > 0) {
+        toast.error(
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold">Ví đã được sử dụng!</span>
+            <span className="text-sm">Mỗi ví chỉ được kết nối với 1 tài khoản. Vui lòng dùng ví khác.</span>
+          </div>,
+          { duration: 6000 }
+        );
+        setIsConnecting(false);
+        return;
+      }
+
+      // Kiểm tra ví có bị blacklist không
+      const { data: blacklisted } = await supabase
+        .from('blacklisted_wallets')
+        .select('id, reason')
+        .eq('wallet_address', walletAddress)
+        .limit(1);
+
+      if (blacklisted && blacklisted.length > 0) {
+        toast.error(
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold">Ví bị chặn!</span>
+            <span className="text-sm">Ví này đã bị đưa vào danh sách đen. Vui lòng liên hệ Admin.</span>
+          </div>,
+          { duration: 6000 }
+        );
+        setIsConnecting(false);
+        return;
+      }
+
       // Lưu wallet address - thưởng sẽ được tự động cộng bởi database trigger
       const { error } = await supabase
         .from('profiles')
