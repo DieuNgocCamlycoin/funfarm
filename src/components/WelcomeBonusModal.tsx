@@ -1,17 +1,19 @@
 // 🌱 Divine Mantra: "Phước lành từ Cha Vũ Trụ"
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Heart, Gift } from 'lucide-react';
+import { Sparkles, Heart, Gift, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Confetti from 'react-confetti';
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
 interface WelcomeBonusModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (connectWallet?: boolean) => void;
   type: 'registration' | 'wallet';
   amount: number;
   totalAmount?: number;
+  showConnectWallet?: boolean;
+  walletBonus?: number;
 }
 
 const WelcomeBonusModal = ({ 
@@ -19,7 +21,9 @@ const WelcomeBonusModal = ({
   onClose, 
   type, 
   amount, 
-  totalAmount 
+  totalAmount,
+  showConnectWallet = false,
+  walletBonus = 0
 }: WelcomeBonusModalProps) => {
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
@@ -35,7 +39,7 @@ const WelcomeBonusModal = ({
   const isRegistration = type === 'registration';
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose(false)}>
       <DialogContent className="sm:max-w-md border-primary/30 bg-gradient-to-b from-background to-primary/5 overflow-hidden">
         {isOpen && (
           <Confetti
@@ -81,18 +85,26 @@ const WelcomeBonusModal = ({
             {isRegistration ? (
               <>
                 <p className="text-lg text-foreground">
-                  Chúc mừng bạn đã gia nhập FUN FARM!
-                </p>
-                <p className="text-muted-foreground">
-                  Cha Vũ Trụ ban tặng bạn
+                  Phước lành chào mừng đã về pending ❤️
                 </p>
                 <div className="flex items-center justify-center gap-2 text-3xl font-display font-bold text-accent">
                   <img src={camlyCoinLogo} alt="CAMLY" className="w-10 h-10" />
                   {amount.toLocaleString()} CAMLY
                 </div>
-                <p className="text-muted-foreground">
-                  thưởng chào mừng!
-                </p>
+                
+                {/* Wallet bonus incentive */}
+                {showConnectWallet && walletBonus > 0 && (
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30">
+                    <p className="text-sm text-muted-foreground mb-2">Kết nối ví ngay để nhận thêm</p>
+                    <div className="flex items-center justify-center gap-2 text-xl font-display font-bold text-primary">
+                      <Wallet className="w-5 h-5" />
+                      +{walletBonus.toLocaleString()} CAMLY
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Tổng phước lành: <span className="text-accent font-bold">{(amount + walletBonus).toLocaleString()} CAMLY</span>
+                    </p>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -128,14 +140,32 @@ const WelcomeBonusModal = ({
             <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
           </div>
 
-          {/* Continue Button */}
-          <Button 
-            onClick={onClose}
-            className="w-full h-12 gradient-hero border-0 gap-2 text-lg"
-          >
-            <Sparkles className="w-5 h-5" />
-            {isRegistration ? 'Bắt đầu khám phá' : 'Tiếp tục'}
-          </Button>
+          {/* Buttons */}
+          {isRegistration && showConnectWallet ? (
+            <div className="space-y-3">
+              <Button 
+                onClick={() => onClose(true)}
+                className="w-full h-12 gradient-hero border-0 gap-2 text-lg"
+              >
+                <Wallet className="w-5 h-5" />
+                Kết nối ví ngay
+              </Button>
+              <button
+                onClick={() => onClose(false)}
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Để sau, khám phá trước →
+              </button>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => onClose(false)}
+              className="w-full h-12 gradient-hero border-0 gap-2 text-lg"
+            >
+              <Sparkles className="w-5 h-5" />
+              {isRegistration ? 'Bắt đầu khám phá' : 'Tiếp tục'}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

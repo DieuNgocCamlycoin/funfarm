@@ -107,7 +107,16 @@ const ProfileSetup = () => {
   const handleNext = () => {
     if (step === 1 && selectedType) {
       setStep(2);
-    } else if (step === 2 && formData.display_name.trim()) {
+    } else if (step === 2) {
+      // Validate avatar + tên thật bắt buộc
+      if (!avatarPreview && !profile?.avatar_url) {
+        toast.error('Vui lòng thêm ảnh đại diện thật của bạn');
+        return;
+      }
+      if (!formData.display_name.trim()) {
+        toast.error('Vui lòng nhập tên thật của bạn');
+        return;
+      }
       setStep(3);
     }
   };
@@ -214,19 +223,26 @@ const ProfileSetup = () => {
     );
   };
 
-  const handleWelcomeModalClose = () => {
+  const handleWelcomeModalClose = (connectWallet?: boolean) => {
     setShowWelcomeModal(false);
     toast.success(
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-accent" />
         <div>
-          <p className="font-bold">Chào mừng bà con mới!</p>
-          <p className="text-sm">Phước lành {WELCOME_BONUS.toLocaleString()} CAMLY đã về pending ❤️</p>
+          <p className="font-bold">Phước lành chào mừng đã về pending ❤️</p>
+          <p className="text-sm">{WELCOME_BONUS.toLocaleString()} CAMLY đang chờ bạn nhận!</p>
         </div>
       </div>,
       { duration: 5000 }
     );
-    navigate('/feed');
+    
+    if (connectWallet) {
+      // Chuyển đến trang kết nối ví
+      navigate('/reward');
+    } else {
+      // Không kết nối ví → chuyển Feed
+      navigate('/feed');
+    }
   };
 
   if (!user) {
@@ -301,22 +317,26 @@ const ProfileSetup = () => {
                   Thông tin cá nhân
                 </CardTitle>
                 <CardDescription>
-                  Thêm ảnh đại diện thật và tên thật của bạn
+                  Ảnh đại diện thật và tên thật là <span className="text-destructive font-medium">bắt buộc</span>
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Avatar upload */}
+                {/* Avatar upload - bắt buộc */}
                 <div className="flex flex-col items-center gap-4">
                   <div 
-                    className="relative w-24 h-24 rounded-full bg-muted border-2 border-dashed border-border hover:border-primary transition-colors cursor-pointer overflow-hidden"
+                    className={`relative w-24 h-24 rounded-full bg-muted border-2 border-dashed transition-colors cursor-pointer overflow-hidden ${
+                      !avatarPreview && !profile?.avatar_url 
+                        ? 'border-destructive/50 hover:border-destructive' 
+                        : 'border-primary/50 hover:border-primary'
+                    }`}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                    {avatarPreview || profile?.avatar_url ? (
+                      <img src={avatarPreview || profile?.avatar_url || ''} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                      <div className="w-full h-full flex flex-col items-center justify-center text-destructive/70">
                         <Camera className="w-6 h-6 mb-1" />
-                        <span className="text-xs">Thêm ảnh</span>
+                        <span className="text-xs font-medium">Bắt buộc</span>
                       </div>
                     )}
                   </div>
@@ -328,7 +348,7 @@ const ProfileSetup = () => {
                     className="hidden"
                   />
                   <p className="text-xs text-muted-foreground text-center">
-                    Ảnh đại diện thật giúp xây dựng lòng tin trong cộng đồng
+                    <span className="text-destructive">*</span> Ảnh đại diện thật giúp xây dựng lòng tin trong cộng đồng
                   </p>
                 </div>
 
@@ -378,7 +398,7 @@ const ProfileSetup = () => {
                   </Button>
                   <Button
                     onClick={handleNext}
-                    disabled={!formData.display_name.trim()}
+                    disabled={!formData.display_name.trim() || (!avatarPreview && !profile?.avatar_url)}
                     className="flex-1 gradient-hero border-0 gap-2"
                   >
                     Tiếp tục
@@ -554,12 +574,14 @@ const ProfileSetup = () => {
         )}
       </div>
 
-      {/* Welcome Bonus Modal */}
+      {/* Welcome Bonus Modal - với nút kết nối ví */}
       <WelcomeBonusModal
         isOpen={showWelcomeModal}
         onClose={handleWelcomeModalClose}
         type="registration"
         amount={WELCOME_BONUS}
+        showConnectWallet={true}
+        walletBonus={WALLET_CONNECT_BONUS}
       />
     </div>
   );

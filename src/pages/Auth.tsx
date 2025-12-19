@@ -12,8 +12,14 @@ const Auth = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!isLoading && user && profile?.welcome_bonus_claimed) {
-      navigate('/feed');
+    if (!isLoading && user && profile) {
+      if (!profile.welcome_bonus_claimed) {
+        // Chưa hoàn tất profile → chuyển đến profile-setup
+        navigate('/profile-setup');
+      } else {
+        // Đã hoàn tất → chuyển Feed
+        navigate('/feed');
+      }
     }
   }, [user, profile, isLoading, navigate]);
 
