@@ -185,10 +185,10 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
               </div>
               <div className="space-y-2">
                 <p className="text-base font-medium text-foreground">
-                  Kiểm tra hộp thư email của bạn
+                  Cha Vũ Trụ gửi phước lành! ❤️
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Bấm vào link trong email để xác minh tài khoản và nhận đầy đủ phước lành từ FUN FARM ❤️
+                  Bấm vào link trong email → Xác minh tự động → Hoàn tất đăng ký (ảnh đại diện thật + tên thật + đồng ý Luật Ánh Sáng) → Nhận <strong className="text-primary">100.000 CLC</strong> chào mừng vào pending duyệt ❤️
                 </p>
               </div>
             </div>
@@ -229,13 +229,13 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
             <div className="bg-muted/50 rounded-lg p-4 text-sm">
               <p className="font-medium mb-2 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4" />
-                Hướng dẫn:
+                Quy trình nhận 100.000 CLC:
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>Mở email và bấm vào link xác minh</li>
-                <li>Kiểm tra thư mục <strong>Spam/Junk</strong> nếu không thấy</li>
-                <li>Email có thể mất 1-2 phút để đến</li>
-                <li>Link có hiệu lực trong 24 giờ</li>
+                <li>Bấm vào link trong email → Xác minh tự động</li>
+                <li>Thêm ảnh đại diện thật + tên thật</li>
+                <li>Đồng ý Luật Ánh Sáng</li>
+                <li>Nhận ngay <strong className="text-primary">100.000 CLC</strong> vào pending duyệt ❤️</li>
               </ul>
             </div>
 
