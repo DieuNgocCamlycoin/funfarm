@@ -1,14 +1,13 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Email Verification Modal with OTP support
+// Email Verification Modal with Magic Link (no OTP)
 
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Mail, Loader2, CheckCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { Mail, Loader2, CheckCircle, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
 
 interface EmailVerificationModalProps {
   isOpen: boolean;
@@ -16,10 +15,25 @@ interface EmailVerificationModalProps {
   onVerified?: () => void;
 }
 
+// Helper function to get the correct redirect URL
+const getEmailRedirectUrl = () => {
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'farm.fun.rich' || hostname === 'www.farm.fun.rich') {
+    return 'https://farm.fun.rich/feed';
+  }
+  if (hostname === 'funfarm.life' || hostname === 'www.funfarm.life') {
+    return 'https://funfarm.life/feed';
+  }
+  if (hostname.includes('lovableproject.com')) {
+    return `${window.location.origin}/feed`;
+  }
+  
+  return `${window.location.origin}/feed`;
+};
+
 const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificationModalProps) => {
   const { user, refreshProfile } = useAuth();
-  const [otp, setOtp] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [emailSent, setEmailSent] = useState(false);
@@ -43,7 +57,6 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setOtp('');
       setEmailSent(false);
       setIsVerified(false);
     }
@@ -57,19 +70,20 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
 
     setIsResending(true);
     try {
-      // Use Supabase's resend confirmation email
+      const redirectUrl = getEmailRedirectUrl();
+      
+      // Use Supabase's resend confirmation email with magic link
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: user.email,
         options: {
-          emailRedirectTo: `${window.location.origin}/feed`,
+          emailRedirectTo: redirectUrl,
         },
       });
 
       if (error) {
-        // If already confirmed, try sending magic link instead
+        // If already confirmed, update profile and notify
         if (error.message.includes('already confirmed')) {
-          // Update profile to mark email as verified
           await supabase
             .from('profiles')
             .update({ email_verified: true })
@@ -96,53 +110,6 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
       toast.error('Không thể gửi email: ' + error.message);
     } finally {
       setIsResending(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!user?.email || otp.length !== 6) {
-      toast.error('Vui lòng nhập đủ 6 số OTP');
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      // Verify OTP with Supabase
-      const { error } = await supabase.auth.verifyOtp({
-        email: user.email,
-        token: otp,
-        type: 'email',
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Update profile to mark email as verified
-      await supabase
-        .from('profiles')
-        .update({ email_verified: true })
-        .eq('id', user.id);
-
-      await refreshProfile();
-      setIsVerified(true);
-      toast.success('Xác minh email thành công! Phước lành về với bạn ✨');
-      
-      setTimeout(() => {
-        onVerified?.();
-        onClose();
-      }, 2000);
-    } catch (error: any) {
-      console.error('Error verifying OTP:', error);
-      if (error.message.includes('expired')) {
-        toast.error('Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.');
-      } else if (error.message.includes('invalid')) {
-        toast.error('Mã OTP không đúng. Vui lòng kiểm tra lại.');
-      } else {
-        toast.error('Xác minh thất bại: ' + error.message);
-      }
-    } finally {
-      setIsVerifying(false);
     }
   };
 
@@ -190,7 +157,7 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
                 <Mail className="w-8 h-8 text-primary" />
               </div>
             )}
@@ -203,7 +170,7 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
               <span className="text-green-500">Email của bạn đã được xác minh. Phước lành đang về! ❤️</span>
             ) : (
               <>
-                Chúng tôi đã gửi mã xác minh đến <span className="font-medium text-foreground">{user?.email}</span>
+                Chúng tôi đã gửi link xác minh đến <span className="font-medium text-foreground">{user?.email}</span>
               </>
             )}
           </DialogDescription>
@@ -211,41 +178,30 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
 
         {!isVerified && (
           <div className="space-y-6 py-4">
-            {/* OTP Input */}
-            <div className="flex flex-col items-center gap-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Nhập mã 6 số từ email hoặc click link xác minh trong email
-              </p>
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={(value) => setOtp(value)}
-                disabled={isVerifying}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
+            {/* Magic Link Instructions */}
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-primary animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-base font-medium text-foreground">
+                  Kiểm tra hộp thư email của bạn
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Bấm vào link trong email để xác minh tài khoản và nhận đầy đủ phước lành từ FUN FARM ❤️
+                </p>
+              </div>
             </div>
 
-            {/* Verify Button */}
-            <Button
-              onClick={handleVerifyOTP}
-              disabled={otp.length !== 6 || isVerifying}
-              className="w-full gap-2 h-12 gradient-hero"
-            >
-              {isVerifying ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              Xác minh
-            </Button>
+            {/* Email sent confirmation */}
+            {emailSent && (
+              <div className="flex items-center justify-center gap-2 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Email đã được gửi thành công!
+                </p>
+              </div>
+            )}
 
             {/* Resend Button */}
             <div className="text-center">
@@ -253,8 +209,7 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
                 Không nhận được email?
               </p>
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 onClick={handleResend}
                 disabled={resendCooldown > 0 || isResending}
                 className="gap-2"
@@ -271,13 +226,23 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
             </div>
 
             {/* Tips */}
-            <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-              <p className="font-medium mb-1">💡 Mẹo:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Kiểm tra thư mục Spam/Junk</li>
+            <div className="bg-muted/50 rounded-lg p-4 text-sm">
+              <p className="font-medium mb-2 flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Hướng dẫn:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Mở email và bấm vào link xác minh</li>
+                <li>Kiểm tra thư mục <strong>Spam/Junk</strong> nếu không thấy</li>
                 <li>Email có thể mất 1-2 phút để đến</li>
-                <li>Mã OTP có hiệu lực trong 60 phút</li>
+                <li>Link có hiệu lực trong 24 giờ</li>
               </ul>
+            </div>
+
+            {/* Waiting indicator */}
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Đang chờ bạn xác minh qua email...</span>
             </div>
           </div>
         )}
