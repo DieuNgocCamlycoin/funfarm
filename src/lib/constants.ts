@@ -11,3 +11,6 @@ export const WALLET_CONNECT_BONUS = 50000;
 
 // Total welcome package
 export const TOTAL_WELCOME_BONUS = WELCOME_BONUS + WALLET_CONNECT_BONUS; // 100,000 CAMLY
+
+// Light Law upgrade bonus for existing users
+export const LIGHT_LAW_UPGRADE_BONUS = 50000;
