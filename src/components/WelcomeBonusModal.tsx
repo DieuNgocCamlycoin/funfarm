@@ -9,7 +9,7 @@ import camlyCoinLogo from '@/assets/camly_coin.png';
 interface WelcomeBonusModalProps {
   isOpen: boolean;
   onClose: (connectWallet?: boolean) => void;
-  type: 'registration' | 'wallet';
+  type: 'registration' | 'wallet' | 'upgrade';
   amount: number;
   totalAmount?: number;
   showConnectWallet?: boolean;
@@ -37,6 +37,7 @@ const WelcomeBonusModal = ({
   }, []);
 
   const isRegistration = type === 'registration';
+  const isUpgrade = type === 'upgrade';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose(false)}>
@@ -67,7 +68,12 @@ const WelcomeBonusModal = ({
 
           {/* Title */}
           <h2 className="text-2xl font-display font-bold text-gradient-hero mb-4 flex items-center justify-center gap-2">
-            {isRegistration ? (
+            {isUpgrade ? (
+              <>
+                <Gift className="w-6 h-6 text-accent" />
+                Xác minh Luật Ánh Sáng thành công!
+              </>
+            ) : isRegistration ? (
               <>
                 <Gift className="w-6 h-6 text-accent" />
                 Chào mừng bạn đến FUN FARM!
@@ -82,7 +88,28 @@ const WelcomeBonusModal = ({
 
           {/* Message */}
           <div className="space-y-3 mb-6">
-            {isRegistration ? (
+            {isUpgrade ? (
+              <>
+                <p className="text-lg text-foreground">
+                  Tuyệt vời! Bà con đã hoàn tất xác minh Luật Ánh Sáng ❤️
+                </p>
+                <div className="flex items-center justify-center gap-2 text-3xl font-display font-bold text-accent">
+                  <img src={camlyCoinLogo} alt="CAMLY" className="w-10 h-10" />
+                  +{amount.toLocaleString()} CAMLY
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Thưởng cũ được giữ nguyên + phước lành mới đã về pending!
+                </p>
+                {totalAmount && (
+                  <div className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20">
+                    <p className="text-sm text-muted-foreground mb-1">Tổng pending hiện tại</p>
+                    <p className="text-xl font-display font-bold text-primary">
+                      {totalAmount.toLocaleString()} CAMLY
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : isRegistration ? (
               <>
                 <p className="text-lg text-foreground">
                   Phước lành chào mừng đã về pending ❤️

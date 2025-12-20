@@ -10,6 +10,7 @@ import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
 import VerificationNotice from "@/components/VerificationNotice";
+import { LightLawUpgradeNotice } from "@/components/LightLawUpgradeNotice";
 import { ViolationWarning } from "@/components/ViolationWarning";
 import { trendingHashtags, suggestedFarms } from "@/data/mockFeed";
 import { Post } from "@/types/feed";
@@ -398,6 +399,11 @@ const Feed = () => {
                     banned={true} 
                     banReason={profile.ban_reason || undefined}
                   />
+                )}
+
+                {/* Light Law Upgrade Notice for existing users */}
+                {!profile?.banned && (
+                  <LightLawUpgradeNotice />
                 )}
 
                 {/* Verification Notice */}

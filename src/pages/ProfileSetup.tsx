@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Sparkles, ChevronRight, ChevronLeft, MapPin, PartyPopper, Camera, User, Heart, Sun, Users, Shield, CheckCircle, Star, Zap, BookOpen, AlertTriangle } from 'lucide-react';
-import { WELCOME_BONUS, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS } from '@/lib/constants';
+import { WELCOME_BONUS, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS, LIGHT_LAW_UPGRADE_BONUS } from '@/lib/constants';
 import WelcomeBonusModal from '@/components/WelcomeBonusModal';
 import { useConfetti } from '@/components/ConfettiProvider';
 
@@ -25,6 +25,7 @@ const ProfileSetup = () => {
   const { t } = useTranslation();
   const { triggerConfetti } = useConfetti();
   const [searchParams] = useSearchParams();
+  const isUpgradeFlow = searchParams.get('upgrade') === 'true';
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<ProfileType | null>(null);
@@ -43,9 +44,9 @@ const ProfileSetup = () => {
     bio: '',
   });
 
-  // Trigger confetti when user lands on profile-setup after email verification
+  // Trigger confetti when user lands on profile-setup after email verification (only for new users)
   useEffect(() => {
-    if (user && !hasTriggeredConfetti) {
+    if (user && !hasTriggeredConfetti && !isUpgradeFlow) {
       const timer = setTimeout(() => {
         triggerConfetti('celebration');
         setHasTriggeredConfetti(true);
@@ -62,7 +63,26 @@ const ProfileSetup = () => {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [user, hasTriggeredConfetti, triggerConfetti]);
+  }, [user, hasTriggeredConfetti, triggerConfetti, isUpgradeFlow]);
+
+  // For upgrade flow, skip to step 2 if user already has profile_type
+  useEffect(() => {
+    if (isUpgradeFlow && profile?.profile_type) {
+      setSelectedType(profile.profile_type as ProfileType);
+      setStep(2); // Start at step 2 (info + avatar)
+    }
+  }, [isUpgradeFlow, profile?.profile_type]);
+
+  // Pre-fill form data from existing profile
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        display_name: profile.display_name || '',
+        location: profile.location || '',
+        bio: profile.bio || '',
+      });
+    }
+  }, [profile]);
 
   const profileTypes: { type: ProfileType; emoji: string; titleKey: string; descKey: string }[] = [
     { type: 'farmer', emoji: '🧑‍🌾', titleKey: 'roles.farmer', descKey: 'roles.farmerDesc' },
@@ -211,6 +231,10 @@ const ProfileSetup = () => {
         setIsCheckingAvatar(false);
       }
 
+      // Determine bonus amount based on flow type
+      const bonusAmount = isUpgradeFlow ? LIGHT_LAW_UPGRADE_BONUS : WELCOME_BONUS;
+      const currentPending = profile?.pending_reward || 0;
+
       // Update profile with Light Law acceptance
       const { error } = await supabase
         .from('profiles')
@@ -221,7 +245,8 @@ const ProfileSetup = () => {
           bio: formData.bio,
           avatar_url: avatarUrl,
           welcome_bonus_claimed: true,
-          pending_reward: WELCOME_BONUS, // Add welcome bonus to pending
+          verification_status: 'verified', // Mark as verified after completing Light Law
+          pending_reward: currentPending + bonusAmount, // Add bonus to existing pending
         })
         .eq('id', user.id);
 
@@ -251,12 +276,15 @@ const ProfileSetup = () => {
 
   const handleWelcomeModalClose = (connectWallet?: boolean) => {
     setShowWelcomeModal(false);
+    const bonusAmount = isUpgradeFlow ? LIGHT_LAW_UPGRADE_BONUS : WELCOME_BONUS;
     toast.success(
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-accent" />
         <div>
-          <p className="font-bold">Phước lành chào mừng đã về pending ❤️</p>
-          <p className="text-sm">{WELCOME_BONUS.toLocaleString()} CAMLY đang chờ bạn nhận!</p>
+          <p className="font-bold">
+            {isUpgradeFlow ? 'Xác minh thành công!' : 'Phước lành chào mừng đã về pending ❤️'}
+          </p>
+          <p className="text-sm">+{bonusAmount.toLocaleString()} CAMLY đang chờ bạn nhận!</p>
         </div>
       </div>,
       { duration: 5000 }
@@ -630,9 +658,10 @@ const ProfileSetup = () => {
       <WelcomeBonusModal
         isOpen={showWelcomeModal}
         onClose={handleWelcomeModalClose}
-        type="registration"
-        amount={WELCOME_BONUS}
-        showConnectWallet={true}
+        type={isUpgradeFlow ? "upgrade" : "registration"}
+        amount={isUpgradeFlow ? LIGHT_LAW_UPGRADE_BONUS : WELCOME_BONUS}
+        totalAmount={isUpgradeFlow ? (profile?.pending_reward || 0) + LIGHT_LAW_UPGRADE_BONUS : undefined}
+        showConnectWallet={!isUpgradeFlow}
         walletBonus={WALLET_CONNECT_BONUS}
       />
     </div>
