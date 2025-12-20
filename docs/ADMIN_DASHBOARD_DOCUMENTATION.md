@@ -1,8 +1,7 @@
-# 🌟 FUN FARM - Admin Dashboard Documentation
+# 📋 Tài liệu chi tiết hệ thống quản trị Fun Farm
 
-> **Tài liệu chi tiết hệ thống quản trị Fun Farm**  
-> *Phiên bản: 1.0 | Cập nhật: 20/12/2024*  
-> *Áp dụng cho: FUN Profile, FUN Play, FUN Trading, FUN Ecosystem*
+> **Phiên bản: 1.0 | Cập nhật: 20/12/2024**  
+> **Áp dụng cho: FUN Profile, FUN Play, FUN Trading, FUN Ecosystem**
 
 ---
 
@@ -21,6 +20,7 @@
 ## 1. Tổng quan hệ thống
 
 ### 1.1 Mục đích
+
 Admin Dashboard là trung tâm quản lý cho:
 - ✅ Duyệt thưởng CAMLY (pending → approved)
 - ✅ Rà soát & phát hiện tài khoản ảo/lạm dụng
@@ -29,6 +29,7 @@ Admin Dashboard là trung tâm quản lý cho:
 - ✅ Quản lý hệ thống Luật Ánh Sáng
 
 ### 1.2 Quyền truy cập
+
 - **Chỉ Admin** được phép truy cập (`/admin`)
 - Kiểm tra qua RPC function `has_role()`
 - Role được lưu riêng trong bảng `user_roles` (KHÔNG phải trong profiles)
@@ -106,6 +107,7 @@ CREATE TABLE public.user_roles (
 ### 4.1 Tab Duyệt thưởng (Reward Approval)
 
 #### Dữ liệu hiển thị:
+
 | Field | Mô tả |
 |-------|-------|
 | `avatar_url` | Avatar user |
@@ -117,10 +119,12 @@ CREATE TABLE public.user_roles (
 | `likes_received` | Số like nhận được |
 
 #### Actions:
+
 - **✅ Duyệt (Approve):** Chuyển pending → approved + gửi notification
 - **❌ Từ chối (Reject):** Reset pending về 0 + gửi notification nhẹ nhàng
 
 #### Lọc theo ngày:
+
 ```typescript
 // Lọc users có hoạt động trong ngày được chọn
 const startOfDay = new Date(selectedDate);
@@ -192,6 +196,7 @@ const getSuspicionScore = (user: UserData): number => {
 #### Sub-tabs:
 
 ##### 4.3.1 Ví chung (Shared Wallet)
+
 - **Tiêu chí:** >1 tài khoản dùng chung 1 wallet address
 - **Hiển thị:** Nhóm users theo wallet, tổng pending, tổng approved
 - **Action:** Ban tất cả + Blacklist ví
@@ -221,10 +226,12 @@ const walletGroups = useMemo(() => {
 ```
 
 ##### 4.3.2 Profile thiếu
+
 - **Tiêu chí:** Không tên + không avatar + có pending
 - **Action:** Ban từng user
 
 ##### 4.3.3 Tên ảo (Fake Names)
+
 - **Pattern phát hiện:**
   - Tên quá ngắn (<3 ký tự)
   - Toàn số
@@ -280,6 +287,7 @@ Tự động phát hiện dựa trên:
 ### 4.5 Tab Blockchain
 
 #### Nguồn dữ liệu:
+
 1. **Moralis API** (live) - Ưu tiên
 2. **BscScan API** (backup)
 3. **Cache** (fallback)
@@ -498,6 +506,129 @@ $$;
 ### 7.2 Tùy chỉnh theo Platform
 
 | Platform | Tùy chỉnh |
+|----------|-----------|
+| **FUN Profile** | Thêm tab quản lý profile verification |
+| **FUN Play** | Thêm tab quản lý game rewards |
+| **FUN Trading** | Thêm tab quản lý giao dịch P2P |
+
+---
+
+## 8. Bảng tổng hợp Database Schema
+
+### 8.1 Profiles Table
+
+```sql
+CREATE TABLE public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id),
+  display_name text,
+  avatar_url text,
+  wallet_address text,
+  pending_reward bigint DEFAULT 0,
+  approved_reward bigint DEFAULT 0,
+  camly_balance bigint DEFAULT 0,
+  banned boolean DEFAULT false,
+  banned_at timestamptz,
+  ban_reason text,
+  violation_level integer DEFAULT 0,
+  is_good_heart boolean DEFAULT false,
+  avatar_verified boolean DEFAULT false,
+  email_verified boolean DEFAULT false,
+  is_verified boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+```
+
+### 8.2 Reward Tracking Table
+
+```sql
+CREATE TABLE public.user_reward_tracking (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  post_id uuid NOT NULL,
+  action_type text NOT NULL, -- 'post', 'like_given', 'like_received_xxx', 'comment', 'share'
+  rewarded_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, post_id, action_type)
+);
+```
+
+### 8.3 Blacklisted Wallets Table
+
+```sql
+CREATE TABLE public.blacklisted_wallets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_address text NOT NULL UNIQUE,
+  reason text NOT NULL,
+  is_permanent boolean DEFAULT true,
+  user_id uuid,
+  blacklisted_at timestamptz DEFAULT now()
+);
+```
+
+### 8.4 Reward Bans Table
+
+```sql
+CREATE TABLE public.reward_bans (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  reason text NOT NULL,
+  banned_at timestamptz DEFAULT now(),
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+### 8.5 Reward Approvals Table
+
+```sql
+CREATE TABLE public.reward_approvals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  amount bigint NOT NULL,
+  status text DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  admin_id uuid,
+  admin_note text,
+  reviewed_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+---
+
+## 9. API Endpoints (Edge Functions)
+
+### 9.1 Claim CAMLY
+
+```typescript
+// POST /functions/v1/claim-camly
+{
+  "userId": "uuid",
+  "amount": 100000,
+  "walletAddress": "0x..."
+}
+```
+
+### 9.2 Fetch Blockchain History
+
+```typescript
+// POST /functions/v1/fetch-bscscan-history
+{
+  "forceRefresh": false
+}
+```
+
+---
+
+## 📞 Liên hệ hỗ trợ
+
+- **Telegram:** @FunFarmSupport
+- **Email:** admin@funfarm.love
+- **Docs:** https://docs.funfarm.love/admin
+
+---
+
+> *"Luật Ánh Sáng - Minh bạch, Công bằng, Yêu thương"*  
+> *© 2024 FUN Ecosystem. All rights reserved.*
 |----------|-----------|
 | FUN Profile | Thêm tab quản lý profile verification |
 | FUN Play | Thêm tab quản lý game rewards |
