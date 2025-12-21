@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Video, Image, Smile } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import defaultAvatarGirl from "@/assets/default-avatar-girl.jpeg";
 
 const profileTypeEmojis: Record<string, string> = {
   farmer: '🧑‍🌾',
@@ -24,7 +25,7 @@ const CreatePost = ({ onOpenModal }: CreatePostProps) => {
       {/* Input Row */}
       <div className="flex items-center gap-3">
         <Avatar className="w-10 h-10 md:w-12 md:h-12 ring-2 ring-primary/20">
-          <AvatarImage src={profile?.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"} />
+          <AvatarImage src={profile?.avatar_url || defaultAvatarGirl} />
           <AvatarFallback className="bg-primary/10 text-lg">
             {profileTypeEmojis[profile?.profile_type || 'farmer'] || '🌱'}
           </AvatarFallback>
