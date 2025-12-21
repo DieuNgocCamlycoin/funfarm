@@ -1,5 +1,6 @@
 import { Plus, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import defaultAvatarGirl from "@/assets/default-avatar-girl.jpeg";
 
 interface Story {
   id: string;
@@ -13,7 +14,7 @@ const mockStories: Story[] = [
   {
     id: "create",
     name: "Tạo story",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+    avatar: defaultAvatarGirl,
     hasUnwatched: false,
   },
   {
