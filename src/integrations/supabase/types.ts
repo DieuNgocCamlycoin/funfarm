@@ -162,6 +162,66 @@ export type Database = {
           },
         ]
       }
+      deleted_users: {
+        Row: {
+          approved_reward: number | null
+          avatar_url: string | null
+          ban_reason: string | null
+          banned: boolean | null
+          camly_balance: number | null
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          is_verified: boolean | null
+          pending_reward: number | null
+          profile_type: string | null
+          user_id: string
+          wallet_address: string | null
+        }
+        Insert: {
+          approved_reward?: number | null
+          avatar_url?: string | null
+          ban_reason?: string | null
+          banned?: boolean | null
+          camly_balance?: number | null
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_verified?: boolean | null
+          pending_reward?: number | null
+          profile_type?: string | null
+          user_id: string
+          wallet_address?: string | null
+        }
+        Update: {
+          approved_reward?: number | null
+          avatar_url?: string | null
+          ban_reason?: string | null
+          banned?: boolean | null
+          camly_balance?: number | null
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_verified?: boolean | null
+          pending_reward?: number | null
+          profile_type?: string | null
+          user_id?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string
