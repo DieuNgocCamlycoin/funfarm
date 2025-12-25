@@ -35,11 +35,13 @@ import {
   RefreshCw,
   Clock,
   Download,
-  Search
+  Search,
+  Trash2
 } from "lucide-react";
 import UserReviewTab from "@/components/admin/UserReviewTab";
 import WalletAbuseTab from "@/components/admin/WalletAbuseTab";
 import QuickDeleteTab from "@/components/admin/QuickDeleteTab";
+import DeletedUsersTab from "@/components/admin/DeletedUsersTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
@@ -605,10 +607,14 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="quick-delete" className="flex items-center gap-2 text-xs sm:text-sm">
               <Search className="h-4 w-4 text-red-500" />
               <span className="hidden sm:inline text-red-500 font-medium">Xóa nhanh</span>
+            </TabsTrigger>
+            <TabsTrigger value="deleted-users" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Trash2 className="h-4 w-4 text-orange-500" />
+              <span className="hidden sm:inline text-orange-500">Đã xóa</span>
             </TabsTrigger>
             <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
               <Gift className="h-4 w-4" />
@@ -654,6 +660,11 @@ const Admin = () => {
                 fetchAllUsers();
               }} 
             />
+          </TabsContent>
+
+          {/* Deleted Users Tab */}
+          <TabsContent value="deleted-users" className="mt-4">
+            <DeletedUsersTab />
           </TabsContent>
 
           {/* Rewards Tab */}
