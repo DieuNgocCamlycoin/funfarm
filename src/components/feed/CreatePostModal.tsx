@@ -299,7 +299,13 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
       if (error) throw error;
 
       // Trigger adds +10,000 CAMLY to pending_reward
-      toast.success("Đã đăng bài viết thành công! +10.000 CAMLY 🎉", { duration: 3000 });
+      // Reward depends on content quality (>100 chars + media = 20,000 CLC via trigger)
+      const hasMedia = images.length > 0;
+      const hasQualityContent = content.trim().length > 100;
+      const rewardMsg = hasMedia && hasQualityContent 
+        ? "Đã đăng bài viết thành công! +20.000 CAMLY 🎉" 
+        : "Đã đăng bài viết thành công! 🌱";
+      toast.success(rewardMsg, { duration: 3000 });
       onPost?.(data);
       handleReset();
       onClose();
