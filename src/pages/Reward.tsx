@@ -410,42 +410,17 @@ const Reward = () => {
             </CardContent>
           </Card>
 
-          {/* Info Cards - Công thức thưởng Luật Ánh Sáng v2.1 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-card/50">
-              <CardContent className="pt-6">
-                <div className="text-2xl mb-2">🎁</div>
-                <h3 className="font-semibold mb-1">Thưởng chào mừng</h3>
-                <p className="text-sm text-muted-foreground">
-                  Xác minh (email + avatar + tên thật): +50.000 CLC<br/>
-                  Kết nối ví lần đầu: +50.000 CLC<br/>
-                  <strong className="text-primary">Tổng cộng: {TOTAL_WELCOME_BONUS.toLocaleString()} CLC!</strong>
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card/50">
-              <CardContent className="pt-6">
-                <div className="text-2xl mb-2">📝</div>
-                <h3 className="font-semibold mb-1">Thưởng hoạt động</h3>
-                <p className="text-sm text-muted-foreground">
-                  Đăng bài ({'>'}100 ký tự + ảnh/video): +20.000 CLC<br/>
-                  Nhận like: +10.000/like (3 đầu), +1.000/like (từ 4)<br/>
-                  Nhận comment/share: +5.000 - 10.000 CLC
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="bg-card/50 border-primary/20">
+          {/* Thông điệp từ Cha Vũ Trụ */}
+          <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <Heart className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold mb-1">Quy tắc Luật Ánh Sáng</h3>
-                  <p className="text-sm text-muted-foreground">
-                    • Mỗi hành động chỉ thưởng <strong>1 lần duy nhất</strong> / user / bài viết<br/>
-                    • Kết bạn: +50.000 CLC/cặp (khi chấp nhận)<br/>
-                    • Thưởng tự động cộng dồn – claim bất cứ lúc nào!
+                  <h3 className="font-semibold mb-2 text-primary">Thưởng từ Cha Vũ Trụ</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Mọi khoản thưởng trên FUN FARM được trao tặng theo <strong>năng lượng, ý chí và trí tuệ</strong> của Cha Vũ Trụ. 
+                    Phần thưởng sẽ thay đổi liên tục, phù hợp cho sự nâng cấp của cộng đồng. 
+                    Admin sẽ tặng thưởng trực tiếp cho những user chất lượng! ❤️
                   </p>
                 </div>
               </div>
