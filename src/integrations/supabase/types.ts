@@ -578,6 +578,7 @@ export type Database = {
           referral_code: string | null
           reputation_score: number
           updated_at: string
+          verification_bonus_claimed: boolean
           verification_status: string
           verified_at: string | null
           violation_level: number
@@ -614,6 +615,7 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          verification_bonus_claimed?: boolean
           verification_status?: string
           verified_at?: string | null
           violation_level?: number
@@ -650,6 +652,7 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          verification_bonus_claimed?: boolean
           verification_status?: string
           verified_at?: string | null
           violation_level?: number

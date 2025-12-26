@@ -82,13 +82,29 @@ const ConnectWallet = () => {
       const { error } = await signUp(email, password);
       if (error) {
         if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-          // User exists - resend confirmation email
-          setPendingEmail(email);
-          setShowEmailSentScreen(true);
-          await handleResendConfirmation(email);
-          toast.info('Tài khoản đã tồn tại. Kiểm tra email để xác nhận!');
-        } else if (error.message.includes('rate limit') || error.message.includes('45')) {
-          toast.error('Vui lòng đợi 45 giây trước khi thử lại');
+          // User exists - show warm message and suggest login
+          toast.info(
+            <div className="flex items-center gap-2">
+              <span>💖</span>
+              <div>
+                <p className="font-medium">Email đã tồn tại, vui lòng đăng nhập ❤️</p>
+                <p className="text-sm opacity-80">Bạn đã có tài khoản rồi!</p>
+              </div>
+            </div>,
+            { duration: 5000 }
+          );
+          setIsLoginMode(true);
+        } else if (error.message.includes('rate limit') || error.message.includes('45') || error.message.includes('For security purposes')) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <span>⏳</span>
+              <div>
+                <p className="font-medium">Vui lòng đợi một chút ❤️</p>
+                <p className="text-sm opacity-80">Để bảo vệ bạn, hãy đợi 60 giây trước khi thử lại</p>
+              </div>
+            </div>,
+            { duration: 5000 }
+          );
         } else {
           toast.error(t('auth.signUpError') + ': ' + error.message);
         }
@@ -137,8 +153,14 @@ const ConnectWallet = () => {
       });
 
       if (error) {
-        if (error.message.includes('rate limit') || error.message.includes('45')) {
-          toast.error('Vui lòng đợi 45 giây trước khi gửi lại');
+        if (error.message.includes('rate limit') || error.message.includes('45') || error.message.includes('For security purposes')) {
+          toast.info(
+            <div className="flex items-center gap-2">
+              <span>⏳</span>
+              <p>Vui lòng đợi 60 giây trước khi gửi lại ❤️</p>
+            </div>,
+            { duration: 4000 }
+          );
         } else {
           throw error;
         }

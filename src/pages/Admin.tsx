@@ -42,6 +42,7 @@ import UserReviewTab from "@/components/admin/UserReviewTab";
 import WalletAbuseTab from "@/components/admin/WalletAbuseTab";
 import QuickDeleteTab from "@/components/admin/QuickDeleteTab";
 import DeletedUsersTab from "@/components/admin/DeletedUsersTab";
+import UserVerificationTab from "@/components/admin/UserVerificationTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
@@ -607,7 +608,11 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-10">
+          <TabsList className="grid w-full grid-cols-11">
+            <TabsTrigger value="verification" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Shield className="h-4 w-4 text-blue-500" />
+              <span className="hidden sm:inline text-blue-500 font-medium">Xác minh</span>
+            </TabsTrigger>
             <TabsTrigger value="quick-delete" className="flex items-center gap-2 text-xs sm:text-sm">
               <Search className="h-4 w-4 text-red-500" />
               <span className="hidden sm:inline text-red-500 font-medium">Xóa nhanh</span>
@@ -649,6 +654,11 @@ const Admin = () => {
               <span className="hidden sm:inline">Ban</span> ({bannedUsers.length})
             </TabsTrigger>
           </TabsList>
+
+          {/* User Verification Tab */}
+          <TabsContent value="verification" className="mt-4">
+            <UserVerificationTab />
+          </TabsContent>
 
           {/* Quick Delete Tab */}
           <TabsContent value="quick-delete" className="mt-4">
