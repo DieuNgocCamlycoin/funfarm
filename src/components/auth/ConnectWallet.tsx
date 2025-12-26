@@ -88,19 +88,25 @@ const ConnectWallet = () => {
 
         // Email sending rate limit (confirmation email). This is NOT login/signup throttling.
         if (isEmailSendRateLimit(message)) {
-          toast.warning(
-            <div className="flex items-start gap-2">
-              <span>📨</span>
-              <div>
-                <p className="font-medium">Hệ thống email xác minh đang bị giới hạn</p>
-                <p className="text-sm opacity-80">
-                  Vui lòng đợi vài phút rồi thử lại. Nếu bạn vừa đăng ký, hãy thử chuyển sang
-                  <span className="font-semibold"> Đăng nhập</span> — đôi khi tài khoản đã được tạo rồi.
-                </p>
-              </div>
-            </div>,
-            { duration: 8000 }
-          );
+          // Try to detect if the user was actually created (email send failed, but user may exist)
+          const { error: signInProbeError } = await signIn(email, password);
+          const probeMessage = signInProbeError?.message || '';
+
+          if (/email not confirmed/i.test(probeMessage)) {
+            setPendingEmail(email);
+            setShowEmailSentScreen(true);
+            setResendCooldown(60);
+            toast.info(
+              'Tài khoản có thể đã được tạo, nhưng email xác minh đang bị giới hạn. Vui lòng đợi vài phút và kiểm tra hộp thư.',
+              { duration: 7000 }
+            );
+          } else {
+            toast.warning(
+              'Hệ thống email xác minh đang bị giới hạn. Vui lòng đợi vài phút rồi thử lại (hoặc tạm tắt Confirm email / cấu hình SMTP trong Supabase).',
+              { duration: 9000 }
+            );
+          }
+
           setIsLoginMode(true);
         }
         // Check for existing user - multiple possible error messages
