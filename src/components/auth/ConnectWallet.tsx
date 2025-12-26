@@ -81,41 +81,106 @@ const ConnectWallet = () => {
       // Sign up flow - register then show magic link confirmation screen
       const { error } = await signUp(email, password);
       if (error) {
-        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-          // User exists - show warm message and suggest login
+        console.log('[SignUp Error]', error.message, error);
+        
+        // Check for existing user - multiple possible error messages
+        if (
+          error.message.includes('already registered') || 
+          error.message.includes('User already registered') ||
+          error.message.includes('already been registered')
+        ) {
           toast.info(
             <div className="flex items-center gap-2">
               <span>💖</span>
               <div>
-                <p className="font-medium">Email đã tồn tại, vui lòng đăng nhập ❤️</p>
-                <p className="text-sm opacity-80">Bạn đã có tài khoản rồi!</p>
+                <p className="font-medium">Email này đã được đăng ký ❤️</p>
+                <p className="text-sm opacity-80">Vui lòng đăng nhập hoặc dùng email khác nhé!</p>
               </div>
             </div>,
             { duration: 5000 }
           );
           setIsLoginMode(true);
-        } else if (error.message.includes('rate limit') || error.message.includes('45') || error.message.includes('For security purposes')) {
+        } 
+        // Rate limit from Supabase Auth
+        else if (
+          error.message.includes('rate limit') || 
+          error.message.includes('security purposes') ||
+          error.message.includes('For security purposes') ||
+          error.message.includes('seconds')
+        ) {
+          // Extract wait time from error message if available
+          const waitMatch = error.message.match(/(\d+)\s*second/i);
+          const waitTime = waitMatch ? parseInt(waitMatch[1]) : 60;
+          
+          toast.warning(
+            <div className="flex items-center gap-2">
+              <span>🛡️</span>
+              <div>
+                <p className="font-medium">Hệ thống đang bảo vệ bạn ❤️</p>
+                <p className="text-sm opacity-80">Đợi {waitTime} giây rồi thử lại nhé!</p>
+              </div>
+            </div>,
+            { duration: 6000 }
+          );
+        }
+        // Weak password
+        else if (
+          error.message.includes('password') && 
+          (error.message.includes('weak') || error.message.includes('short') || error.message.includes('least'))
+        ) {
           toast.error(
             <div className="flex items-center gap-2">
-              <span>⏳</span>
+              <span>🔐</span>
               <div>
-                <p className="font-medium">Vui lòng đợi một chút ❤️</p>
-                <p className="text-sm opacity-80">Để bảo vệ bạn, hãy đợi 60 giây trước khi thử lại</p>
+                <p className="font-medium">Mật khẩu cần mạnh hơn ❤️</p>
+                <p className="text-sm opacity-80">Ít nhất 6 ký tự, bao gồm chữ và số</p>
               </div>
             </div>,
             { duration: 5000 }
           );
-        } else {
-          toast.error(t('auth.signUpError') + ': ' + error.message);
+        }
+        // Invalid email format
+        else if (error.message.includes('email') && error.message.includes('invalid')) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <span>📧</span>
+              <div>
+                <p className="font-medium">Email không hợp lệ ❤️</p>
+                <p className="text-sm opacity-80">Vui lòng kiểm tra lại định dạng email</p>
+              </div>
+            </div>,
+            { duration: 5000 }
+          );
+        }
+        // Generic error with full message for debugging
+        else {
+          console.error('[SignUp Unknown Error]', error);
+          toast.error(
+            <div className="flex items-center gap-2">
+              <span>❌</span>
+              <div>
+                <p className="font-medium">Có lỗi xảy ra</p>
+                <p className="text-sm opacity-80">{error.message}</p>
+              </div>
+            </div>,
+            { duration: 5000 }
+          );
         }
       } else {
         // Sign up successful - show email sent screen
         setPendingEmail(email);
         setShowEmailSentScreen(true);
         setResendCooldown(60);
-        toast.success('Đăng ký thành công! Kiểm tra email và bấm link xác nhận ❤️', {
-          duration: 6000,
-        });
+        toast.success(
+          <div className="flex items-center gap-2">
+            <span>🎉</span>
+            <div>
+              <p className="font-medium">Chúc mừng! Tài khoản đã được tạo 🎁</p>
+              <p className="text-sm opacity-80">Bạn sẽ nhận {WELCOME_BONUS.toLocaleString()} CLC sau khi xác minh email ✨</p>
+            </div>
+          </div>,
+          { duration: 8000 }
+        );
       }
     }
     
