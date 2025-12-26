@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gift, Wallet, CheckCircle2, Loader2, Sparkles, ArrowLeft, Heart, Link2, Info } from 'lucide-react';
-import { RewardPolicyNotice } from '@/components/RewardPolicyNotice';
+
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CAMLY_CONTRACT, WALLET_CONNECT_BONUS, TOTAL_WELCOME_BONUS } from '@/lib/constants';
@@ -410,32 +410,47 @@ const Reward = () => {
             </CardContent>
           </Card>
 
-          {/* Info Cards */}
+          {/* Info Cards - Công thức thưởng Luật Ánh Sáng v2.1 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-card/50">
               <CardContent className="pt-6">
                 <div className="text-2xl mb-2">🎁</div>
                 <h3 className="font-semibold mb-1">Thưởng chào mừng</h3>
                 <p className="text-sm text-muted-foreground">
-                  Đăng ký: +50.000 CAMLY<br/>
-                  Kết nối ví: +50.000 CAMLY<br/>
-                  <strong className="text-primary">Tổng cộng: {TOTAL_WELCOME_BONUS.toLocaleString()} CAMLY!</strong>
+                  Xác minh (email + avatar + tên thật): +50.000 CLC<br/>
+                  Kết nối ví lần đầu: +50.000 CLC<br/>
+                  <strong className="text-primary">Tổng cộng: {TOTAL_WELCOME_BONUS.toLocaleString()} CLC!</strong>
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-card/50">
               <CardContent className="pt-6">
-                <div className="text-2xl mb-2">🔗</div>
-                <h3 className="font-semibold mb-1">Cộng dồn tự động</h3>
+                <div className="text-2xl mb-2">📝</div>
+                <h3 className="font-semibold mb-1">Thưởng hoạt động</h3>
                 <p className="text-sm text-muted-foreground">
-                  Thưởng sẽ tự động cộng dồn khi bạn hoạt động – claim bất cứ lúc nào!
+                  Đăng bài ({'>'}100 ký tự + ảnh/video): +20.000 CLC<br/>
+                  Nhận like: +10.000/like (3 đầu), +1.000/like (từ 4)<br/>
+                  Nhận comment/share: +5.000 - 10.000 CLC
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Chính sách thưởng đầy đủ */}
-          <RewardPolicyNotice showFullPolicy={true} />
+          <Card className="bg-card/50 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold mb-1">Quy tắc Luật Ánh Sáng</h3>
+                  <p className="text-sm text-muted-foreground">
+                    • Mỗi hành động chỉ thưởng <strong>1 lần duy nhất</strong> / user / bài viết<br/>
+                    • Kết bạn: +50.000 CLC/cặp (khi chấp nhận)<br/>
+                    • Thưởng tự động cộng dồn – claim bất cứ lúc nào!
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Contract Info */}
           <div className="mt-6 text-center">
