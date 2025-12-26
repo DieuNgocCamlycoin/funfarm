@@ -28,6 +28,9 @@ const ConnectWallet = () => {
   const [pendingEmail, setPendingEmail] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  const isEmailSendRateLimit = (message: string) =>
+    /email rate limit exceeded|over_email_send_rate_limit/i.test(message);
+
   // Countdown timer for resend button
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -81,13 +84,30 @@ const ConnectWallet = () => {
       // Sign up flow - register then show magic link confirmation screen
       const { error } = await signUp(email, password);
       if (error) {
-        console.log('[SignUp Error]', error.message, error);
-        
+        const message = error.message || 'Unknown error';
+
+        // Email sending rate limit (confirmation email). This is NOT login/signup throttling.
+        if (isEmailSendRateLimit(message)) {
+          toast.warning(
+            <div className="flex items-start gap-2">
+              <span>📨</span>
+              <div>
+                <p className="font-medium">Hệ thống email xác minh đang bị giới hạn</p>
+                <p className="text-sm opacity-80">
+                  Vui lòng đợi vài phút rồi thử lại. Nếu bạn vừa đăng ký, hãy thử chuyển sang
+                  <span className="font-semibold"> Đăng nhập</span> — đôi khi tài khoản đã được tạo rồi.
+                </p>
+              </div>
+            </div>,
+            { duration: 8000 }
+          );
+          setIsLoginMode(true);
+        }
         // Check for existing user - multiple possible error messages
-        if (
-          error.message.includes('already registered') || 
-          error.message.includes('User already registered') ||
-          error.message.includes('already been registered')
+        else if (
+          message.includes('already registered') ||
+          message.includes('User already registered') ||
+          message.includes('already been registered')
         ) {
           toast.info(
             <div className="flex items-center gap-2">
@@ -100,18 +120,17 @@ const ConnectWallet = () => {
             { duration: 5000 }
           );
           setIsLoginMode(true);
-        } 
-        // Rate limit from Supabase Auth
+        }
+        // Generic rate limit / security throttling
         else if (
-          error.message.includes('rate limit') || 
-          error.message.includes('security purposes') ||
-          error.message.includes('For security purposes') ||
-          error.message.includes('seconds')
+          message.includes('rate limit') ||
+          message.includes('security purposes') ||
+          message.includes('For security purposes') ||
+          message.includes('seconds')
         ) {
-          // Extract wait time from error message if available
-          const waitMatch = error.message.match(/(\d+)\s*second/i);
+          const waitMatch = message.match(/(\d+)\s*second/i);
           const waitTime = waitMatch ? parseInt(waitMatch[1]) : 60;
-          
+
           toast.warning(
             <div className="flex items-center gap-2">
               <span>🛡️</span>
@@ -125,8 +144,8 @@ const ConnectWallet = () => {
         }
         // Weak password
         else if (
-          error.message.includes('password') && 
-          (error.message.includes('weak') || error.message.includes('short') || error.message.includes('least'))
+          message.includes('password') &&
+          (message.includes('weak') || message.includes('short') || message.includes('least'))
         ) {
           toast.error(
             <div className="flex items-center gap-2">
@@ -140,7 +159,7 @@ const ConnectWallet = () => {
           );
         }
         // Invalid email format
-        else if (error.message.includes('email') && error.message.includes('invalid')) {
+        else if (message.includes('email') && message.includes('invalid')) {
           toast.error(
             <div className="flex items-center gap-2">
               <span>📧</span>
@@ -152,18 +171,18 @@ const ConnectWallet = () => {
             { duration: 5000 }
           );
         }
-        // Generic error with full message for debugging
+        // Generic error with full message
         else {
-          console.error('[SignUp Unknown Error]', error);
+          // Avoid logging sensitive auth details in production
           toast.error(
             <div className="flex items-center gap-2">
               <span>❌</span>
               <div>
                 <p className="font-medium">Có lỗi xảy ra</p>
-                <p className="text-sm opacity-80">{error.message}</p>
+                <p className="text-sm opacity-80">{message}</p>
               </div>
             </div>,
-            { duration: 5000 }
+            { duration: 6000 }
           );
         }
       } else {
@@ -218,13 +237,26 @@ const ConnectWallet = () => {
       });
 
       if (error) {
-        if (error.message.includes('rate limit') || error.message.includes('45') || error.message.includes('For security purposes')) {
+        const message = error.message || 'Unknown error';
+
+        if (isEmailSendRateLimit(message)) {
+          toast.warning('Hệ thống email đang bị giới hạn. Vui lòng đợi vài phút rồi gửi lại ❤️', {
+            duration: 6000,
+          });
+        } else if (
+          message.includes('rate limit') ||
+          message.includes('For security purposes') ||
+          message.includes('seconds')
+        ) {
+          const waitMatch = message.match(/(\d+)\s*second/i);
+          const waitTime = waitMatch ? parseInt(waitMatch[1]) : 60;
+
           toast.info(
             <div className="flex items-center gap-2">
               <span>⏳</span>
-              <p>Vui lòng đợi 60 giây trước khi gửi lại ❤️</p>
+              <p>Vui lòng đợi {waitTime} giây trước khi gửi lại ❤️</p>
             </div>,
-            { duration: 4000 }
+            { duration: 5000 }
           );
         } else {
           throw error;
