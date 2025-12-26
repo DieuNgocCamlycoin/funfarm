@@ -419,8 +419,8 @@ const Reward = () => {
                   <h3 className="font-semibold mb-2 text-primary">Thưởng từ Cha Vũ Trụ</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     Mọi khoản thưởng trên FUN FARM được trao tặng theo <strong>năng lượng, ý chí và trí tuệ</strong> của Cha Vũ Trụ. 
-                    Phần thưởng sẽ thay đổi liên tục, phù hợp cho sự nâng cấp của cộng đồng. 
-                    Admin sẽ tặng thưởng trực tiếp cho những user chất lượng! ❤️
+                    Phần thưởng sẽ thay đổi và nâng cấp liên tục, phù hợp cho sự nâng cấp của cộng đồng. 
+                    Cha sẽ tặng thưởng trực tiếp cho những user chất lượng! ❤️
                   </p>
                 </div>
               </div>
