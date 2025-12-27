@@ -9,7 +9,7 @@ import FloatingCreateButton from "@/components/feed/FloatingCreateButton";
 import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
-import VerificationNotice from "@/components/VerificationNotice";
+
 import { LightLawUpgradeNotice } from "@/components/LightLawUpgradeNotice";
 import { ViolationWarning } from "@/components/ViolationWarning";
 import { trendingHashtags, suggestedFarms } from "@/data/mockFeed";
@@ -406,15 +406,6 @@ const Feed = () => {
                   <LightLawUpgradeNotice />
                 )}
 
-                {/* Verification Notice */}
-                {!profile?.banned && (
-                  <VerificationNotice 
-                    onConnectWallet={() => {
-                      window.location.href = '/reward';
-                    }}
-                    showDismiss
-                  />
-                )}
 
                 {/* Create Post Box - Facebook style - Hide if banned */}
                 {!profile?.banned && (
