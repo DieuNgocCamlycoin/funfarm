@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { ViolationWarning } from "@/components/ViolationWarning";
-import { LightLawUpgradeNotice } from "@/components/LightLawUpgradeNotice";
+
 import HonorBoard from "@/components/HonorBoard";
 import { 
   MapPin, 
@@ -332,10 +332,6 @@ const Profile = () => {
       <Navbar />
       
       <main className="pt-16">
-        {/* Light Law Upgrade Notice for existing users */}
-        <div className="container max-w-5xl mx-auto px-4 pt-4">
-          <LightLawUpgradeNotice />
-        </div>
 
         {/* Violation Warning */}
         {violationLevel > 0 && (
