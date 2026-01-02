@@ -328,6 +328,139 @@ export function RewardCalculationExport() {
     toast.success('Đã xuất CSV thành công!');
   };
 
+  const exportDetailedReport = () => {
+    if (users.length === 0) {
+      toast.error('Chưa có dữ liệu để xuất');
+      return;
+    }
+
+    // Calculate totals by action type
+    const totals = {
+      welcome: { count: 0, amount: 0 },
+      wallet: { count: 0, amount: 0 },
+      verification: { count: 0, amount: 0 },
+      post: { count: 0, amount: 0 },
+      like: { count: 0, amount: 0 },
+      comment: { count: 0, amount: 0 },
+      share: { count: 0, amount: 0 },
+      friendship: { count: 0, amount: 0 }
+    };
+
+    users.forEach(user => {
+      if (user.welcome_bonus > 0) { totals.welcome.count++; totals.welcome.amount += user.welcome_bonus; }
+      if (user.wallet_bonus > 0) { totals.wallet.count++; totals.wallet.amount += user.wallet_bonus; }
+      if (user.verification_bonus > 0) { totals.verification.count++; totals.verification.amount += user.verification_bonus; }
+      if (user.post_reward > 0) { totals.post.count += user.quality_posts; totals.post.amount += user.post_reward; }
+      if (user.like_reward > 0) { totals.like.count += user.likes_received; totals.like.amount += user.like_reward; }
+      if (user.comment_reward > 0) { totals.comment.count += user.comments_received; totals.comment.amount += user.comment_reward; }
+      if (user.share_reward > 0) { totals.share.count += user.shares_received; totals.share.amount += user.share_reward; }
+      if (user.friendship_reward > 0) { totals.friendship.count += user.friendships; totals.friendship.amount += user.friendship_reward; }
+    });
+
+    // Summary section
+    const summaryLines = [
+      '=== BÁO CÁO CHI TIẾT REWARD THEO LOẠI HÀNH ĐỘNG ===',
+      `Ngày xuất: ${new Date().toLocaleString('vi-VN')}`,
+      `Cutoff date: 31/12/2025`,
+      `Tổng users: ${users.length}`,
+      '',
+      '=== TỔNG KẾT THEO LOẠI HÀNH ĐỘNG ===',
+      'Loại hành động,Số lượng,Thưởng (CLC),Đơn giá (CLC)',
+      `Welcome Bonus,${totals.welcome.count} users,${totals.welcome.amount},50000/user`,
+      `Wallet Bonus,${totals.wallet.count} users,${totals.wallet.amount},50000/user`,
+      `Verification Bonus,${totals.verification.count} users,${totals.verification.amount},50000/user`,
+      `Quality Posts,${totals.post.count} bài,${totals.post.amount},20000/bài`,
+      `Likes Received,${totals.like.count} likes,${totals.like.amount},"10000 (3 đầu) / 1000 (còn lại)"`,
+      `Comments Received,${totals.comment.count} comments,${totals.comment.amount},5000/comment`,
+      `Shares Received,${totals.share.count} shares,${totals.share.amount},10000/share`,
+      `Friendships,${totals.friendship.count} friendships,${totals.friendship.amount},50000/friendship`,
+      '',
+      `TỔNG CỘNG,,${totals.welcome.amount + totals.wallet.amount + totals.verification.amount + totals.post.amount + totals.like.amount + totals.comment.amount + totals.share.amount + totals.friendship.amount},`,
+      '',
+      '=== CHI TIẾT TỪNG USER ==='
+    ];
+
+    // Detail headers
+    const detailHeaders = [
+      'Tên',
+      'Welcome',
+      'Wallet', 
+      'Verification',
+      'Bài CL (số)',
+      'Bài CL (CLC)',
+      'Like (số)',
+      'Like (CLC)',
+      'Comment (số)',
+      'Comment (CLC)',
+      'Share (số)',
+      'Share (CLC)',
+      'Bạn bè (số)',
+      'Bạn bè (CLC)',
+      'TỔNG (CLC)'
+    ];
+
+    const detailRows = users.map(user => [
+      user.display_name,
+      user.welcome_bonus,
+      user.wallet_bonus,
+      user.verification_bonus,
+      user.quality_posts,
+      user.post_reward,
+      user.likes_received,
+      user.like_reward,
+      user.comments_received,
+      user.comment_reward,
+      user.shares_received,
+      user.share_reward,
+      user.friendships,
+      user.friendship_reward,
+      user.calculated_total
+    ]);
+
+    const csvContent = [
+      ...summaryLines,
+      detailHeaders.join(','),
+      ...detailRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reward_detailed_report_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success('Đã xuất báo cáo chi tiết!');
+  };
+
+  // Calculate summary by action type for display
+  const getActionTypeSummary = () => {
+    const totals = {
+      welcome: { count: 0, amount: 0 },
+      wallet: { count: 0, amount: 0 },
+      verification: { count: 0, amount: 0 },
+      post: { count: 0, amount: 0 },
+      like: { count: 0, amount: 0 },
+      comment: { count: 0, amount: 0 },
+      share: { count: 0, amount: 0 },
+      friendship: { count: 0, amount: 0 }
+    };
+
+    users.forEach(user => {
+      if (user.welcome_bonus > 0) { totals.welcome.count++; totals.welcome.amount += user.welcome_bonus; }
+      if (user.wallet_bonus > 0) { totals.wallet.count++; totals.wallet.amount += user.wallet_bonus; }
+      if (user.verification_bonus > 0) { totals.verification.count++; totals.verification.amount += user.verification_bonus; }
+      totals.post.count += user.quality_posts; totals.post.amount += user.post_reward;
+      totals.like.count += user.likes_received; totals.like.amount += user.like_reward;
+      totals.comment.count += user.comments_received; totals.comment.amount += user.comment_reward;
+      totals.share.count += user.shares_received; totals.share.amount += user.share_reward;
+      totals.friendship.count += user.friendships; totals.friendship.amount += user.friendship_reward;
+    });
+
+    return totals;
+  };
+
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('vi-VN').format(num);
   };
@@ -350,9 +483,13 @@ export function RewardCalculationExport() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Tải dữ liệu
             </Button>
-            <Button onClick={exportToCSV} disabled={users.length === 0}>
+            <Button onClick={exportToCSV} disabled={users.length === 0} variant="outline">
               <Download className="w-4 h-4 mr-2" />
-              Xuất CSV ({users.length} users)
+              CSV
+            </Button>
+            <Button onClick={exportDetailedReport} disabled={users.length === 0}>
+              <Download className="w-4 h-4 mr-2" />
+              Báo cáo chi tiết
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -413,6 +550,50 @@ export function RewardCalculationExport() {
                 <div className="text-sm text-muted-foreground">Tổng chênh lệch (CLC)</div>
               </div>
             </div>
+
+            {/* Action Type Summary */}
+            {(() => {
+              const summary = getActionTypeSummary();
+              return (
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+                  <h3 className="font-semibold mb-3">📈 Tổng kết theo loại hành động</h3>
+                  <div className="grid grid-cols-4 gap-3 text-sm">
+                    <div className="flex justify-between border-b pb-1">
+                      <span>🎁 Welcome Bonus</span>
+                      <span className="font-mono">{summary.welcome.count} users = {formatNumber(summary.welcome.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>💳 Wallet Bonus</span>
+                      <span className="font-mono">{summary.wallet.count} users = {formatNumber(summary.wallet.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>✅ Verification</span>
+                      <span className="font-mono">{summary.verification.count} users = {formatNumber(summary.verification.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>📝 Quality Posts</span>
+                      <span className="font-mono">{summary.post.count} bài = {formatNumber(summary.post.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>❤️ Likes</span>
+                      <span className="font-mono">{summary.like.count} likes = {formatNumber(summary.like.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>💬 Comments</span>
+                      <span className="font-mono">{summary.comment.count} cmt = {formatNumber(summary.comment.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>🔄 Shares</span>
+                      <span className="font-mono">{summary.share.count} shares = {formatNumber(summary.share.amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-1">
+                      <span>🤝 Friendships</span>
+                      <span className="font-mono">{summary.friendship.count} = {formatNumber(summary.friendship.amount)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Users needing review */}
             <div className="mb-4">
