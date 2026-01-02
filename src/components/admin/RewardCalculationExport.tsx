@@ -42,6 +42,47 @@ export function RewardCalculationExport() {
   const [users, setUsers] = useState<UserRewardCalculation[]>([]);
   const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+
+  const resetSingleUser = async (userId: string, calculatedTotal: number) => {
+    setResettingUserId(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('reset-reward', {
+        body: { userId, amount: calculatedTotal },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      if (data.success) {
+        toast.success(`Đã reset ${formatNumber(calculatedTotal)} CLC cho user`);
+        // Update local state
+        setUsers(prev => prev.map(u => 
+          u.id === userId 
+            ? { ...u, pending_reward: calculatedTotal, current_total: calculatedTotal + u.approved_reward + u.camly_balance }
+            : u
+        ));
+      } else {
+        toast.error(data.message || 'Có lỗi xảy ra');
+      }
+    } catch (error: any) {
+      console.error('Error resetting user reward:', error);
+      toast.error('Lỗi khi reset: ' + error.message);
+    } finally {
+      setResettingUserId(null);
+    }
+  };
 
   const resetAllRewards = async () => {
     setResetting(true);
@@ -398,6 +439,7 @@ export function RewardCalculationExport() {
                     <TableHead className="sticky top-0 bg-background">Hiện tại</TableHead>
                     <TableHead className="sticky top-0 bg-background">Tính lại</TableHead>
                     <TableHead className="sticky top-0 bg-background">Chênh lệch</TableHead>
+                    <TableHead className="sticky top-0 bg-background text-center">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -439,6 +481,40 @@ export function RewardCalculationExport() {
                         </TableCell>
                         <TableCell className={`font-mono ${getDifferenceColor(diff)}`}>
                           {diff > 0 ? '+' : ''}{formatNumber(diff)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                disabled={resettingUserId === user.id || diff === 0}
+                                className="h-7 px-2"
+                              >
+                                {resettingUserId === user.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-3 h-3" />
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Reset pending_reward cho {user.display_name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Đặt <strong>pending_reward = {formatNumber(user.calculated_total)} CLC</strong>
+                                  <br />
+                                  (Hiện tại: {formatNumber(user.pending_reward)} | Chênh lệch: {diff > 0 ? '+' : ''}{formatNumber(diff)})
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => resetSingleUser(user.id, user.calculated_total)}>
+                                  Xác nhận
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     );
