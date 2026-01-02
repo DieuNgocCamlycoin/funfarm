@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, RefreshCw, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Download, RefreshCw, Loader2, AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 interface UserRewardCalculation {
   id: string;
   display_name: string;
@@ -41,6 +41,42 @@ interface UserRewardCalculation {
 export function RewardCalculationExport() {
   const [users, setUsers] = useState<UserRewardCalculation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const resetAllRewards = async () => {
+    setResetting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Vui lòng đăng nhập lại');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('reset-all-rewards', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      if (data.success) {
+        toast.success(data.message);
+        // Reload data
+        await fetchCalculations();
+      } else {
+        toast.error(data.message || 'Có lỗi xảy ra');
+      }
+    } catch (error: any) {
+      console.error('Error resetting rewards:', error);
+      toast.error('Lỗi khi reset: ' + error.message);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const fetchCalculations = async () => {
     setLoading(true);
@@ -277,6 +313,30 @@ export function RewardCalculationExport() {
               <Download className="w-4 h-4 mr-2" />
               Xuất CSV ({users.length} users)
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={users.length === 0 || resetting}>
+                  {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                  Reset All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>⚠️ Xác nhận Reset Pending Reward</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Hành động này sẽ reset <strong>pending_reward</strong> của TẤT CẢ users về số đã tính lại theo công thức Light Law (đến 31/12/2025).
+                    <br /><br />
+                    <strong>Lưu ý:</strong> approved_reward và camly_balance (đã claim) sẽ KHÔNG bị thay đổi.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction onClick={resetAllRewards} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Xác nhận Reset
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </CardHeader>
