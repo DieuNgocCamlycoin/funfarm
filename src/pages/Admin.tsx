@@ -43,6 +43,7 @@ import WalletAbuseTab from "@/components/admin/WalletAbuseTab";
 import QuickDeleteTab from "@/components/admin/QuickDeleteTab";
 import DeletedUsersTab from "@/components/admin/DeletedUsersTab";
 import UserVerificationTab from "@/components/admin/UserVerificationTab";
+import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 
@@ -607,8 +608,12 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="rewards" className="w-full">
-          <TabsList className="grid w-full grid-cols-11">
+        <Tabs defaultValue="reward-calc" className="w-full">
+          <TabsList className="grid w-full grid-cols-12">
+            <TabsTrigger value="reward-calc" className="flex items-center gap-2 text-xs sm:text-sm">
+              <Download className="h-4 w-4 text-purple-500" />
+              <span className="hidden sm:inline text-purple-500 font-medium">Tính thưởng</span>
+            </TabsTrigger>
             <TabsTrigger value="verification" className="flex items-center gap-2 text-xs sm:text-sm">
               <Shield className="h-4 w-4 text-blue-500" />
               <span className="hidden sm:inline text-blue-500 font-medium">Xác minh</span>
@@ -654,6 +659,11 @@ const Admin = () => {
               <span className="hidden sm:inline">Ban</span> ({bannedUsers.length})
             </TabsTrigger>
           </TabsList>
+
+          {/* Reward Calculation Tab */}
+          <TabsContent value="reward-calc" className="mt-4">
+            <RewardCalculationExport />
+          </TabsContent>
 
           {/* User Verification Tab */}
           <TabsContent value="verification" className="mt-4">
