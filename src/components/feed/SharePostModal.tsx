@@ -83,10 +83,15 @@ export const SharePostModal = ({ isOpen, onClose, post, onShareComplete }: Share
 
       if (postError) throw postError;
 
+      // Kiểm tra xem bài gốc có phải là bài share không (không thưởng nếu share bài share)
+      const isOriginalPost = post.post_type !== 'share';
+
       // Success!
-      if (isFirstShare) {
-        toast.success('+20.000 CAMLY cho bạn! 🎉 Bài chia sẻ đã hiển thị trên tường của bạn!', { duration: 3000 });
+      if (isFirstShare && isOriginalPost) {
+        toast.success('+10.000 CAMLY cho bạn & +10.000 cho tác giả! 🎉', { duration: 3000 });
         refreshProfile();
+      } else if (!isOriginalPost) {
+        toast.success('Đã chia sẻ lên tường của bạn! (Chỉ share bài gốc mới được thưởng)', { duration: 3000 });
       } else {
         toast.success('Bài chia sẻ đã hiển thị trên tường của bạn! 💚', { duration: 3000 });
       }
@@ -184,7 +189,7 @@ export const SharePostModal = ({ isOpen, onClose, post, onShareComplete }: Share
 
           {/* Reward notice */}
           <p className="text-xs text-center text-muted-foreground">
-            💚 Chia sẻ lần đầu nhận +20.000 CAMLY. Bài chia sẻ sẽ hiện trên tường cá nhân của bạn.
+            💚 Share bài gốc lần đầu: +10.000 CAMLY cho bạn & +10.000 cho tác giả. Tương tác trên bài share không được thưởng.
           </p>
         </div>
       </DialogContent>
