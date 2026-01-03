@@ -113,12 +113,13 @@ Deno.serve(async (req) => {
       const originalPostIds = (userOriginalPosts || []).map(p => p.id);
 
       if (originalPostIds.length > 0) {
+        // Likes từ người khác (loại trừ self-like)
         for (const postId of originalPostIds) {
           const { data: likes } = await supabase
             .from('post_likes')
             .select('user_id')
             .eq('post_id', postId)
-            .neq('user_id', userId)
+            .neq('user_id', userId) // Loại trừ self-like
             .lte('created_at', CUTOFF_DATE);
 
           const uniqueLikers = new Set((likes || []).map(l => l.user_id));
@@ -147,13 +148,13 @@ Deno.serve(async (req) => {
           calculatedReward += qualityCommenters.size * 5000;
         }
 
-        // 7. Shares received (10,000 per unique sharer)
+        // 7. Shares received từ người khác (10,000 per unique sharer)
         for (const postId of originalPostIds) {
           const { data: shares } = await supabase
             .from('post_shares')
             .select('user_id')
             .eq('post_id', postId)
-            .neq('user_id', userId)
+            .neq('user_id', userId) // Loại trừ self-share
             .lte('created_at', CUTOFF_DATE);
 
           const uniqueSharers = new Set((shares || []).map(s => s.user_id));

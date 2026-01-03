@@ -157,13 +157,16 @@ export function RewardCalculationExport() {
             let sharesReceived = 0;
 
             if (postIds.length > 0) {
+              // Likes từ người khác (loại trừ self-like)
               const { count: likes } = await supabase
                 .from('post_likes')
                 .select('*', { count: 'exact', head: true })
                 .in('post_id', postIds)
+                .neq('user_id', profile.id) // Loại trừ self-like
                 .lte('created_at', '2025-12-31T23:59:59Z');
               likesReceived = likes || 0;
 
+              // Comments từ người khác (đã đúng)
               const { count: comments } = await supabase
                 .from('comments')
                 .select('*', { count: 'exact', head: true })
@@ -172,10 +175,12 @@ export function RewardCalculationExport() {
                 .lte('created_at', '2025-12-31T23:59:59Z');
               commentsReceived = comments || 0;
 
+              // Shares từ người khác (loại trừ self-share)
               const { count: shares } = await supabase
                 .from('post_shares')
                 .select('*', { count: 'exact', head: true })
                 .in('post_id', postIds)
+                .neq('user_id', profile.id) // Loại trừ self-share
                 .lte('created_at', '2025-12-31T23:59:59Z');
               sharesReceived = shares || 0;
             }
