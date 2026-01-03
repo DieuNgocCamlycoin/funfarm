@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
         }
 
         // 7. Shares received từ người khác còn tồn tại (loại trừ self-share và deleted users)
+        // 2 cấp độ: cơ bản (không comment hoặc <20 chars) = 4,000 CLC, chất lượng (>=20 chars) = 10,000 CLC
         for (const postId of originalPostIds) {
           const { data: shares } = await supabase
             .from('post_shares')
@@ -168,8 +169,24 @@ Deno.serve(async (req) => {
 
           // Chỉ đếm shares từ users còn tồn tại
           const validSharers = (shares || []).filter(s => existingUserIds.has(s.user_id));
-          const uniqueSharers = new Set(validSharers.map(s => s.user_id));
-          calculatedReward += uniqueSharers.size * 10000;
+          
+          for (const share of validSharers) {
+            // Tìm bài share (posts có original_post_id = postId và author = người share)
+            const { data: sharePost } = await supabase
+              .from('posts')
+              .select('share_comment')
+              .eq('original_post_id', postId)
+              .eq('author_id', share.user_id)
+              .eq('post_type', 'share')
+              .maybeSingle();
+            
+            const commentLength = sharePost?.share_comment?.length || 0;
+            if (commentLength >= 20) {
+              calculatedReward += 10000; // Quality share
+            } else {
+              calculatedReward += 4000; // Basic share
+            }
+          }
         }
       }
 
