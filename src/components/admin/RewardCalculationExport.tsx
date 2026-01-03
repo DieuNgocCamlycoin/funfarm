@@ -156,17 +156,25 @@ export function RewardCalculationExport() {
             let commentsReceived = 0;
             let sharesReceived = 0;
 
+            // Lấy danh sách user_id còn tồn tại (loại trừ deleted users)
+            const { data: existingUsers } = await supabase
+              .from('profiles')
+              .select('id');
+            const existingUserIds = new Set((existingUsers || []).map(u => u.id));
+
             if (postIds.length > 0) {
-              // Likes từ người khác (loại trừ self-like)
-              const { count: likes } = await supabase
+
+              // Likes từ người khác còn tồn tại (loại trừ self-like và deleted users)
+              const { data: likesData } = await supabase
                 .from('post_likes')
-                .select('*', { count: 'exact', head: true })
+                .select('user_id')
                 .in('post_id', postIds)
                 .neq('user_id', profile.id) // Loại trừ self-like
                 .lte('created_at', '2025-12-31T23:59:59Z');
-              likesReceived = likes || 0;
+              // Chỉ đếm likes từ users còn tồn tại
+              likesReceived = (likesData || []).filter(l => existingUserIds.has(l.user_id)).length;
 
-              // Comments từ người khác (đã đúng)
+              // Comments từ người khác (comments từ deleted users đã bị xóa theo trigger)
               const { count: comments } = await supabase
                 .from('comments')
                 .select('*', { count: 'exact', head: true })
@@ -175,23 +183,31 @@ export function RewardCalculationExport() {
                 .lte('created_at', '2025-12-31T23:59:59Z');
               commentsReceived = comments || 0;
 
-              // Shares từ người khác (loại trừ self-share)
-              const { count: shares } = await supabase
+              // Shares từ người khác còn tồn tại (loại trừ self-share và deleted users)
+              const { data: sharesData } = await supabase
                 .from('post_shares')
-                .select('*', { count: 'exact', head: true })
+                .select('user_id')
                 .in('post_id', postIds)
                 .neq('user_id', profile.id) // Loại trừ self-share
                 .lte('created_at', '2025-12-31T23:59:59Z');
-              sharesReceived = shares || 0;
+              // Chỉ đếm shares từ users còn tồn tại
+              sharesReceived = (sharesData || []).filter(s => existingUserIds.has(s.user_id)).length;
             }
 
-            // Get friendships
-            const { count: friendships } = await supabase
+            // Get friendships với users còn tồn tại
+            const { data: friendshipsData } = await supabase
               .from('followers')
-              .select('*', { count: 'exact', head: true })
+              .select('follower_id, following_id')
               .or(`follower_id.eq.${profile.id},following_id.eq.${profile.id}`)
               .eq('status', 'accepted')
               .lte('created_at', '2025-12-31T23:59:59Z');
+            
+            // Chỉ đếm friendships với users còn tồn tại
+            const validFriendships = (friendshipsData || []).filter(f => {
+              const friendId = f.follower_id === profile.id ? f.following_id : f.follower_id;
+              return existingUserIds.has(friendId);
+            });
+            const friendships = validFriendships.length;
 
             const welcomeBonus = profile.welcome_bonus_claimed ? 50000 : 0;
             const walletBonus = profile.wallet_bonus_claimed ? 50000 : 0;

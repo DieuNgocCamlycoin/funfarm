@@ -112,8 +112,14 @@ Deno.serve(async (req) => {
 
       const originalPostIds = (userOriginalPosts || []).map(p => p.id);
 
+      // Lấy danh sách user còn tồn tại (loại trừ deleted users)
+      const { data: existingUsers } = await supabase
+        .from('profiles')
+        .select('id');
+      const existingUserIds = new Set((existingUsers || []).map(u => u.id));
+
       if (originalPostIds.length > 0) {
-        // Likes từ người khác (loại trừ self-like)
+        // Likes từ người khác còn tồn tại (loại trừ self-like và deleted users)
         for (const postId of originalPostIds) {
           const { data: likes } = await supabase
             .from('post_likes')
@@ -122,7 +128,9 @@ Deno.serve(async (req) => {
             .neq('user_id', userId) // Loại trừ self-like
             .lte('created_at', CUTOFF_DATE);
 
-          const uniqueLikers = new Set((likes || []).map(l => l.user_id));
+          // Chỉ đếm likes từ users còn tồn tại
+          const validLikers = (likes || []).filter(l => existingUserIds.has(l.user_id));
+          const uniqueLikers = new Set(validLikers.map(l => l.user_id));
           const likeCount = uniqueLikers.size;
           
           // First 3 likes = 10,000 each, rest = 1,000 each
@@ -132,6 +140,7 @@ Deno.serve(async (req) => {
         }
 
         // 6. Comments received (5,000 per unique commenter per post, >20 chars)
+        // Comments từ deleted users đã bị xóa theo cleanup process
         for (const postId of originalPostIds) {
           const { data: comments } = await supabase
             .from('comments')
@@ -148,7 +157,7 @@ Deno.serve(async (req) => {
           calculatedReward += qualityCommenters.size * 5000;
         }
 
-        // 7. Shares received từ người khác (10,000 per unique sharer)
+        // 7. Shares received từ người khác còn tồn tại (loại trừ self-share và deleted users)
         for (const postId of originalPostIds) {
           const { data: shares } = await supabase
             .from('post_shares')
@@ -157,20 +166,27 @@ Deno.serve(async (req) => {
             .neq('user_id', userId) // Loại trừ self-share
             .lte('created_at', CUTOFF_DATE);
 
-          const uniqueSharers = new Set((shares || []).map(s => s.user_id));
+          // Chỉ đếm shares từ users còn tồn tại
+          const validSharers = (shares || []).filter(s => existingUserIds.has(s.user_id));
+          const uniqueSharers = new Set(validSharers.map(s => s.user_id));
           calculatedReward += uniqueSharers.size * 10000;
         }
       }
 
-      // 8. Friendship bonus (50,000 per accepted friendship)
+      // 8. Friendship bonus (50,000 per accepted friendship với users còn tồn tại)
       const { data: friendships } = await supabase
         .from('followers')
-        .select('id')
+        .select('id, follower_id, following_id')
         .eq('status', 'accepted')
         .or(`follower_id.eq.${userId},following_id.eq.${userId}`)
         .lte('created_at', CUTOFF_DATE);
 
-      calculatedReward += (friendships || []).length * 50000;
+      // Chỉ đếm friendships với users còn tồn tại
+      const validFriendships = (friendships || []).filter(f => {
+        const friendId = f.follower_id === userId ? f.following_id : f.follower_id;
+        return existingUserIds.has(friendId);
+      });
+      calculatedReward += validFriendships.length * 50000;
 
       // Update pending_reward
       const oldPending = profile.pending_reward || 0;
