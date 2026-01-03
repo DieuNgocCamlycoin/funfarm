@@ -133,6 +133,7 @@ export function RewardCalculationExport() {
         // Constants for daily limits
         const MAX_POSTS_PER_DAY = 10;
         const MAX_INTERACTIONS_PER_DAY = 50;
+        const MAX_FRIENDSHIPS_PER_DAY = 10;
 
         // Helper functions
         const groupByDate = <T,>(items: T[], getDate: (item: T) => string): Map<string, T[]> => {
@@ -305,19 +306,27 @@ export function RewardCalculationExport() {
               }
             }
 
-            // Get friendships với users còn tồn tại
+            // Get friendships với users còn tồn tại - MAX 10/DAY
             const { data: friendshipsData } = await supabase
               .from('followers')
-              .select('follower_id, following_id')
+              .select('follower_id, following_id, created_at')
               .or(`follower_id.eq.${profile.id},following_id.eq.${profile.id}`)
               .eq('status', 'accepted')
-              .lte('created_at', '2025-12-31T23:59:59Z');
+              .lte('created_at', '2025-12-31T23:59:59Z')
+              .order('created_at', { ascending: true });
             
             const validFriendships = (friendshipsData || []).filter(f => {
               const friendId = f.follower_id === profile.id ? f.following_id : f.follower_id;
               return existingUserIds.has(friendId);
             });
-            const friendships = validFriendships.length;
+            
+            // Apply 10 friendships/day limit
+            const rewardableFriendships = applyDailyLimit(
+              validFriendships,
+              (f: { created_at: string }) => f.created_at,
+              MAX_FRIENDSHIPS_PER_DAY
+            );
+            const friendships = rewardableFriendships.length;
 
             const welcomeBonus = profile.welcome_bonus_claimed ? 50000 : 0;
             const walletBonus = profile.wallet_bonus_claimed ? 50000 : 0;
