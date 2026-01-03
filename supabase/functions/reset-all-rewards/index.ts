@@ -300,13 +300,18 @@ Deno.serve(async (req) => {
       );
       calculatedReward += rewardableFriendships.length * 50000;
 
-      // Update pending_reward
+      // Update pending_reward AND reset approved_reward to 0
       const oldPending = profile.pending_reward || 0;
-      const difference = calculatedReward - oldPending;
+      const oldApproved = profile.approved_reward || 0;
+      const oldTotal = oldPending + oldApproved;
+      const difference = calculatedReward - oldTotal;
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ pending_reward: calculatedReward })
+        .update({ 
+          pending_reward: calculatedReward,
+          approved_reward: 0 // Reset approved về 0, tất cả chuyển vào pending
+        })
         .eq('id', userId);
 
       if (updateError) {
@@ -317,6 +322,8 @@ Deno.serve(async (req) => {
         user_id: userId,
         display_name: profile.display_name,
         old_pending: oldPending,
+        old_approved: oldApproved,
+        old_total: oldTotal,
         new_pending: calculatedReward,
         difference
       });
@@ -327,7 +334,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Đã reset pending_reward cho ${results.length} users (áp dụng giới hạn 10 bài/ngày, 50 tương tác/ngày, 10 kết bạn/ngày)`,
+        message: `Đã tính lại thưởng cho ${results.length} users (reset approved_reward về 0, tính lại pending_reward với giới hạn 10 bài/ngày, 50 tương tác/ngày, 10 kết bạn/ngày)`,
         results
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
