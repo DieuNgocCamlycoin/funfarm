@@ -757,7 +757,9 @@ export function RewardCalculationExport() {
                     <TableHead className="sticky top-0 bg-background">Comment</TableHead>
                     <TableHead className="sticky top-0 bg-background">Share</TableHead>
                     <TableHead className="sticky top-0 bg-background">Bạn bè</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Hiện tại</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Pending</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Approved</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Tổng cũ</TableHead>
                     <TableHead className="sticky top-0 bg-background">Tính lại</TableHead>
                     <TableHead className="sticky top-0 bg-background">Chênh lệch</TableHead>
                     <TableHead className="sticky top-0 bg-background text-center">Thao tác</TableHead>
@@ -793,6 +795,12 @@ export function RewardCalculationExport() {
                         <TableCell>
                           <div>{user.friendships}</div>
                           <div className="text-xs text-green-500">+{formatNumber(user.friendship_reward)}</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-muted-foreground">
+                          {formatNumber(user.pending_reward)}
+                        </TableCell>
+                        <TableCell className="font-mono text-muted-foreground">
+                          {formatNumber(user.approved_reward)}
                         </TableCell>
                         <TableCell className="font-mono">
                           {formatNumber(user.current_total)}
