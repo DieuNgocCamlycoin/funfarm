@@ -130,27 +130,61 @@ export function RewardCalculationExport() {
 
         if (profileError) throw profileError;
 
+        // Constants for daily limits
+        const MAX_POSTS_PER_DAY = 10;
+        const MAX_INTERACTIONS_PER_DAY = 50;
+
+        // Helper functions
+        const groupByDate = <T,>(items: T[], getDate: (item: T) => string): Map<string, T[]> => {
+          const grouped = new Map<string, T[]>();
+          for (const item of items) {
+            const date = getDate(item).split('T')[0];
+            if (!grouped.has(date)) {
+              grouped.set(date, []);
+            }
+            grouped.get(date)!.push(item);
+          }
+          return grouped;
+        };
+
+        const applyDailyLimit = <T,>(items: T[], getDate: (item: T) => string, limit: number): T[] => {
+          const grouped = groupByDate(items, getDate);
+          const result: T[] = [];
+          for (const [, dayItems] of grouped) {
+            result.push(...dayItems.slice(0, limit));
+          }
+          return result;
+        };
+
+        // Get existing user IDs once
+        const { data: existingUsers } = await supabase.from('profiles').select('id');
+        const existingUserIds = new Set((existingUsers || []).map(u => u.id));
+
         // Calculate rewards for each user manually
         const calculations = await Promise.all(
           (profiles || []).map(async (profile) => {
-            // Get quality posts
-            const { count: qualityPosts } = await supabase
+            // Get ALL posts with timestamps for daily limit calculation
+            const { data: allPosts } = await supabase
               .from('posts')
-              .select('*', { count: 'exact', head: true })
+              .select('id, content, images, video_url, created_at')
               .eq('author_id', profile.id)
-              .is('original_post_id', null)
+              .eq('post_type', 'post')
               .lte('created_at', '2025-12-31T23:59:59Z')
-              .gt('content', '')
-              .not('images', 'is', null);
+              .order('created_at', { ascending: true });
 
-            // Get likes received
-            const { data: userPosts } = await supabase
-              .from('posts')
-              .select('id')
-              .eq('author_id', profile.id)
-              .is('original_post_id', null);
+            // Filter quality posts
+            const qualityPostsData = (allPosts || []).filter(p => {
+              const hasContent = (p.content?.length || 0) > 100;
+              const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+              return hasContent && hasMedia;
+            });
 
-            const postIds = userPosts?.map(p => p.id) || [];
+            // Apply 10 posts/day limit
+            const rewardablePosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
+            const qualityPosts = rewardablePosts.length;
+
+            // Get original post IDs
+            const postIds = (allPosts || []).map(p => p.id);
             
             let likesReceived = 0;
             let commentsReceived = 0;
@@ -158,59 +192,112 @@ export function RewardCalculationExport() {
             let basicShares = 0;
             let qualityShares = 0;
 
-            // Lấy danh sách user_id còn tồn tại (loại trừ deleted users)
-            const { data: existingUsers } = await supabase
-              .from('profiles')
-              .select('id');
-            const existingUserIds = new Set((existingUsers || []).map(u => u.id));
+            // Collect all interactions for daily limit
+            interface Interaction {
+              type: 'like' | 'comment' | 'share';
+              user_id: string;
+              post_id: string;
+              created_at: string;
+              share_comment_length?: number;
+              content_length?: number;
+            }
+            const allInteractions: Interaction[] = [];
 
             if (postIds.length > 0) {
-
-              // Likes từ người khác còn tồn tại (loại trừ self-like và deleted users)
+              // Fetch likes received
               const { data: likesData } = await supabase
                 .from('post_likes')
-                .select('user_id')
+                .select('user_id, post_id, created_at')
                 .in('post_id', postIds)
-                .neq('user_id', profile.id) // Loại trừ self-like
-                .lte('created_at', '2025-12-31T23:59:59Z');
-              // Chỉ đếm likes từ users còn tồn tại
-              likesReceived = (likesData || []).filter(l => existingUserIds.has(l.user_id)).length;
+                .neq('user_id', profile.id)
+                .lte('created_at', '2025-12-31T23:59:59Z')
+                .order('created_at', { ascending: true });
 
-              // Comments từ người khác (comments từ deleted users đã bị xóa theo trigger)
-              const { count: comments } = await supabase
+              for (const like of likesData || []) {
+                if (existingUserIds.has(like.user_id)) {
+                  allInteractions.push({
+                    type: 'like',
+                    user_id: like.user_id,
+                    post_id: like.post_id,
+                    created_at: like.created_at
+                  });
+                }
+              }
+
+              // Fetch comments received (>20 chars)
+              const { data: commentsData } = await supabase
                 .from('comments')
-                .select('*', { count: 'exact', head: true })
+                .select('author_id, post_id, content, created_at')
                 .in('post_id', postIds)
                 .neq('author_id', profile.id)
-                .lte('created_at', '2025-12-31T23:59:59Z');
-              commentsReceived = comments || 0;
+                .lte('created_at', '2025-12-31T23:59:59Z')
+                .order('created_at', { ascending: true });
 
-              // Shares từ người khác còn tồn tại (loại trừ self-share và deleted users)
-              // Lấy thêm share_comment để tính 2 cấp độ thưởng
+              for (const comment of commentsData || []) {
+                if ((comment.content?.length || 0) > 20) {
+                  allInteractions.push({
+                    type: 'comment',
+                    user_id: comment.author_id,
+                    post_id: comment.post_id,
+                    created_at: comment.created_at,
+                    content_length: comment.content?.length || 0
+                  });
+                }
+              }
+
+              // Fetch shares received
               const { data: sharesData } = await supabase
                 .from('post_shares')
-                .select('user_id, post_id')
+                .select('user_id, post_id, created_at')
                 .in('post_id', postIds)
-                .neq('user_id', profile.id) // Loại trừ self-share
-                .lte('created_at', '2025-12-31T23:59:59Z');
-              
-              // Chỉ đếm shares từ users còn tồn tại
-              const validShares = (sharesData || []).filter(s => existingUserIds.has(s.user_id));
-              sharesReceived = validShares.length;
-              
-              // Lấy share_comment từ bảng posts (bài share có original_post_id trỏ về bài gốc)
-              for (const share of validShares) {
-                // Tìm bài share (posts có original_post_id = post được share và author = người share)
-                const { data: sharePost } = await supabase
-                  .from('posts')
-                  .select('share_comment')
-                  .eq('original_post_id', share.post_id)
-                  .eq('author_id', share.user_id)
-                  .eq('post_type', 'share')
-                  .maybeSingle();
-                
-                const commentLength = sharePost?.share_comment?.length || 0;
-                if (commentLength >= 20) {
+                .neq('user_id', profile.id)
+                .lte('created_at', '2025-12-31T23:59:59Z')
+                .order('created_at', { ascending: true });
+
+              for (const share of sharesData || []) {
+                if (existingUserIds.has(share.user_id)) {
+                  const { data: sharePost } = await supabase
+                    .from('posts')
+                    .select('share_comment')
+                    .eq('original_post_id', share.post_id)
+                    .eq('author_id', share.user_id)
+                    .eq('post_type', 'share')
+                    .maybeSingle();
+
+                  allInteractions.push({
+                    type: 'share',
+                    user_id: share.user_id,
+                    post_id: share.post_id,
+                    created_at: share.created_at,
+                    share_comment_length: sharePost?.share_comment?.length || 0
+                  });
+                }
+              }
+            }
+
+            // Sort all interactions by created_at
+            allInteractions.sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+
+            // Apply 50 interactions/day limit
+            const rewardableInteractions = applyDailyLimit(
+              allInteractions,
+              i => i.created_at,
+              MAX_INTERACTIONS_PER_DAY
+            );
+
+            // Count totals from limited interactions
+            const likesSet = new Set<string>();
+            for (const i of rewardableInteractions) {
+              if (i.type === 'like') {
+                likesSet.add(i.user_id);
+                likesReceived++;
+              } else if (i.type === 'comment') {
+                commentsReceived++;
+              } else if (i.type === 'share') {
+                sharesReceived++;
+                if ((i.share_comment_length || 0) >= 20) {
                   qualityShares++;
                 } else {
                   basicShares++;
@@ -226,7 +313,6 @@ export function RewardCalculationExport() {
               .eq('status', 'accepted')
               .lte('created_at', '2025-12-31T23:59:59Z');
             
-            // Chỉ đếm friendships với users còn tồn tại
             const validFriendships = (friendshipsData || []).filter(f => {
               const friendId = f.follower_id === profile.id ? f.following_id : f.follower_id;
               return existingUserIds.has(friendId);
@@ -236,14 +322,13 @@ export function RewardCalculationExport() {
             const welcomeBonus = profile.welcome_bonus_claimed ? 50000 : 0;
             const walletBonus = profile.wallet_bonus_claimed ? 50000 : 0;
             const verificationBonus = profile.verification_bonus_claimed ? 50000 : 0;
-            const postReward = (qualityPosts || 0) * 20000;
+            const postReward = qualityPosts * 20000;
             const likeReward = likesReceived <= 3 
               ? likesReceived * 10000 
               : 30000 + (likesReceived - 3) * 1000;
-            const commentReward = (commentsReceived || 0) * 5000;
-            // 2 cấp độ share: cơ bản 4,000 CLC, chất lượng 10,000 CLC
+            const commentReward = commentsReceived * 5000;
             const shareReward = (basicShares * 4000) + (qualityShares * 10000);
-            const friendshipReward = (friendships || 0) * 50000;
+            const friendshipReward = friendships * 50000;
 
             return {
               id: profile.id,
@@ -259,11 +344,11 @@ export function RewardCalculationExport() {
               email_verified: profile.email_verified,
               avatar_verified: profile.avatar_verified,
               is_verified: profile.is_verified,
-              quality_posts: qualityPosts || 0,
+              quality_posts: qualityPosts,
               likes_received: likesReceived,
-              comments_received: commentsReceived || 0,
-              shares_received: sharesReceived || 0,
-              friendships: friendships || 0,
+              comments_received: commentsReceived,
+              shares_received: sharesReceived,
+              friendships: friendships,
               welcome_bonus: welcomeBonus,
               wallet_bonus: walletBonus,
               verification_bonus: verificationBonus,
