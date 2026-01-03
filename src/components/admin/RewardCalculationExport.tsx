@@ -155,6 +155,8 @@ export function RewardCalculationExport() {
             let likesReceived = 0;
             let commentsReceived = 0;
             let sharesReceived = 0;
+            let basicShares = 0;
+            let qualityShares = 0;
 
             // Lấy danh sách user_id còn tồn tại (loại trừ deleted users)
             const { data: existingUsers } = await supabase
@@ -184,14 +186,36 @@ export function RewardCalculationExport() {
               commentsReceived = comments || 0;
 
               // Shares từ người khác còn tồn tại (loại trừ self-share và deleted users)
+              // Lấy thêm share_comment để tính 2 cấp độ thưởng
               const { data: sharesData } = await supabase
                 .from('post_shares')
-                .select('user_id')
+                .select('user_id, post_id')
                 .in('post_id', postIds)
                 .neq('user_id', profile.id) // Loại trừ self-share
                 .lte('created_at', '2025-12-31T23:59:59Z');
+              
               // Chỉ đếm shares từ users còn tồn tại
-              sharesReceived = (sharesData || []).filter(s => existingUserIds.has(s.user_id)).length;
+              const validShares = (sharesData || []).filter(s => existingUserIds.has(s.user_id));
+              sharesReceived = validShares.length;
+              
+              // Lấy share_comment từ bảng posts (bài share có original_post_id trỏ về bài gốc)
+              for (const share of validShares) {
+                // Tìm bài share (posts có original_post_id = post được share và author = người share)
+                const { data: sharePost } = await supabase
+                  .from('posts')
+                  .select('share_comment')
+                  .eq('original_post_id', share.post_id)
+                  .eq('author_id', share.user_id)
+                  .eq('post_type', 'share')
+                  .maybeSingle();
+                
+                const commentLength = sharePost?.share_comment?.length || 0;
+                if (commentLength >= 20) {
+                  qualityShares++;
+                } else {
+                  basicShares++;
+                }
+              }
             }
 
             // Get friendships với users còn tồn tại
@@ -217,7 +241,8 @@ export function RewardCalculationExport() {
               ? likesReceived * 10000 
               : 30000 + (likesReceived - 3) * 1000;
             const commentReward = (commentsReceived || 0) * 5000;
-            const shareReward = (sharesReceived || 0) * 10000;
+            // 2 cấp độ share: cơ bản 4,000 CLC, chất lượng 10,000 CLC
+            const shareReward = (basicShares * 4000) + (qualityShares * 10000);
             const friendshipReward = (friendships || 0) * 50000;
 
             return {
