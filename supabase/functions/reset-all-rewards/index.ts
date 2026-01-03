@@ -8,6 +8,7 @@ const corsHeaders = {
 const CUTOFF_DATE = '2025-12-31T23:59:59Z';
 const MAX_POSTS_PER_DAY = 10;
 const MAX_INTERACTIONS_PER_DAY = 50; // likes + comments + shares received
+const MAX_FRIENDSHIPS_PER_DAY = 10;
 
 // Helper: Group items by date (YYYY-MM-DD)
 function groupByDate<T>(items: T[], getDate: (item: T) => string): Map<string, T[]> {
@@ -276,20 +277,28 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 8. Friendship bonus (50,000 per accepted friendship với users còn tồn tại)
+      // 8. Friendship bonus (50,000 per accepted friendship với users còn tồn tại) - MAX 10/DAY
       const { data: friendships } = await supabase
         .from('followers')
-        .select('id, follower_id, following_id')
+        .select('id, follower_id, following_id, created_at')
         .eq('status', 'accepted')
         .or(`follower_id.eq.${userId},following_id.eq.${userId}`)
-        .lte('created_at', CUTOFF_DATE);
+        .lte('created_at', CUTOFF_DATE)
+        .order('created_at', { ascending: true });
 
-      // Chỉ đếm friendships với users còn tồn tại
+      // Filter friendships với users còn tồn tại
       const validFriendships = (friendships || []).filter(f => {
         const friendId = f.follower_id === userId ? f.following_id : f.follower_id;
         return existingUserIds.has(friendId);
       });
-      calculatedReward += validFriendships.length * 50000;
+      
+      // Apply 10 friendships/day limit
+      const rewardableFriendships = applyDailyLimit(
+        validFriendships, 
+        f => f.created_at, 
+        MAX_FRIENDSHIPS_PER_DAY
+      );
+      calculatedReward += rewardableFriendships.length * 50000;
 
       // Update pending_reward
       const oldPending = profile.pending_reward || 0;
@@ -318,7 +327,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Đã reset pending_reward cho ${results.length} users (áp dụng giới hạn 10 bài/ngày, 50 tương tác/ngày)`,
+        message: `Đã reset pending_reward cho ${results.length} users (áp dụng giới hạn 10 bài/ngày, 50 tương tác/ngày, 10 kết bạn/ngày)`,
         results
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
