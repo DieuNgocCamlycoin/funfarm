@@ -61,20 +61,33 @@ const Feed = () => {
         return;
       }
 
-      // Get unique author IDs and fetch their public profiles using RPC function
+      // Get unique author IDs
       const authorIds = [...new Set(postsData.map((p: any) => p.author_id))];
-      const { data: profilesData } = await supabase.rpc('get_public_profiles', {
+      const { data: profilesDataRaw } = await supabase.rpc('get_public_profiles', {
         user_ids: authorIds
       });
+      const profilesData = (profilesDataRaw || []) as any[];
 
-      // Create a map for quick profile lookup
-      const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || []);
+      // Gift receiver profiles (batch)
+      const receiverIds = [...new Set(
+        postsData
+          .filter((p: any) => p.post_type === 'gift' && p.gift_receiver_id)
+          .map((p: any) => p.gift_receiver_id)
+      )];
 
-      // Transform database posts to Post type
+      const receiverProfilesData: any[] = receiverIds.length
+        ? (((await supabase.rpc('get_public_profiles', { user_ids: receiverIds })).data as any[]) || [])
+        : [];
+
+      // Create maps for quick profile lookup
+      const profilesMap = new Map<string, any>(profilesData.map((p: any) => [p.id, p] as [string, any]));
+      const receiverMap = new Map<string, any>(receiverProfilesData.map((p: any) => [p.id, p] as [string, any]));
+
+      // Transform amalgamated database posts to Post type
       const transformedPosts: Post[] = await Promise.all(postsData.map(async (post: any) => {
         const profile = profilesMap.get(post.author_id);
         const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
-        
+
         // Fetch original post if this is a share
         let originalPost = undefined;
         if (post.post_type === 'share' && post.original_post_id) {
@@ -83,7 +96,7 @@ const Feed = () => {
             .select('*')
             .eq('id', post.original_post_id)
             .single();
-          
+
           if (origPost) {
             const { data: origProfile } = await supabase.rpc('get_public_profiles', {
               user_ids: [origPost.author_id]
@@ -121,17 +134,14 @@ const Feed = () => {
             };
           }
         }
-        // Fetch receiver info for gift posts
-        let receiverName = undefined;
-        let receiverAvatar = undefined;
-        if (post.post_type === 'gift' && (post as any).gift_receiver_id) {
-          const { data: receiverProfile } = await supabase.rpc('get_public_profiles', {
-            user_ids: [(post as any).gift_receiver_id]
-          });
-          receiverName = receiverProfile?.[0]?.display_name || undefined;
-          receiverAvatar = receiverProfile?.[0]?.avatar_url || undefined;
-        }
-        
+
+        // Receiver info for gift posts (from batch map)
+        const receiverProfile = post.post_type === 'gift' && post.gift_receiver_id
+          ? receiverMap.get(post.gift_receiver_id)
+          : undefined;
+        const receiverName = receiverProfile?.display_name?.trim() || undefined;
+        const receiverAvatar = receiverProfile?.avatar_url || undefined;
+
         return {
           id: post.id,
           author: {
@@ -175,10 +185,10 @@ const Feed = () => {
           original_post_id: post.original_post_id,
           original_post: originalPost,
           // Gift post fields
-          gift_receiver_id: (post as any).gift_receiver_id,
-          receiver_approved: (post as any).receiver_approved,
-          sender_wallet: (post as any).sender_wallet,
-          receiver_wallet: (post as any).receiver_wallet,
+          gift_receiver_id: post.gift_receiver_id,
+          receiver_approved: post.receiver_approved,
+          sender_wallet: post.sender_wallet,
+          receiver_wallet: post.receiver_wallet,
           receiver_name: receiverName,
           receiver_avatar: receiverAvatar,
         };
@@ -270,7 +280,18 @@ const Feed = () => {
           };
         }
       }
-      
+      // Receiver info for gift posts (so the card shows đúng tên/avatar ngay lập tức)
+      let receiverName: string | undefined = undefined;
+      let receiverAvatar: string | undefined = undefined;
+      if (newPost.post_type === 'gift' && newPost.gift_receiver_id) {
+        const { data: receiverProfiles } = await supabase.rpc('get_public_profiles', {
+          user_ids: [newPost.gift_receiver_id]
+        });
+        const rp: any = receiverProfiles?.[0];
+        receiverName = rp?.display_name?.trim() || undefined;
+        receiverAvatar = rp?.avatar_url || undefined;
+      }
+
       const transformedPost: Post = {
         id: newPost.id,
         author: {
@@ -317,6 +338,8 @@ const Feed = () => {
         receiver_approved: newPost.receiver_approved,
         sender_wallet: newPost.sender_wallet,
         receiver_wallet: newPost.receiver_wallet,
+        receiver_name: receiverName,
+        receiver_avatar: receiverAvatar,
       };
 
       // Add new post to the beginning of the list
