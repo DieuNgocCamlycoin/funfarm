@@ -71,12 +71,12 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo + Search - Facebook style */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link to="/" className="flex items-center gap-2">
               <img 
                 src={funFarmLogo} 
                 alt="FUN FARM Web3" 
-                className="w-12 h-12 rounded-xl object-cover shadow-glow"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover shadow-glow"
               />
               <span className="font-display font-bold text-xl text-gradient-hero hidden sm:block">
                 FUN FARM
@@ -89,16 +89,16 @@ const Navbar = () => {
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="h-10 w-10 md:w-auto md:px-4 rounded-full bg-muted hover:bg-muted/80 gap-2"
+                    className="h-9 w-9 sm:h-10 sm:w-10 md:w-auto md:px-4 rounded-full bg-muted hover:bg-muted/80 gap-2"
                   >
-                    <Search className="w-5 h-5 text-muted-foreground" />
+                    <Search className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     <span className="hidden md:inline text-muted-foreground text-sm">
                       Tìm bạn bè...
                     </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-[400px] max-h-[600px] overflow-y-auto p-0" 
+                  className="w-[320px] sm:w-[400px] max-h-[600px] overflow-y-auto p-0" 
                   align="start"
                   sideOffset={8}
                 >
@@ -118,6 +118,26 @@ const Navbar = () => {
               </Popover>
             )}
           </div>
+
+          {/* Mobile quick actions: Wallet + Notifications */}
+          {user && profile && (
+            <div className="flex md:hidden items-center gap-1">
+              {/* Wallet & Gift Link - Mobile */}
+              <Link 
+                to="/wallet" 
+                className={`flex items-center justify-center h-9 w-9 rounded-full transition-colors ${
+                  location.pathname === '/wallet' 
+                    ? 'bg-amber-100 text-amber-700' 
+                    : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                }`}
+              >
+                <Gift className="w-5 h-5" />
+              </Link>
+
+              {/* Notification Bell - Mobile */}
+              <NotificationBell />
+            </div>
+          )}
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
