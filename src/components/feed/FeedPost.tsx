@@ -12,6 +12,7 @@ import SharePostModal from "./SharePostModal";
 import SharedPostCard from "./SharedPostCard";
 import ImageGallery, { imagesToMediaItems } from "./ImageGallery";
 import ImageGrid from "./ImageGrid";
+import GiftPostDisplay from "./GiftPostDisplay";
 import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -349,6 +350,9 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
     setShares(prev => prev + 1);
   };
 
+  // Check if this is a gift post
+  const isGiftPost = post.post_type === 'gift';
+
   // Check if this is a share post
   const isSharePost = post.post_type === 'share' && post.original_post;
 
@@ -483,8 +487,13 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
         </div>
       )}
 
-      {/* Regular Content (for non-share posts) */}
-      {!isSharePost && (
+      {/* Gift Post Display - Beautiful animated card */}
+      {isGiftPost && (
+        <GiftPostDisplay content={post.content} />
+      )}
+
+      {/* Regular Content (for non-share and non-gift posts) */}
+      {!isSharePost && !isGiftPost && (
         <div className="px-3 sm:px-4 pb-3">
           <p 
             ref={contentRef}
