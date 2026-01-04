@@ -25,6 +25,7 @@ import { vi } from 'date-fns/locale';
 import SendGiftModal from '@/components/wallet/SendGiftModal';
 import GiftCelebrationModal from '@/components/wallet/GiftCelebrationModal';
 import CreateGiftPostModal from '@/components/wallet/CreateGiftPostModal';
+import WalletPriceChart from '@/components/wallet/WalletPriceChart';
 import camlyCoinImg from '@/assets/camly_coin.png';
 
 interface GiftSuccessData {
@@ -265,6 +266,9 @@ const Wallet_Page = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Price Chart */}
+        <WalletPriceChart />
 
         {/* Transactions */}
         <Card>
