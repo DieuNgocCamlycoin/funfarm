@@ -65,6 +65,7 @@ export interface Post {
   sender_wallet?: string;
   receiver_wallet?: string;
   receiver_name?: string;
+  receiver_avatar?: string;
 }
 
 export interface Comment {
