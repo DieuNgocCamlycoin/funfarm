@@ -279,11 +279,23 @@ const WalletPriceChart: React.FC = () => {
   };
 
   const formatPrice = (price: number) => {
+    if (price === 0) return '$0.00';
+    
+    // For very small prices, format with enough decimals to show meaningful digits
     if (price < 0.0001) {
-      return `$${price.toExponential(4)}`;
+      // Count leading zeros after decimal point
+      const str = price.toFixed(20);
+      const match = str.match(/^0\.0*/);
+      const leadingZeros = match ? match[0].length - 2 : 0;
+      const significantDigits = 4;
+      const decimals = leadingZeros + significantDigits;
+      return `$${price.toFixed(Math.min(decimals, 10))}`;
+    }
+    if (price < 0.01) {
+      return `$${price.toFixed(6)}`;
     }
     if (price < 1) {
-      return `$${price.toFixed(8)}`;
+      return `$${price.toFixed(4)}`;
     }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
