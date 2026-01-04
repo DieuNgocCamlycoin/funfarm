@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Gift, Heart, Sparkles, Star, PartyPopper, Coins, Leaf, Volume2, VolumeX } from 'lucide-react';
+import { Gift, Volume2, VolumeX, Sparkles, ArrowRight } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import camlyCoinImg from '@/assets/camly_coin.png';
 
 // Custom sound effects saved locally
@@ -14,18 +15,6 @@ export const giftSoundOptions = [
   { id: 'nature', name: 'Thiên Nhiên', url: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', emoji: '🌿' },
   { id: 'sparkle', name: 'Lấp Lánh', url: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', emoji: '🌟' },
 ];
-
-// Default sound mapping by effect type
-const effectSoundMap: Record<string, string> = {
-  hearts: '/sounds/gift-rich-1.mp3',
-  stars: '/sounds/gift-rich-2.mp3',
-  confetti: '/sounds/gift-rich-3.mp3',
-  coins: '/sounds/gift-rich-1.mp3',
-  leaves: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3',
-  petals: '/sounds/gift-rich-2.mp3',
-  rainbow: '/sounds/gift-rich-3.mp3',
-  sparkle: '/sounds/gift-rich-1.mp3',
-};
 
 // Gift templates matching CreateGiftPostModal
 const giftTemplates = [
@@ -57,8 +46,10 @@ interface GiftPostDisplayProps {
   customSoundId?: string;
   senderName?: string;
   senderWallet?: string;
+  senderAvatar?: string;
   receiverName?: string;
   receiverWallet?: string;
+  receiverAvatar?: string;
 }
 
 const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ 
@@ -67,8 +58,10 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   customSoundId,
   senderName,
   senderWallet,
+  senderAvatar,
   receiverName,
-  receiverWallet 
+  receiverWallet,
+  receiverAvatar 
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -77,18 +70,24 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
 
   // Parse gift info from content
   const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
-  const receiverMatch = content.match(/@(\S+)/);
   const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐)/);
-  // Parse message from content (between first line and gift line)
-  const messageMatch = content.match(/^[^\n]*\n\n?([\s\S]*?)(?=\n*🎁 Đã tặng|$)/);
-  const customMessage = messageMatch ? messageMatch[1].trim() : '';
+  
+  // Parse custom message - look for quoted text first "..."
+  const quotedMessageMatch = content.match(/"([^"]+)"/);
+  let customMessage = quotedMessageMatch ? quotedMessageMatch[1].trim() : '';
+  
+  // If no quoted message, try to extract from between lines
+  if (!customMessage) {
+    const messageMatch = content.match(/kèm lời nhắn:\n\n?([^\n"]+)/);
+    customMessage = messageMatch ? messageMatch[1].trim() : '';
+  }
+  
   // Parse sound ID from content if exists
   const soundIdMatch = content.match(/\[sound:(\w+)\]/);
-  const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId;
+  const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId || 'rich1';
   
   const amount = amountMatch ? amountMatch[1] : '0';
-  const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CLC';
-  const receiver = receiverMatch ? receiverMatch[1] : receiverName || 'bạn';
+  const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CAMLY';
   const emoji = emojiMatch ? emojiMatch[1] : '🎁';
   
   // Helper to shorten wallet address
@@ -97,13 +96,18 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     if (address.length <= 12) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
+
+  // Format number with thousands separator
+  const formatNumber = (num: string) => {
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  };
   
   // Find matching template
-  const template = giftTemplates.find(t => t.emoji === emoji) || giftTemplates[0];
+  const template = giftTemplates.find(t => t.emoji === emoji) || giftTemplates[giftTemplates.length - 1];
 
   // Play sound when component becomes visible
   useEffect(() => {
-    if (!autoPlaySound || hasPlayed || isMuted) return;
+    if (!autoPlaySound || hasPlayed) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -122,7 +126,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
 
     return () => observer.disconnect();
-  }, [autoPlaySound, hasPlayed, isMuted, template.effect]);
+  }, [autoPlaySound, hasPlayed]);
 
   const playSound = () => {
     if (isMuted) return;
@@ -141,7 +145,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     
     audioRef.current = new Audio(soundUrl);
     audioRef.current.volume = 0.4;
-    audioRef.current.loop = true; // Loop continuously
+    audioRef.current.loop = true; // Loop continuously - rich rich rich
     audioRef.current.play().catch(() => {
       console.log('Sound autoplay blocked');
     });
@@ -158,22 +162,27 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   }, []);
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
     if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
+      if (newMuted) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(() => {});
+      }
     }
   };
 
-  // Render effect particles
+  // Render animated particles based on effect type
   const renderEffectParticles = () => {
     const particles = [];
     
-    // Sparkle particles - always show
-    for (let i = 0; i < 20; i++) {
-      const size = 2 + Math.random() * 4;
+    // Sparkle/star particles for all templates
+    for (let i = 0; i < 25; i++) {
+      const size = 2 + Math.random() * 6;
       const left = Math.random() * 100;
       const top = Math.random() * 100;
-      const delay = Math.random() * 2;
+      const delay = Math.random() * 3;
       const duration = 1 + Math.random() * 2;
       
       particles.push(
@@ -185,25 +194,45 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
             height: size,
             left: `${left}%`,
             top: `${top}%`,
-            opacity: 0.3 + Math.random() * 0.5,
+            opacity: 0.4 + Math.random() * 0.4,
             animation: `pulse ${duration}s infinite`,
             animationDelay: `${delay}s`,
+            boxShadow: '0 0 6px 2px rgba(255,255,255,0.5)',
           }}
         />
       );
     }
 
+    // Gold confetti falling
+    for (let i = 0; i < 15; i++) {
+      particles.push(
+        <div
+          key={`confetti-${i}`}
+          className="absolute text-yellow-400"
+          style={{
+            left: `${5 + i * 7}%`,
+            top: `${-10 + (i % 4) * 10}%`,
+            fontSize: `${12 + Math.random() * 8}px`,
+            animation: `fall ${3 + Math.random() * 2}s linear infinite`,
+            animationDelay: `${i * 0.2}s`,
+          }}
+        >
+          ✦
+        </div>
+      );
+    }
+
     // Effect-specific particles
     if (template.effect === 'hearts') {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 10; i++) {
         particles.push(
           <div
             key={`heart-${i}`}
-            className="absolute text-2xl opacity-40"
+            className="absolute text-xl opacity-50"
             style={{
-              left: `${10 + i * 12}%`,
-              top: `${20 + (i % 3) * 25}%`,
-              animation: `bounce ${1.5 + Math.random()}s infinite`,
+              left: `${5 + i * 10}%`,
+              top: `${20 + (i % 4) * 20}%`,
+              animation: `float ${2 + Math.random()}s ease-in-out infinite`,
               animationDelay: `${i * 0.2}s`,
             }}
           >
@@ -213,56 +242,17 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       }
     }
 
-    if (template.effect === 'stars') {
-      for (let i = 0; i < 10; i++) {
-        particles.push(
-          <div
-            key={`star-${i}`}
-            className="absolute text-xl opacity-50"
-            style={{
-              left: `${5 + i * 10}%`,
-              top: `${15 + (i % 4) * 20}%`,
-              animation: `spin ${3 + Math.random() * 2}s linear infinite, pulse 1.5s infinite`,
-              animationDelay: `${i * 0.15}s`,
-            }}
-          >
-            ⭐
-          </div>
-        );
-      }
-    }
-
-    if (template.effect === 'confetti') {
-      const confettiColors = ['🎊', '🎉', '🎈', '✨', '🌟'];
+    if (template.effect === 'coins') {
       for (let i = 0; i < 12; i++) {
         particles.push(
           <div
-            key={`confetti-${i}`}
-            className="absolute text-lg opacity-60"
-            style={{
-              left: `${5 + i * 8}%`,
-              top: `${10 + (i % 5) * 18}%`,
-              animation: `bounce ${1 + Math.random()}s infinite`,
-              animationDelay: `${i * 0.1}s`,
-            }}
-          >
-            {confettiColors[i % confettiColors.length]}
-          </div>
-        );
-      }
-    }
-
-    if (template.effect === 'coins') {
-      for (let i = 0; i < 8; i++) {
-        particles.push(
-          <div
             key={`coin-${i}`}
-            className="absolute text-xl opacity-50"
+            className="absolute text-xl opacity-60"
             style={{
-              left: `${8 + i * 12}%`,
-              top: `${15 + (i % 3) * 25}%`,
-              animation: `spin ${2 + Math.random()}s linear infinite`,
-              animationDelay: `${i * 0.2}s`,
+              left: `${8 + i * 8}%`,
+              top: `${15 + (i % 4) * 22}%`,
+              animation: `spin ${2 + Math.random()}s linear infinite, float ${3 + Math.random()}s ease-in-out infinite`,
+              animationDelay: `${i * 0.15}s`,
             }}
           >
             🪙
@@ -271,60 +261,21 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       }
     }
 
-    if (template.effect === 'leaves') {
-      const leaves = ['🍃', '🌿', '☘️', '🌱'];
-      for (let i = 0; i < 8; i++) {
+    if (template.effect === 'confetti') {
+      const confettiEmojis = ['🎊', '🎉', '🎈', '✨', '🌟', '⭐'];
+      for (let i = 0; i < 15; i++) {
         particles.push(
           <div
-            key={`leaf-${i}`}
-            className="absolute text-xl opacity-40"
+            key={`party-${i}`}
+            className="absolute text-lg opacity-70"
             style={{
-              left: `${10 + i * 11}%`,
-              top: `${15 + (i % 4) * 20}%`,
-              animation: `bounce ${2 + Math.random()}s infinite`,
-              animationDelay: `${i * 0.25}s`,
+              left: `${3 + i * 7}%`,
+              top: `${5 + (i % 5) * 20}%`,
+              animation: `bounce ${1 + Math.random() * 0.5}s infinite`,
+              animationDelay: `${i * 0.1}s`,
             }}
           >
-            {leaves[i % leaves.length]}
-          </div>
-        );
-      }
-    }
-
-    if (template.effect === 'petals') {
-      const petals = ['🌸', '🌺', '💮', '🏵️'];
-      for (let i = 0; i < 10; i++) {
-        particles.push(
-          <div
-            key={`petal-${i}`}
-            className="absolute text-lg opacity-50"
-            style={{
-              left: `${5 + i * 10}%`,
-              top: `${10 + (i % 5) * 18}%`,
-              animation: `spin ${4 + Math.random() * 2}s linear infinite`,
-              animationDelay: `${i * 0.2}s`,
-            }}
-          >
-            {petals[i % petals.length]}
-          </div>
-        );
-      }
-    }
-
-    if (template.effect === 'rainbow') {
-      for (let i = 0; i < 6; i++) {
-        particles.push(
-          <div
-            key={`rainbow-${i}`}
-            className="absolute text-xl opacity-40"
-            style={{
-              left: `${10 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
-              animation: `pulse ${1.5 + Math.random()}s infinite`,
-              animationDelay: `${i * 0.15}s`,
-            }}
-          >
-            🌈
+            {confettiEmojis[i % confettiEmojis.length]}
           </div>
         );
       }
@@ -336,139 +287,225 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${template.gradient} p-4 sm:p-6 text-white shadow-xl mx-3 sm:mx-4 my-3`}
+      className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${template.gradient} p-1 text-white shadow-2xl mx-2 sm:mx-4 my-3`}
     >
-      {/* Sound control button */}
-      <button
-        onClick={toggleMute}
-        className="absolute top-3 right-3 z-20 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors backdrop-blur-sm"
-        title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-      >
-        {isMuted ? (
-          <VolumeX className="w-4 h-4" />
-        ) : (
-          <Volume2 className="w-4 h-4" />
-        )}
-      </button>
+      {/* Inner container with glass effect */}
+      <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-4 sm:p-5">
+        {/* Sound control button - prominent position */}
+        <button
+          onClick={toggleMute}
+          className={`absolute top-3 right-3 z-20 rounded-full p-2.5 transition-all shadow-lg ${
+            isMuted 
+              ? 'bg-white/30 hover:bg-white/40' 
+              : 'bg-white/40 hover:bg-white/50 ring-2 ring-white/50'
+          }`}
+          title={isMuted ? 'Bật âm thanh 🔊' : 'Tắt âm thanh 🔇'}
+        >
+          {isMuted ? (
+            <VolumeX className="w-5 h-5" />
+          ) : (
+            <Volume2 className="w-5 h-5 animate-pulse" />
+          )}
+        </button>
 
-      {/* Animated background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {renderEffectParticles()}
-        
-        {/* Glowing overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-        
-        {/* Moving gradient overlay */}
-        <div 
-          className="absolute inset-0 opacity-30"
-          style={{
-            background: 'radial-gradient(circle at 30% 40%, rgba(255,255,255,0.4) 0%, transparent 50%)',
-            animation: 'pulse 3s infinite',
-          }}
-        />
-      </div>
+        {/* Animated background effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+          {renderEffectParticles()}
+          
+          {/* Radial glow */}
+          <div 
+            className="absolute inset-0 opacity-40"
+            style={{
+              background: 'radial-gradient(circle at 50% 40%, rgba(255,255,255,0.5) 0%, transparent 60%)',
+              animation: 'pulse 2s infinite',
+            }}
+          />
+        </div>
 
-      {/* Content */}
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 backdrop-blur-sm">
+        {/* Header badge */}
+        <div className="relative z-10 flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 bg-white/25 rounded-full px-4 py-1.5 backdrop-blur-md border border-white/30">
             <Gift className="w-5 h-5" />
             <span className="font-bold text-sm">Fun Farm Gift</span>
+            <Sparkles className="w-4 h-4 animate-pulse" />
           </div>
-          <div className="flex items-center gap-1">
-            <Sparkles className="w-5 h-5 animate-pulse" />
-            <span className="text-4xl animate-bounce">{template.emoji}</span>
-          </div>
+          <span className="text-4xl animate-bounce drop-shadow-lg">{template.emoji}</span>
         </div>
 
-        {/* Congratulation message */}
-        <div className="text-center mb-4">
-          <div className="bg-white/20 rounded-xl py-3 px-4 backdrop-blur-sm">
-            <p className="text-base sm:text-lg font-bold leading-relaxed">
-              🎊 Chúc mừng{' '}
-              <span className="underline decoration-2 underline-offset-2">
-                {receiverName || receiver}
-              </span>
-              {receiverWallet && (
-                <span className="text-xs opacity-70 font-mono ml-1">
-                  ({shortenWallet(receiverWallet)})
-                </span>
-              )}
-            </p>
-            <p className="text-sm opacity-90 mt-1">
-              được{' '}
-              <span className="font-semibold">
-                {senderName || 'bạn bè'}
-              </span>
-              {senderWallet && (
-                <span className="text-xs opacity-70 font-mono ml-1">
-                  ({shortenWallet(senderWallet)})
-                </span>
-              )}
-              {' '}tặng món quà! 🎁
+        {/* Main title - Celebration message */}
+        <div className="relative z-10 text-center mb-5">
+          <div className="bg-white/20 rounded-2xl py-3 px-4 backdrop-blur-md border border-white/30">
+            <p className="text-lg sm:text-xl font-bold leading-relaxed drop-shadow-md">
+              🎁 <span className="text-yellow-200">@{receiverName || 'Bạn'}</span> vừa được{' '}
+              <span className="text-yellow-200">@{senderName || 'ai đó'}</span> tặng
             </p>
           </div>
         </div>
 
-        {/* Gift amount with glowing effect */}
-        <div className="text-center bg-white/25 rounded-2xl py-4 px-6 backdrop-blur-sm border border-white/40 shadow-lg mb-4">
-          <div className="flex items-center justify-center gap-3">
-            {currency === 'CLC' || currency === 'CAMLY' ? (
-              <img 
-                src={camlyCoinImg} 
-                alt="coin" 
-                className="w-10 h-10 sm:w-12 sm:h-12"
-                style={{ animation: 'spin 3s linear infinite' }} 
-              />
-            ) : (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-400/80 flex items-center justify-center text-xl font-bold text-yellow-900">
-                {currency === 'BNB' ? '₿' : '$'}
+        {/* Sender → Receiver with avatars and wallets */}
+        <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 my-5">
+          {/* Sender */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-3 border-white/60 shadow-xl">
+                <AvatarImage src={senderAvatar || ''} />
+                <AvatarFallback className="bg-white/30 text-white text-lg font-bold">
+                  {senderName?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-white">
+                <Gift className="w-3 h-3" />
               </div>
+            </div>
+            <span className="text-sm font-bold mt-2 max-w-[80px] truncate drop-shadow-md">
+              {senderName || 'Người tặng'}
+            </span>
+            {senderWallet && (
+              <span className="text-[10px] opacity-80 font-mono bg-black/30 px-2 py-0.5 rounded-full mt-1">
+                {shortenWallet(senderWallet)}
+              </span>
             )}
-            <div>
-              <span className="text-3xl sm:text-4xl font-bold drop-shadow-lg">{amount}</span>
-              <span className="text-lg sm:text-xl ml-2 font-semibold">{currency}</span>
+          </div>
+
+          {/* Arrow with hearts */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex gap-0.5">
+              {['❤️', '💖', '❤️'].map((heart, i) => (
+                <span 
+                  key={i} 
+                  className="text-sm animate-pulse"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                >
+                  {heart}
+                </span>
+              ))}
+            </div>
+            <ArrowRight className="w-6 h-6 text-yellow-300 animate-pulse" />
+            <span className="text-xs opacity-80 font-medium">tặng</span>
+          </div>
+
+          {/* Receiver */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-3 border-white/60 shadow-xl ring-4 ring-yellow-400/50">
+                <AvatarImage src={receiverAvatar || ''} />
+                <AvatarFallback className="bg-white/30 text-white text-lg font-bold">
+                  {receiverName?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1 border-2 border-white">
+                <Sparkles className="w-3 h-3" />
+              </div>
+            </div>
+            <span className="text-sm font-bold mt-2 max-w-[80px] truncate drop-shadow-md">
+              {receiverName || 'Người nhận'}
+            </span>
+            {receiverWallet && (
+              <span className="text-[10px] opacity-80 font-mono bg-black/30 px-2 py-0.5 rounded-full mt-1">
+                {shortenWallet(receiverWallet)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* BIG Amount with spinning coin - CENTERPIECE */}
+        <div className="relative z-10 text-center my-5">
+          <div className="bg-gradient-to-r from-yellow-400/30 via-amber-300/40 to-yellow-400/30 rounded-2xl py-5 px-6 backdrop-blur-md border-2 border-yellow-300/50 shadow-xl">
+            <div className="flex items-center justify-center gap-4">
+              {/* Spinning coin */}
+              <div className="relative">
+                <img 
+                  src={camlyCoinImg} 
+                  alt="coin" 
+                  className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg"
+                  style={{ 
+                    animation: 'spin 2s linear infinite',
+                    filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.7))',
+                  }} 
+                />
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)',
+                    animation: 'pulse 1s infinite',
+                  }}
+                />
+              </div>
+              
+              {/* Amount number - LARGE */}
+              <div className="flex flex-col items-start">
+                <span 
+                  className="text-4xl sm:text-5xl font-black drop-shadow-lg"
+                  style={{
+                    textShadow: '0 0 20px rgba(255,255,255,0.5), 2px 2px 0 rgba(0,0,0,0.3)',
+                    background: 'linear-gradient(180deg, #fff 0%, #ffd700 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {formatNumber(amount)}
+                </span>
+                <span className="text-xl sm:text-2xl font-bold text-yellow-200 drop-shadow-md">
+                  {currency === 'CLC' ? 'CAMLY' : currency}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Custom message if exists */}
+        {/* Custom message - highlighted */}
         {customMessage && (
-          <div className="text-center bg-white/15 rounded-xl py-3 px-4 backdrop-blur-sm mb-4">
-            <p className="text-sm italic opacity-90">💬 "{customMessage}"</p>
+          <div className="relative z-10 text-center mb-4">
+            <div className="bg-white/15 rounded-xl py-3 px-5 backdrop-blur-sm border border-white/20">
+              <p className="text-base sm:text-lg italic font-medium drop-shadow-md">
+                💬 "{customMessage}"
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Fun decorative elements */}
-        <div className="flex items-center justify-center gap-2 opacity-80">
+        {/* Footer decoration */}
+        <div className="relative z-10 flex items-center justify-center gap-2 pt-2 opacity-90">
           <div className="flex">
-            {['❤️', '💖', '💝'].map((heart, i) => (
+            {['🌟', '💖', '✨'].map((emoji, i) => (
               <span 
                 key={i} 
                 className="text-lg animate-bounce"
-                style={{ animationDelay: `${i * 0.2}s` }}
+                style={{ animationDelay: `${i * 0.15}s` }}
               >
-                {heart}
+                {emoji}
               </span>
             ))}
           </div>
-          <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full">
-            with love from Fun Farm 🌱
+          <span className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full border border-white/30">
+            🌱 with love from Fun Farm
           </span>
           <div className="flex">
-            {['💝', '💖', '❤️'].map((heart, i) => (
+            {['✨', '💖', '🌟'].map((emoji, i) => (
               <span 
                 key={i} 
                 className="text-lg animate-bounce"
-                style={{ animationDelay: `${i * 0.2 + 0.3}s` }}
+                style={{ animationDelay: `${i * 0.15 + 0.3}s` }}
               >
-                {heart}
+                {emoji}
               </span>
             ))}
           </div>
         </div>
       </div>
+
+      {/* CSS for custom animations */}
+      <style>{`
+        @keyframes fall {
+          0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-15px); }
+        }
+      `}</style>
     </div>
   );
 };
