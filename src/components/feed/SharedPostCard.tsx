@@ -5,6 +5,7 @@ import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { CheckCircle2, MapPin, ExternalLink, AlertCircle, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import GiftPostDisplay from "./GiftPostDisplay";
 
 interface SharedPostCardProps {
   originalPost: Post | null;
@@ -58,6 +59,34 @@ export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps)
         <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
         <p className="text-muted-foreground font-medium">Bài viết gốc đã bị xóa</p>
         <p className="text-sm text-muted-foreground/70 mt-1">Nội dung này không còn khả dụng</p>
+      </div>
+    );
+  }
+
+  // Check if this is a gift post
+  const isGiftPost = originalPost.post_type === 'gift';
+
+  // If it's a gift post, render GiftPostDisplay instead
+  if (isGiftPost) {
+    return (
+      <div className={cn("overflow-hidden rounded-xl", className)}>
+        <GiftPostDisplay 
+          content={originalPost.content}
+          senderName={originalPost.author.name}
+          senderWallet={(originalPost as any).sender_wallet}
+          senderAvatar={originalPost.author.avatar}
+          receiverName={(originalPost as any).receiver_name}
+          receiverWallet={(originalPost as any).receiver_wallet}
+          receiverAvatar={(originalPost as any).receiver_avatar}
+        />
+        {/* View Original Post Button */}
+        <Link 
+          to={`/post/${originalPost.id}`}
+          className="flex items-center justify-center gap-2 px-3 py-2.5 border-t border-border text-sm font-medium text-primary hover:bg-primary/10 transition-colors bg-card"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Xem bài viết gốc
+        </Link>
       </div>
     );
   }
