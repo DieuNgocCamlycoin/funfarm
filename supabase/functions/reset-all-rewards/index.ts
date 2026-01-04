@@ -7,10 +7,10 @@ const corsHeaders = {
 
 const CUTOFF_DATE = '2025-12-31T23:59:59Z';
 const MAX_POSTS_PER_DAY = 10;
-const MAX_INTERACTIONS_PER_DAY = 50; // likes + comments + shares received
+const MAX_INTERACTIONS_PER_DAY = 50;
 const MAX_FRIENDSHIPS_PER_DAY = 10;
+const BATCH_SIZE = 5; // Process 5 users at a time
 
-// Helper: Group items by date (YYYY-MM-DD)
 function groupByDate<T>(items: T[], getDate: (item: T) => string): Map<string, T[]> {
   const grouped = new Map<string, T[]>();
   for (const item of items) {
@@ -23,18 +23,196 @@ function groupByDate<T>(items: T[], getDate: (item: T) => string): Map<string, T
   return grouped;
 }
 
-// Helper: Apply daily limit and return filtered items
 function applyDailyLimit<T>(items: T[], getDate: (item: T) => string, limit: number): T[] {
   const grouped = groupByDate(items, getDate);
   const result: T[] = [];
   
   for (const [, dayItems] of grouped) {
-    // Sort by created_at to take the first N items of the day
     const limited = dayItems.slice(0, limit);
     result.push(...limited);
   }
   
   return result;
+}
+
+// Process a single user's reward calculation
+async function processUser(
+  supabase: any,
+  profile: any,
+  existingUserIds: Set<string>,
+  allPostsData: any[],
+  allLikesData: any[],
+  allCommentsData: any[],
+  allSharesData: any[],
+  allFriendshipsData: any[],
+  allSharePostsData: any[]
+): Promise<any> {
+  const userId = profile.id;
+  let calculatedReward = 0;
+
+  // 1. Welcome bonus (50,000)
+  if (profile.welcome_bonus_claimed) {
+    calculatedReward += 50000;
+  }
+
+  // 2. Wallet bonus (50,000)
+  if (profile.wallet_bonus_claimed) {
+    calculatedReward += 50000;
+  }
+
+  // 3. Verification bonus (50,000)
+  if (profile.verification_bonus_claimed) {
+    calculatedReward += 50000;
+  }
+
+  // 4. Quality posts - filter from pre-fetched data
+  const userPosts = allPostsData.filter(p => p.author_id === userId && p.post_type === 'post');
+  const qualityPosts = userPosts.filter(p => {
+    const hasContent = (p.content?.length || 0) > 100;
+    const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+    return hasContent && hasMedia;
+  });
+  const rewardablePosts = applyDailyLimit(qualityPosts, p => p.created_at, MAX_POSTS_PER_DAY);
+  calculatedReward += rewardablePosts.length * 20000;
+
+  // 5. Get user's original post IDs
+  const originalPostIds = new Set(userPosts.map(p => p.id));
+
+  if (originalPostIds.size > 0) {
+    interface Interaction {
+      type: 'like' | 'comment' | 'share';
+      user_id: string;
+      post_id: string;
+      created_at: string;
+      share_comment_length?: number;
+    }
+    const allInteractions: Interaction[] = [];
+
+    // Likes received - filter from pre-fetched data
+    for (const like of allLikesData) {
+      if (originalPostIds.has(like.post_id) && like.user_id !== userId && existingUserIds.has(like.user_id)) {
+        allInteractions.push({
+          type: 'like',
+          user_id: like.user_id,
+          post_id: like.post_id,
+          created_at: like.created_at
+        });
+      }
+    }
+
+    // Comments received (>20 chars)
+    for (const comment of allCommentsData) {
+      if (originalPostIds.has(comment.post_id) && comment.author_id !== userId && (comment.content?.length || 0) > 20) {
+        allInteractions.push({
+          type: 'comment',
+          user_id: comment.author_id,
+          post_id: comment.post_id,
+          created_at: comment.created_at
+        });
+      }
+    }
+
+    // Shares received
+    for (const share of allSharesData) {
+      if (originalPostIds.has(share.post_id) && share.user_id !== userId && existingUserIds.has(share.user_id)) {
+        // Find share_comment from pre-fetched data
+        const sharePost = allSharePostsData.find(sp => 
+          sp.original_post_id === share.post_id && sp.author_id === share.user_id
+        );
+        
+        allInteractions.push({
+          type: 'share',
+          user_id: share.user_id,
+          post_id: share.post_id,
+          created_at: share.created_at,
+          share_comment_length: sharePost?.share_comment?.length || 0
+        });
+      }
+    }
+
+    // Sort and apply daily limit
+    allInteractions.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    const rewardableInteractions = applyDailyLimit(
+      allInteractions, 
+      i => i.created_at, 
+      MAX_INTERACTIONS_PER_DAY
+    );
+
+    // Calculate rewards
+    const likesPerPost = new Map<string, Set<string>>();
+    
+    for (const interaction of rewardableInteractions) {
+      if (interaction.type === 'like') {
+        if (!likesPerPost.has(interaction.post_id)) {
+          likesPerPost.set(interaction.post_id, new Set());
+        }
+        likesPerPost.get(interaction.post_id)!.add(interaction.user_id);
+      } else if (interaction.type === 'comment') {
+        calculatedReward += 5000;
+      } else if (interaction.type === 'share') {
+        if ((interaction.share_comment_length || 0) >= 20) {
+          calculatedReward += 10000;
+        } else {
+          calculatedReward += 4000;
+        }
+      }
+    }
+
+    for (const [, likers] of likesPerPost) {
+      const likeCount = likers.size;
+      const first3Reward = Math.min(likeCount, 3) * 10000;
+      const restReward = Math.max(0, likeCount - 3) * 1000;
+      calculatedReward += first3Reward + restReward;
+    }
+  }
+
+  // 6. Friendship bonus - filter from pre-fetched data
+  const userFriendships = allFriendshipsData.filter(f => 
+    (f.follower_id === userId || f.following_id === userId)
+  );
+  
+  const validFriendships = userFriendships.filter(f => {
+    const friendId = f.follower_id === userId ? f.following_id : f.follower_id;
+    return existingUserIds.has(friendId);
+  });
+  
+  const rewardableFriendships = applyDailyLimit(
+    validFriendships, 
+    f => f.created_at, 
+    MAX_FRIENDSHIPS_PER_DAY
+  );
+  calculatedReward += rewardableFriendships.length * 50000;
+
+  // Update profile
+  const oldPending = profile.pending_reward || 0;
+  const oldApproved = profile.approved_reward || 0;
+  const oldTotal = oldPending + oldApproved;
+  const difference = calculatedReward - oldTotal;
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ 
+      pending_reward: calculatedReward,
+      approved_reward: 0
+    })
+    .eq('id', userId);
+
+  if (updateError) {
+    console.error(`Error updating ${profile.display_name}:`, updateError);
+  }
+
+  return {
+    user_id: userId,
+    display_name: profile.display_name,
+    old_pending: oldPending,
+    old_approved: oldApproved,
+    old_total: oldTotal,
+    new_pending: calculatedReward,
+    difference
+  };
 }
 
 Deno.serve(async (req) => {
@@ -85,251 +263,97 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Admin verified, starting reward recalculation with daily limits...');
+    console.log('Admin verified, fetching all data for batch processing...');
 
-    // Get all active profiles
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, display_name, pending_reward, approved_reward, welcome_bonus_claimed, wallet_bonus_claimed, verification_bonus_claimed')
-      .eq('banned', false);
-
-    if (profilesError) throw profilesError;
-
-    // Get existing user IDs (exclude deleted users)
-    const { data: existingUsers } = await supabase
-      .from('profiles')
-      .select('id');
-    const existingUserIds = new Set((existingUsers || []).map(u => u.id));
-
-    const results: any[] = [];
-
-    for (const profile of profiles || []) {
-      const userId = profile.id;
-      let calculatedReward = 0;
-
-      // 1. Welcome bonus (50,000 - từ handle_new_user)
-      if (profile.welcome_bonus_claimed) {
-        calculatedReward += 50000;
-      }
-
-      // 2. Wallet bonus (50,000)
-      if (profile.wallet_bonus_claimed) {
-        calculatedReward += 50000;
-      }
-
-      // 3. Verification bonus (50,000)
-      if (profile.verification_bonus_claimed) {
-        calculatedReward += 50000;
-      }
-
-      // 4. Quality posts (>100 chars + media = 20,000 each) - MAX 10/DAY
-      const { data: allPosts } = await supabase
+    // FETCH ALL DATA UPFRONT to reduce queries
+    const [
+      profilesRes,
+      postsRes,
+      likesRes,
+      commentsRes,
+      sharesRes,
+      friendshipsRes,
+      sharePostsRes
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, display_name, pending_reward, approved_reward, welcome_bonus_claimed, wallet_bonus_claimed, verification_bonus_claimed')
+        .eq('banned', false),
+      supabase
         .from('posts')
-        .select('id, content, images, video_url, created_at')
-        .eq('author_id', userId)
-        .eq('post_type', 'post')
+        .select('id, author_id, content, images, video_url, created_at, post_type, original_post_id, share_comment')
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true });
-
-      // Filter quality posts first
-      const qualityPosts = (allPosts || []).filter(p => {
-        const hasContent = (p.content?.length || 0) > 100;
-        const hasMedia = (p.images && p.images.length > 0) || p.video_url;
-        return hasContent && hasMedia;
-      });
-      
-      // Apply 10 posts/day limit
-      const rewardablePosts = applyDailyLimit(qualityPosts, p => p.created_at, MAX_POSTS_PER_DAY);
-      calculatedReward += rewardablePosts.length * 20000;
-
-      // 5. Get original post IDs for calculating interactions received
-      const { data: userOriginalPosts } = await supabase
-        .from('posts')
-        .select('id')
-        .eq('author_id', userId)
-        .eq('post_type', 'post')
-        .lte('created_at', CUTOFF_DATE);
-
-      const originalPostIds = (userOriginalPosts || []).map(p => p.id);
-
-      if (originalPostIds.length > 0) {
-        // Collect ALL interactions received with timestamps
-        interface Interaction {
-          type: 'like' | 'comment' | 'share';
-          user_id: string;
-          post_id: string;
-          created_at: string;
-          share_comment_length?: number;
-        }
-        const allInteractions: Interaction[] = [];
-
-        // Fetch likes received
-        const { data: allLikes } = await supabase
-          .from('post_likes')
-          .select('user_id, post_id, created_at')
-          .in('post_id', originalPostIds)
-          .neq('user_id', userId) // Exclude self-like
-          .lte('created_at', CUTOFF_DATE)
-          .order('created_at', { ascending: true });
-
-        for (const like of allLikes || []) {
-          if (existingUserIds.has(like.user_id)) {
-            allInteractions.push({
-              type: 'like',
-              user_id: like.user_id,
-              post_id: like.post_id,
-              created_at: like.created_at
-            });
-          }
-        }
-
-        // Fetch comments received (>20 chars)
-        const { data: allComments } = await supabase
-          .from('comments')
-          .select('author_id, post_id, content, created_at')
-          .in('post_id', originalPostIds)
-          .neq('author_id', userId) // Exclude self-comment
-          .lte('created_at', CUTOFF_DATE)
-          .order('created_at', { ascending: true });
-
-        for (const comment of allComments || []) {
-          if ((comment.content?.length || 0) > 20) {
-            allInteractions.push({
-              type: 'comment',
-              user_id: comment.author_id,
-              post_id: comment.post_id,
-              created_at: comment.created_at
-            });
-          }
-        }
-
-        // Fetch shares received
-        const { data: allShares } = await supabase
-          .from('post_shares')
-          .select('user_id, post_id, created_at')
-          .in('post_id', originalPostIds)
-          .neq('user_id', userId) // Exclude self-share
-          .lte('created_at', CUTOFF_DATE)
-          .order('created_at', { ascending: true });
-
-        for (const share of allShares || []) {
-          if (existingUserIds.has(share.user_id)) {
-            // Get share_comment length
-            const { data: sharePost } = await supabase
-              .from('posts')
-              .select('share_comment')
-              .eq('original_post_id', share.post_id)
-              .eq('author_id', share.user_id)
-              .eq('post_type', 'share')
-              .maybeSingle();
-
-            allInteractions.push({
-              type: 'share',
-              user_id: share.user_id,
-              post_id: share.post_id,
-              created_at: share.created_at,
-              share_comment_length: sharePost?.share_comment?.length || 0
-            });
-          }
-        }
-
-        // Sort all interactions by created_at
-        allInteractions.sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-
-        // Apply 50 interactions/day limit
-        const rewardableInteractions = applyDailyLimit(
-          allInteractions, 
-          i => i.created_at, 
-          MAX_INTERACTIONS_PER_DAY
-        );
-
-        // Calculate rewards from limited interactions
-        // Track unique likers per post for like reward formula
-        const likesPerPost = new Map<string, Set<string>>();
-        
-        for (const interaction of rewardableInteractions) {
-          if (interaction.type === 'like') {
-            if (!likesPerPost.has(interaction.post_id)) {
-              likesPerPost.set(interaction.post_id, new Set());
-            }
-            likesPerPost.get(interaction.post_id)!.add(interaction.user_id);
-          } else if (interaction.type === 'comment') {
-            // 5,000 per comment
-            calculatedReward += 5000;
-          } else if (interaction.type === 'share') {
-            // 4,000 for basic, 10,000 for quality (>=20 chars)
-            if ((interaction.share_comment_length || 0) >= 20) {
-              calculatedReward += 10000;
-            } else {
-              calculatedReward += 4000;
-            }
-          }
-        }
-
-        // Calculate like rewards (first 3 = 10,000 each, rest = 1,000 each per post)
-        for (const [, likers] of likesPerPost) {
-          const likeCount = likers.size;
-          const first3Reward = Math.min(likeCount, 3) * 10000;
-          const restReward = Math.max(0, likeCount - 3) * 1000;
-          calculatedReward += first3Reward + restReward;
-        }
-      }
-
-      // 8. Friendship bonus (50,000 per accepted friendship với users còn tồn tại) - MAX 10/DAY
-      const { data: friendships } = await supabase
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('post_likes')
+        .select('user_id, post_id, created_at')
+        .lte('created_at', CUTOFF_DATE)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('comments')
+        .select('author_id, post_id, content, created_at')
+        .lte('created_at', CUTOFF_DATE)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('post_shares')
+        .select('user_id, post_id, created_at')
+        .lte('created_at', CUTOFF_DATE)
+        .order('created_at', { ascending: true }),
+      supabase
         .from('followers')
         .select('id, follower_id, following_id, created_at')
         .eq('status', 'accepted')
-        .or(`follower_id.eq.${userId},following_id.eq.${userId}`)
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('posts')
+        .select('author_id, original_post_id, share_comment')
+        .eq('post_type', 'share')
+        .lte('created_at', CUTOFF_DATE)
+    ]);
 
-      // Filter friendships với users còn tồn tại
-      const validFriendships = (friendships || []).filter(f => {
-        const friendId = f.follower_id === userId ? f.following_id : f.follower_id;
-        return existingUserIds.has(friendId);
-      });
+    if (profilesRes.error) throw profilesRes.error;
+
+    const profiles = profilesRes.data || [];
+    const allPostsData = postsRes.data || [];
+    const allLikesData = likesRes.data || [];
+    const allCommentsData = commentsRes.data || [];
+    const allSharesData = sharesRes.data || [];
+    const allFriendshipsData = friendshipsRes.data || [];
+    const allSharePostsData = sharePostsRes.data || [];
+
+    // Build existing user IDs set
+    const existingUserIds = new Set(profiles.map(p => p.id));
+
+    console.log(`Processing ${profiles.length} users with pre-fetched data...`);
+
+    const results: any[] = [];
+
+    // Process in batches
+    for (let i = 0; i < profiles.length; i += BATCH_SIZE) {
+      const batch = profiles.slice(i, i + BATCH_SIZE);
       
-      // Apply 10 friendships/day limit
-      const rewardableFriendships = applyDailyLimit(
-        validFriendships, 
-        f => f.created_at, 
-        MAX_FRIENDSHIPS_PER_DAY
+      const batchResults = await Promise.all(
+        batch.map(profile => 
+          processUser(
+            supabase,
+            profile,
+            existingUserIds,
+            allPostsData,
+            allLikesData,
+            allCommentsData,
+            allSharesData,
+            allFriendshipsData,
+            allSharePostsData
+          )
+        )
       );
-      calculatedReward += rewardableFriendships.length * 50000;
-
-      // Update pending_reward AND reset approved_reward to 0
-      const oldPending = profile.pending_reward || 0;
-      const oldApproved = profile.approved_reward || 0;
-      const oldTotal = oldPending + oldApproved;
-      const difference = calculatedReward - oldTotal;
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          pending_reward: calculatedReward,
-          approved_reward: 0 // Reset approved về 0, tất cả chuyển vào pending
-        })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error(`Error updating ${profile.display_name}:`, updateError);
-      }
-
-      results.push({
-        user_id: userId,
-        display_name: profile.display_name,
-        old_pending: oldPending,
-        old_approved: oldApproved,
-        old_total: oldTotal,
-        new_pending: calculatedReward,
-        difference
-      });
+      
+      results.push(...batchResults);
+      console.log(`Processed ${Math.min(i + BATCH_SIZE, profiles.length)}/${profiles.length} users`);
     }
 
-    console.log(`Reset completed for ${results.length} users with daily limits applied`);
+    console.log(`Reset completed for ${results.length} users`);
 
     return new Response(
       JSON.stringify({ 
