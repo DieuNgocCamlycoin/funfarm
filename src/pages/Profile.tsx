@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
 import FeedPost from "@/components/feed/FeedPost";
 import { ProfileCreatePost } from "@/components/profile/ProfileCreatePost";
@@ -769,6 +770,12 @@ const Profile = () => {
       </main>
 
       <Footer />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+
+      {/* Bottom padding for mobile nav */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 };

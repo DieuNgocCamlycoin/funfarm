@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
 import CreatePostModal from "@/components/feed/CreatePostModal";
@@ -648,7 +649,7 @@ const Feed = () => {
 
       {/* Floating Create Button (Mobile only) - Hide if banned */}
       {!profile?.banned && (
-        <div className="lg:hidden">
+        <div className="lg:hidden pb-16">
           <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
         </div>
       )}
@@ -657,6 +658,9 @@ const Feed = () => {
       {!profile?.banned && (
         <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>;
 };
 export default Feed;
