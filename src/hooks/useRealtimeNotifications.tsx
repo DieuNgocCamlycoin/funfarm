@@ -1,7 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import GiftApprovalModal from "@/components/wallet/GiftApprovalModal";
+import React from "react";
+
+interface GiftModalData {
+  postId: string;
+  senderName: string;
+  senderAvatar: string | null;
+  amount: string;
+  currency: string;
+  message?: string;
+}
+
+// Global state for gift modal - to be used by the provider
+let showGiftModalCallback: ((data: GiftModalData) => void) | null = null;
+
+export const setGiftModalCallback = (callback: (data: GiftModalData) => void) => {
+  showGiftModalCallback = callback;
+};
 
 export const useRealtimeNotifications = () => {
   const { user } = useAuth();
@@ -169,11 +187,95 @@ export const useRealtimeNotifications = () => {
       )
       .subscribe();
 
+    // Listen for gift post notifications
+    const giftNotificationChannel = supabase
+      .channel('gift-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          const notification = payload.new as any;
+          
+          // Handle gift_post notification - show modal
+          if (notification.type === 'gift_post' && notification.post_id) {
+            // Fetch post and sender details
+            const { data: post } = await supabase
+              .from('posts')
+              .select('id, content, sender_wallet, receiver_wallet')
+              .eq('id', notification.post_id)
+              .single();
+            
+            const { data: sender } = await supabase
+              .from('profiles')
+              .select('display_name, avatar_url')
+              .eq('id', notification.from_user_id)
+              .single();
+            
+            if (post && sender && showGiftModalCallback) {
+              // Parse amount from content
+              const amountMatch = post.content?.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
+              const messageMatch = post.content?.match(/"([^"]+)"/);
+              
+              showGiftModalCallback({
+                postId: post.id,
+                senderName: sender.display_name || 'Ai đó',
+                senderAvatar: sender.avatar_url,
+                amount: amountMatch ? amountMatch[1] : '0',
+                currency: amountMatch ? amountMatch[2] : 'CAMLY',
+                message: messageMatch ? messageMatch[1] : undefined,
+              });
+            }
+          } else if (notification.type === 'gift') {
+            // Regular gift notification toast
+            toast.success(
+              '🎁 Bạn vừa nhận được quà!',
+              {
+                duration: 6000,
+                description: notification.content,
+              }
+            );
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(violationsChannel);
       supabase.removeChannel(bonusChannel);
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(friendshipChannel);
+      supabase.removeChannel(giftNotificationChannel);
     };
   }, [user?.id]);
+};
+
+// Hook to manage gift modal state
+export const useGiftApprovalModal = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [giftData, setGiftData] = useState<GiftModalData | null>(null);
+
+  const showModal = useCallback((data: GiftModalData) => {
+    setGiftData(data);
+    setIsOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setIsOpen(false);
+    setGiftData(null);
+  }, []);
+
+  // Register callback on mount
+  useEffect(() => {
+    setGiftModalCallback(showModal);
+    return () => {
+      showGiftModalCallback = null;
+    };
+  }, [showModal]);
+
+  return { isOpen, giftData, closeModal };
 };

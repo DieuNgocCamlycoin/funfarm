@@ -136,9 +136,15 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
       // Create the post with gift info in hashtags
       const hashtags = ['#FunFarmGift', '#TặngQuà', `#${selectedTemplate.title}`];
       
+      // Generate content in the new format:
+      // "🎁 @ReceiverName vừa được @SenderName tặng X CAMLY kèm lời nhắn: "message""
+      const senderDisplayName = profile?.display_name || 'Ai đó';
+      const formattedAmount = formatNumber(giftData.amount);
+      
       // Include sound ID in content for playback
-      const postContent = `${selectedTemplate.emoji} ${customMessage}\n\n` +
-        `🎁 Đã tặng ${formatNumber(giftData.amount)} ${giftData.currency} cho @${giftData.receiverName}\n\n` +
+      const postContent = `${selectedTemplate.emoji} 🎁 @${giftData.receiverName} vừa được @${senderDisplayName} tặng ${formattedAmount} ${giftData.currency} kèm lời nhắn:\n\n` +
+        `"${customMessage}"\n\n` +
+        `🎁 Đã tặng ${formattedAmount} ${giftData.currency} cho @${giftData.receiverName}\n\n` +
         `${hashtags.join(' ')}\n[sound:${selectedSound.id}]`;
 
       const { data: post, error } = await supabase

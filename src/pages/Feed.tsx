@@ -123,11 +123,13 @@ const Feed = () => {
         }
         // Fetch receiver info for gift posts
         let receiverName = undefined;
+        let receiverAvatar = undefined;
         if (post.post_type === 'gift' && (post as any).gift_receiver_id) {
           const { data: receiverProfile } = await supabase.rpc('get_public_profiles', {
             user_ids: [(post as any).gift_receiver_id]
           });
           receiverName = receiverProfile?.[0]?.display_name || undefined;
+          receiverAvatar = receiverProfile?.[0]?.avatar_url || undefined;
         }
         
         return {
@@ -178,6 +180,7 @@ const Feed = () => {
           sender_wallet: (post as any).sender_wallet,
           receiver_wallet: (post as any).receiver_wallet,
           receiver_name: receiverName,
+          receiver_avatar: receiverAvatar,
         };
       }));
       if (append) {
