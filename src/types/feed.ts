@@ -59,6 +59,12 @@ export interface Post {
   original_post_id?: string;
   share_comment?: string;
   original_post?: Post;
+  // Gift-specific fields
+  gift_receiver_id?: string;
+  receiver_approved?: boolean;
+  sender_wallet?: string;
+  receiver_wallet?: string;
+  receiver_name?: string;
 }
 
 export interface Comment {

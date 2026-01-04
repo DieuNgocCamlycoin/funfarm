@@ -49,6 +49,7 @@ interface GiftSuccessData {
   receiverId: string;
   receiverName: string;
   receiverAvatar: string | null;
+  receiverWallet?: string;
   message: string;
 }
 
@@ -299,6 +300,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         receiverId: selectedUser.id,
         receiverName: selectedUser.display_name || 'Người dùng',
         receiverAvatar: selectedUser.avatar_url,
+        receiverWallet: receiverWallet || undefined,
         message: message,
       });
     } catch (error) {

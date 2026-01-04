@@ -121,6 +121,14 @@ const Feed = () => {
             };
           }
         }
+        // Fetch receiver info for gift posts
+        let receiverName = undefined;
+        if (post.post_type === 'gift' && (post as any).gift_receiver_id) {
+          const { data: receiverProfile } = await supabase.rpc('get_public_profiles', {
+            user_ids: [(post as any).gift_receiver_id]
+          });
+          receiverName = receiverProfile?.[0]?.display_name || undefined;
+        }
         
         return {
           id: post.id,
@@ -164,6 +172,12 @@ const Feed = () => {
           post_type: post.post_type || 'post',
           original_post_id: post.original_post_id,
           original_post: originalPost,
+          // Gift post fields
+          gift_receiver_id: (post as any).gift_receiver_id,
+          receiver_approved: (post as any).receiver_approved,
+          sender_wallet: (post as any).sender_wallet,
+          receiver_wallet: (post as any).receiver_wallet,
+          receiver_name: receiverName,
         };
       }));
       if (append) {
@@ -295,6 +309,11 @@ const Feed = () => {
         post_type: newPost.post_type || 'post',
         original_post_id: newPost.original_post_id,
         original_post: originalPost,
+        // Gift post fields
+        gift_receiver_id: newPost.gift_receiver_id,
+        receiver_approved: newPost.receiver_approved,
+        sender_wallet: newPost.sender_wallet,
+        receiver_wallet: newPost.receiver_wallet,
       };
 
       // Add new post to the beginning of the list
