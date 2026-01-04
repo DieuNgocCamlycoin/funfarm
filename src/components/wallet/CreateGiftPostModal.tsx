@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,10 +18,14 @@ import {
   Heart,
   Gift,
   Send,
-  Wallet
+  Wallet,
+  Music,
+  Play,
+  Pause
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import { giftSoundOptions } from '@/components/feed/GiftPostDisplay';
 
 interface CreateGiftPostModalProps {
   isOpen: boolean;
@@ -92,22 +96,49 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState(giftTemplates[0]);
+  const [selectedSound, setSelectedSound] = useState(giftSoundOptions[0]);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const [customMessage, setCustomMessage] = useState(
     giftData.message || `Gửi tặng @${giftData.receiverName} với tất cả yêu thương! 💖`
   );
   const [isPosting, setIsPosting] = useState(false);
 
+  const playPreviewSound = (soundUrl: string) => {
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+    }
+    
+    audioPreviewRef.current = new Audio(soundUrl);
+    audioPreviewRef.current.volume = 0.4;
+    audioPreviewRef.current.onended = () => setIsPlayingPreview(false);
+    audioPreviewRef.current.play()
+      .then(() => setIsPlayingPreview(true))
+      .catch(() => console.log('Preview blocked'));
+  };
+
+  const stopPreviewSound = () => {
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      setIsPlayingPreview(false);
+    }
+  };
+
   const handlePost = async () => {
     if (!user) return;
+    
+    // Stop any preview sound
+    stopPreviewSound();
 
     setIsPosting(true);
     try {
       // Create the post with gift info in hashtags
       const hashtags = ['#FunFarmGift', '#TặngQuà', `#${selectedTemplate.title}`];
       
+      // Include sound ID in content for playback
       const postContent = `${selectedTemplate.emoji} ${customMessage}\n\n` +
         `🎁 Đã tặng ${formatNumber(giftData.amount)} ${giftData.currency} cho @${giftData.receiverName}\n\n` +
-        `${hashtags.join(' ')}`;
+        `${hashtags.join(' ')}\n[sound:${selectedSound.id}]`;
 
       const { data: post, error } = await supabase
         .from('posts')
@@ -268,6 +299,38 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                     <span className="text-lg">{template.emoji}</span>
                   </div>
                   <span className="text-[10px] font-medium text-center leading-tight">{template.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sound Selection */}
+          <div>
+            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+              <Music className="w-4 h-4 text-purple-500" />
+              Chọn âm thanh ({giftSoundOptions.length} mẫu)
+            </label>
+            <div className="grid grid-cols-3 gap-2 max-h-[120px] overflow-y-auto p-1">
+              {giftSoundOptions.map((sound) => (
+                <button
+                  key={sound.id}
+                  onClick={() => {
+                    setSelectedSound(sound);
+                    playPreviewSound(sound.url);
+                  }}
+                  className={`p-2 rounded-xl border-2 transition-all flex items-center gap-2 ${
+                    selectedSound.id === sound.id
+                      ? 'border-primary bg-primary/10 scale-105 shadow-lg'
+                      : 'border-muted hover:border-muted-foreground'
+                  }`}
+                >
+                  <span className="text-lg">{sound.emoji}</span>
+                  <span className="text-xs font-medium truncate">{sound.name}</span>
+                  {selectedSound.id === sound.id && isPlayingPreview ? (
+                    <Pause className="w-3 h-3 ml-auto flex-shrink-0" onClick={(e) => { e.stopPropagation(); stopPreviewSound(); }} />
+                  ) : (
+                    <Play className="w-3 h-3 ml-auto flex-shrink-0 opacity-50" />
+                  )}
                 </button>
               ))}
             </div>

@@ -2,16 +2,29 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Gift, Heart, Sparkles, Star, PartyPopper, Coins, Leaf, Volume2, VolumeX } from 'lucide-react';
 import camlyCoinImg from '@/assets/camly_coin.png';
 
-// Sound effect URLs (royalty-free celebration sounds)
-const giftSounds: Record<string, string> = {
-  hearts: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', // Romantic sparkle
-  stars: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Magic twinkle
-  confetti: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3', // Party celebration
-  coins: 'https://assets.mixkit.co/active_storage/sfx/888/888-preview.mp3', // Coins dropping
-  leaves: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', // Nature sounds
-  petals: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', // Soft chime
-  rainbow: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Magic success
-  sparkle: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', // Achievement unlock
+// Custom sound effects saved locally
+export const giftSoundOptions = [
+  { id: 'rich1', name: 'Giàu Sang 1', url: '/sounds/gift-rich-1.mp3', emoji: '💰' },
+  { id: 'rich2', name: 'Giàu Sang 2', url: '/sounds/gift-rich-2.mp3', emoji: '💎' },
+  { id: 'rich3', name: 'Giàu Sang 3', url: '/sounds/gift-rich-3.mp3', emoji: '🎊' },
+  { id: 'hearts', name: 'Lãng Mạn', url: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', emoji: '💕' },
+  { id: 'stars', name: 'Phép Màu', url: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', emoji: '✨' },
+  { id: 'confetti', name: 'Tiệc Tùng', url: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3', emoji: '🎉' },
+  { id: 'coins', name: 'Tiền Vàng', url: 'https://assets.mixkit.co/active_storage/sfx/888/888-preview.mp3', emoji: '🪙' },
+  { id: 'nature', name: 'Thiên Nhiên', url: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', emoji: '🌿' },
+  { id: 'sparkle', name: 'Lấp Lánh', url: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', emoji: '🌟' },
+];
+
+// Default sound mapping by effect type
+const effectSoundMap: Record<string, string> = {
+  hearts: '/sounds/gift-rich-1.mp3',
+  stars: '/sounds/gift-rich-2.mp3',
+  confetti: '/sounds/gift-rich-3.mp3',
+  coins: '/sounds/gift-rich-1.mp3',
+  leaves: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3',
+  petals: '/sounds/gift-rich-2.mp3',
+  rainbow: '/sounds/gift-rich-3.mp3',
+  sparkle: '/sounds/gift-rich-1.mp3',
 };
 
 // Gift templates matching CreateGiftPostModal
@@ -41,9 +54,10 @@ const giftTemplates = [
 interface GiftPostDisplayProps {
   content: string;
   autoPlaySound?: boolean;
+  customSoundId?: string;
 }
 
-const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySound = true }) => {
+const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySound = true, customSoundId }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -53,6 +67,9 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
   const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
   const receiverMatch = content.match(/@(\S+)/);
   const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐)/);
+  // Parse sound ID from content if exists
+  const soundIdMatch = content.match(/\[sound:(\w+)\]/);
+  const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId;
   
   const amount = amountMatch ? amountMatch[1] : '0';
   const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CLC';
@@ -88,14 +105,20 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
   const playSound = () => {
     if (isMuted) return;
     
-    const soundUrl = giftSounds[template.effect] || giftSounds.sparkle;
+    // Priority: custom sound from content > custom sound prop > effect default
+    let soundUrl = effectSoundMap[template.effect] || '/sounds/gift-rich-1.mp3';
+    
+    if (parsedSoundId) {
+      const customSound = giftSoundOptions.find(s => s.id === parsedSoundId);
+      if (customSound) soundUrl = customSound.url;
+    }
     
     if (audioRef.current) {
       audioRef.current.pause();
     }
     
     audioRef.current = new Audio(soundUrl);
-    audioRef.current.volume = 0.3;
+    audioRef.current.volume = 0.4;
     audioRef.current.play().catch(() => {
       // Autoplay may be blocked by browser
       console.log('Sound autoplay blocked');
