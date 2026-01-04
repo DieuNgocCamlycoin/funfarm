@@ -44,6 +44,20 @@ const Feed = () => {
   const [page, setPage] = useState(0);
   const POSTS_PER_PAGE = 10;
 
+  const extractGiftReceiverName = (content: string | null | undefined) => {
+    if (!content) return undefined;
+
+    // New format: "... @ReceiverName vừa được ..."
+    const m1 = content.match(/@([^@\n]+?)\s+vừa được/i);
+    if (m1?.[1]) return m1[1].trim();
+
+    // Older format: "Đã tặng ... cho @ReceiverName"
+    const m2 = content.match(/cho\s+@([^\n#\[]+)/i);
+    if (m2?.[1]) return m2[1].trim();
+
+    return undefined;
+  };
+
   // Fetch posts from database with good heart priority
   const fetchPosts = useCallback(async (pageNum: number, append: boolean = false) => {
     try {
@@ -82,6 +96,9 @@ const Feed = () => {
       // Create maps for quick profile lookup
       const profilesMap = new Map<string, any>(profilesData.map((p: any) => [p.id, p] as [string, any]));
       const receiverMap = new Map<string, any>(receiverProfilesData.map((p: any) => [p.id, p] as [string, any]));
+
+      // Fallback cache: receiverName -> profile (for older gift posts missing gift_receiver_id)
+      const receiverNameCache = new Map<string, { display_name?: string; avatar_url?: string }>();
 
       // Transform amalgamated database posts to Post type
       const transformedPosts: Post[] = await Promise.all(postsData.map(async (post: any) => {
@@ -135,12 +152,45 @@ const Feed = () => {
           }
         }
 
-        // Receiver info for gift posts (from batch map)
-        const receiverProfile = post.post_type === 'gift' && post.gift_receiver_id
-          ? receiverMap.get(post.gift_receiver_id)
-          : undefined;
-        const receiverName = receiverProfile?.display_name?.trim() || undefined;
-        const receiverAvatar = receiverProfile?.avatar_url || undefined;
+        // Receiver info for gift posts
+        let receiverName: string | undefined = undefined;
+        let receiverAvatar: string | undefined = undefined;
+
+        if (post.post_type === 'gift') {
+          // Primary path: receiver id exists
+          const receiverProfile = post.gift_receiver_id
+            ? receiverMap.get(post.gift_receiver_id)
+            : undefined;
+
+          receiverName = receiverProfile?.display_name?.trim() || undefined;
+          receiverAvatar = receiverProfile?.avatar_url || undefined;
+
+          // Fallback path: older gift posts were created without gift_receiver_id
+          if (!receiverName) {
+            const extractedName = extractGiftReceiverName(post.content);
+            if (extractedName) {
+              receiverName = extractedName;
+
+              const cached = receiverNameCache.get(extractedName);
+              if (cached) {
+                receiverAvatar = cached.avatar_url;
+              } else {
+                const { data: foundProfiles } = await supabase
+                  .from('profiles')
+                  .select('display_name, avatar_url')
+                  .ilike('display_name', extractedName)
+                  .limit(1);
+
+                const fp: any = (foundProfiles || [])[0];
+                receiverAvatar = fp?.avatar_url || receiverAvatar;
+                receiverNameCache.set(extractedName, {
+                  display_name: fp?.display_name,
+                  avatar_url: fp?.avatar_url,
+                });
+              }
+            }
+          }
+        }
 
         return {
           id: post.id,
@@ -283,13 +333,30 @@ const Feed = () => {
       // Receiver info for gift posts (so the card shows đúng tên/avatar ngay lập tức)
       let receiverName: string | undefined = undefined;
       let receiverAvatar: string | undefined = undefined;
-      if (newPost.post_type === 'gift' && newPost.gift_receiver_id) {
-        const { data: receiverProfiles } = await supabase.rpc('get_public_profiles', {
-          user_ids: [newPost.gift_receiver_id]
-        });
-        const rp: any = receiverProfiles?.[0];
-        receiverName = rp?.display_name?.trim() || undefined;
-        receiverAvatar = rp?.avatar_url || undefined;
+      if (newPost.post_type === 'gift') {
+        if (newPost.gift_receiver_id) {
+          const { data: receiverProfiles } = await supabase.rpc('get_public_profiles', {
+            user_ids: [newPost.gift_receiver_id]
+          });
+          const rp: any = receiverProfiles?.[0];
+          receiverName = rp?.display_name?.trim() || undefined;
+          receiverAvatar = rp?.avatar_url || undefined;
+        }
+
+        // Fallback for older/new malformed gift posts without receiver id
+        if (!receiverName) {
+          const extractedName = extractGiftReceiverName(newPost.content);
+          if (extractedName) {
+            receiverName = extractedName;
+            const { data: foundProfiles } = await supabase
+              .from('profiles')
+              .select('display_name, avatar_url')
+              .ilike('display_name', extractedName)
+              .limit(1);
+            const fp: any = (foundProfiles || [])[0];
+            receiverAvatar = fp?.avatar_url || receiverAvatar;
+          }
+        }
       }
 
       const transformedPost: Post = {
