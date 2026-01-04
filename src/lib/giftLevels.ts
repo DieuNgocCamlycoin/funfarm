@@ -114,6 +114,18 @@ export function getGiftLevel(amount: number): GiftLevelConfig {
 }
 
 export function parseAmountFromString(amountStr: string): number {
-  // Remove separators and parse
-  return parseInt(amountStr.replace(/[,.\s]/g, ''), 10) || 0;
+  const s = (amountStr || '').trim();
+  if (!s) return 0;
+
+  // Support shorthand like 10K, 10.5K, 2M, 1.2B (commas/dots/space allowed)
+  const m = s.match(/^([0-9]+(?:[\.,][0-9]+)?)\s*([kKmMbB])?$/);
+  if (m) {
+    const base = parseFloat(m[1].replace(/,/g, '.'));
+    const suffix = (m[2] || '').toUpperCase();
+    const mult = suffix === 'K' ? 1_000 : suffix === 'M' ? 1_000_000 : suffix === 'B' ? 1_000_000_000 : 1;
+    return Math.round(base * mult) || 0;
+  }
+
+  // Fallback: remove separators and parse
+  return parseInt(s.replace(/[^0-9]/g, ''), 10) || 0;
 }

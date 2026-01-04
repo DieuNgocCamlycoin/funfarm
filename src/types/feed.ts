@@ -66,6 +66,8 @@ export interface Post {
   receiver_wallet?: string;
   receiver_name?: string;
   receiver_avatar?: string;
+  gift_amount?: number;
+  gift_currency?: string;
 }
 
 export interface Comment {
