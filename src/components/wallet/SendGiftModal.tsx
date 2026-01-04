@@ -41,6 +41,7 @@ interface SendGiftModalProps {
 interface GiftSuccessData {
   amount: number;
   currency: string;
+  receiverId: string;
   receiverName: string;
   receiverAvatar: string | null;
   message: string;
@@ -219,6 +220,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
       onSuccess({
         amount: amountNum,
         currency: selectedCurrency,
+        receiverId: selectedUser.id,
         receiverName: selectedUser.display_name || 'Người dùng',
         receiverAvatar: selectedUser.avatar_url,
         message: message,

@@ -24,11 +24,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import SendGiftModal from '@/components/wallet/SendGiftModal';
 import GiftCelebrationModal from '@/components/wallet/GiftCelebrationModal';
+import CreateGiftPostModal from '@/components/wallet/CreateGiftPostModal';
 import camlyCoinImg from '@/assets/camly_coin.png';
 
 interface GiftSuccessData {
   amount: number;
   currency: string;
+  receiverId: string;
   receiverName: string;
   receiverAvatar: string | null;
   message: string;
@@ -81,6 +83,7 @@ const Wallet_Page = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
   const [celebrationData, setCelebrationData] = useState<GiftSuccessData | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
@@ -379,9 +382,27 @@ const Wallet_Page = () => {
           receiverAvatar={celebrationData.receiverAvatar}
           message={celebrationData.message}
           onCreatePost={() => {
-            // TODO: Navigate to create post with prefilled content
             setShowCelebration(false);
-            navigate('/feed');
+            setShowCreatePost(true);
+          }}
+        />
+      )}
+
+      {/* Create Gift Post Modal */}
+      {celebrationData && (
+        <CreateGiftPostModal
+          isOpen={showCreatePost}
+          onClose={() => {
+            setShowCreatePost(false);
+            setCelebrationData(null);
+          }}
+          giftData={{
+            amount: celebrationData.amount,
+            currency: celebrationData.currency,
+            receiverId: celebrationData.receiverId,
+            receiverName: celebrationData.receiverName,
+            receiverAvatar: celebrationData.receiverAvatar,
+            message: celebrationData.message,
           }}
         />
       )}
