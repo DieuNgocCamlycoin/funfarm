@@ -17,7 +17,8 @@ import {
   Image as ImageIcon,
   Heart,
   Gift,
-  Send
+  Send,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
@@ -35,38 +36,52 @@ interface CreateGiftPostModalProps {
   };
 }
 
-// Gift card templates
+// 20 Gift card templates with beautiful gradients and effects
 const giftTemplates = [
-  {
-    id: 'love',
-    gradient: 'from-pink-500 via-rose-500 to-red-500',
-    emoji: '💝',
-    title: 'Yêu thương',
-  },
-  {
-    id: 'thanks',
-    gradient: 'from-amber-400 via-orange-500 to-yellow-500',
-    emoji: '🙏',
-    title: 'Cảm ơn',
-  },
-  {
-    id: 'congrats',
-    gradient: 'from-green-400 via-emerald-500 to-teal-500',
-    emoji: '🎉',
-    title: 'Chúc mừng',
-  },
-  {
-    id: 'support',
-    gradient: 'from-blue-400 via-indigo-500 to-purple-500',
-    emoji: '💪',
-    title: 'Ủng hộ',
-  },
+  // Love & Romance
+  { id: 'love', gradient: 'from-pink-500 via-rose-500 to-red-500', emoji: '💝', title: 'Yêu thương', effect: 'hearts' },
+  { id: 'romance', gradient: 'from-rose-400 via-pink-500 to-fuchsia-500', emoji: '💕', title: 'Lãng mạn', effect: 'hearts' },
+  { id: 'kiss', gradient: 'from-red-400 via-rose-500 to-pink-400', emoji: '💋', title: 'Thương yêu', effect: 'hearts' },
+  
+  // Thanks & Appreciation
+  { id: 'thanks', gradient: 'from-amber-400 via-orange-500 to-yellow-500', emoji: '🙏', title: 'Cảm ơn', effect: 'stars' },
+  { id: 'appreciate', gradient: 'from-yellow-400 via-amber-500 to-orange-400', emoji: '🌟', title: 'Tri ân', effect: 'stars' },
+  
+  // Celebration
+  { id: 'congrats', gradient: 'from-green-400 via-emerald-500 to-teal-500', emoji: '🎉', title: 'Chúc mừng', effect: 'confetti' },
+  { id: 'party', gradient: 'from-violet-500 via-purple-500 to-fuchsia-500', emoji: '🎊', title: 'Tiệc tùng', effect: 'confetti' },
+  { id: 'fireworks', gradient: 'from-indigo-500 via-purple-600 to-pink-500', emoji: '🎆', title: 'Pháo hoa', effect: 'sparkle' },
+  
+  // Support & Encouragement
+  { id: 'support', gradient: 'from-blue-400 via-indigo-500 to-purple-500', emoji: '💪', title: 'Ủng hộ', effect: 'sparkle' },
+  { id: 'cheer', gradient: 'from-cyan-400 via-blue-500 to-indigo-500', emoji: '📣', title: 'Cổ vũ', effect: 'sparkle' },
+  
+  // Nature & Farm
+  { id: 'farm', gradient: 'from-green-500 via-lime-500 to-emerald-400', emoji: '🌾', title: 'Nông trại', effect: 'leaves' },
+  { id: 'flower', gradient: 'from-pink-400 via-rose-400 to-red-300', emoji: '🌸', title: 'Hoa đẹp', effect: 'petals' },
+  { id: 'garden', gradient: 'from-emerald-400 via-green-500 to-teal-400', emoji: '🌻', title: 'Vườn xanh', effect: 'leaves' },
+  { id: 'rainbow', gradient: 'from-red-400 via-yellow-400 to-green-400', emoji: '🌈', title: 'Cầu vồng', effect: 'rainbow' },
+  
+  // Wealth & Prosperity
+  { id: 'wealth', gradient: 'from-yellow-500 via-amber-500 to-orange-500', emoji: '💰', title: 'Thịnh vượng', effect: 'coins' },
+  { id: 'lucky', gradient: 'from-red-500 via-orange-500 to-yellow-500', emoji: '🧧', title: 'May mắn', effect: 'coins' },
+  { id: 'diamond', gradient: 'from-cyan-300 via-blue-400 to-indigo-400', emoji: '💎', title: 'Quý giá', effect: 'sparkle' },
+  
+  // Special Occasions
+  { id: 'birthday', gradient: 'from-fuchsia-500 via-pink-500 to-rose-400', emoji: '🎂', title: 'Sinh nhật', effect: 'confetti' },
+  { id: 'gift', gradient: 'from-purple-500 via-violet-500 to-indigo-500', emoji: '🎁', title: 'Quà tặng', effect: 'sparkle' },
+  { id: 'star', gradient: 'from-amber-300 via-yellow-400 to-orange-400', emoji: '⭐', title: 'Ngôi sao', effect: 'stars' },
 ];
 
 const formatNumber = (num: number) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  // Always show full number
   return num.toLocaleString('vi-VN');
+};
+
+const shortenWallet = (address: string | null | undefined) => {
+  if (!address) return '';
+  if (address.length <= 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
@@ -129,7 +144,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -138,14 +153,29 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Gift Card Preview */}
+          {/* Gift Card Preview with animated effects */}
           <div 
             className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${selectedTemplate.gradient} p-6 text-white shadow-xl`}
           >
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-4 left-4 text-6xl">{selectedTemplate.emoji}</div>
-              <div className="absolute bottom-4 right-4 text-6xl">{selectedTemplate.emoji}</div>
+            {/* Animated background effects based on template */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {/* Sparkle particles */}
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full bg-white/60 animate-pulse"
+                  style={{
+                    left: `${10 + (i % 4) * 25}%`,
+                    top: `${10 + Math.floor(i / 4) * 30}%`,
+                    animationDelay: `${i * 0.15}s`,
+                    animationDuration: `${1 + Math.random()}s`,
+                  }}
+                />
+              ))}
+              {/* Floating emojis */}
+              <div className="absolute top-2 left-4 text-4xl opacity-30 animate-bounce">{selectedTemplate.emoji}</div>
+              <div className="absolute bottom-2 right-4 text-4xl opacity-30 animate-bounce" style={{ animationDelay: '0.5s' }}>{selectedTemplate.emoji}</div>
+              <div className="absolute top-1/2 right-8 text-2xl opacity-20 animate-pulse">{selectedTemplate.emoji}</div>
             </div>
 
             {/* Content */}
@@ -155,13 +185,13 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                   <Gift className="w-6 h-6" />
                   <span className="font-bold text-lg">Fun Farm Gift</span>
                 </div>
-                <span className="text-4xl">{selectedTemplate.emoji}</span>
+                <span className="text-4xl animate-bounce">{selectedTemplate.emoji}</span>
               </div>
 
               {/* Sender to Receiver */}
               <div className="flex items-center justify-center gap-4 my-6">
                 <div className="flex flex-col items-center">
-                  <Avatar className="w-14 h-14 border-2 border-white/50">
+                  <Avatar className="w-14 h-14 border-2 border-white/50 ring-2 ring-white/30 ring-offset-2 ring-offset-transparent">
                     <AvatarImage src={profile?.avatar_url || ''} />
                     <AvatarFallback className="bg-white/20 text-white">
                       {profile?.display_name?.charAt(0) || '?'}
@@ -170,6 +200,11 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                   <span className="text-sm mt-1 font-medium truncate max-w-[80px]">
                     {profile?.display_name || 'Bạn'}
                   </span>
+                  {profile?.wallet_address && (
+                    <span className="text-[10px] opacity-70 font-mono">
+                      {shortenWallet(profile.wallet_address)}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-col items-center">
@@ -182,7 +217,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <Avatar className="w-14 h-14 border-2 border-white/50">
+                  <Avatar className="w-14 h-14 border-2 border-white/50 ring-2 ring-white/30 ring-offset-2 ring-offset-transparent">
                     <AvatarImage src={giftData.receiverAvatar || ''} />
                     <AvatarFallback className="bg-white/20 text-white">
                       {giftData.receiverName.charAt(0)}
@@ -194,10 +229,10 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                 </div>
               </div>
 
-              {/* Amount */}
-              <div className="text-center bg-white/20 rounded-xl py-3 px-4 backdrop-blur-sm">
+              {/* Amount with coin animation */}
+              <div className="text-center bg-white/20 rounded-xl py-3 px-4 backdrop-blur-sm border border-white/30">
                 <div className="flex items-center justify-center gap-2">
-                  <img src={camlyCoinImg} alt="coin" className="w-8 h-8" />
+                  <img src={camlyCoinImg} alt="coin" className="w-8 h-8 animate-spin" style={{ animationDuration: '3s' }} />
                   <span className="text-3xl font-bold">{formatNumber(giftData.amount)}</span>
                   <span className="text-lg">{giftData.currency}</span>
                 </div>
@@ -205,29 +240,34 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 
               {/* Message preview */}
               {giftData.message && (
-                <div className="mt-4 text-center italic opacity-90 text-sm">
+                <div className="mt-4 text-center italic opacity-90 text-sm bg-white/10 rounded-lg p-2">
                   "{giftData.message}"
                 </div>
               )}
             </div>
           </div>
 
-          {/* Template Selection */}
+          {/* Template Selection - Scrollable grid */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Chọn kiểu thiệp</label>
-            <div className="grid grid-cols-4 gap-2">
+            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-primary" />
+              Chọn kiểu thiệp ({giftTemplates.length} mẫu)
+            </label>
+            <div className="grid grid-cols-5 gap-2 max-h-[180px] overflow-y-auto p-1">
               {giftTemplates.map((template) => (
                 <button
                   key={template.id}
                   onClick={() => setSelectedTemplate(template)}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                  className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
                     selectedTemplate.id === template.id
-                      ? 'border-primary bg-primary/10 scale-105'
-                      : 'border-muted hover:border-muted-foreground'
+                      ? 'border-primary bg-primary/10 scale-105 shadow-lg'
+                      : 'border-muted hover:border-muted-foreground hover:scale-102'
                   }`}
                 >
-                  <span className="text-2xl">{template.emoji}</span>
-                  <span className="text-xs font-medium">{template.title}</span>
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${template.gradient} flex items-center justify-center`}>
+                    <span className="text-lg">{template.emoji}</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-center leading-tight">{template.title}</span>
                 </button>
               ))}
             </div>
