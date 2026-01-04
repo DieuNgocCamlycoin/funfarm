@@ -66,10 +66,8 @@ const getUserTypeIcon = (type: string) => {
 };
 
 const formatNumber = (num: number): string => {
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
+  // Always show full number
+  return num.toLocaleString('vi-VN');
 };
 
 const formatPrice = (price: number): string => {

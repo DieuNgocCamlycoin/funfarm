@@ -48,16 +48,17 @@ interface Transaction {
   sender_profile?: {
     display_name: string | null;
     avatar_url: string | null;
+    wallet_address?: string | null;
   };
   receiver_profile?: {
     display_name: string | null;
     avatar_url: string | null;
+    wallet_address?: string | null;
   };
 }
 
 const formatNumber = (num: number) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  // Always show full number
   return num.toLocaleString('vi-VN');
 };
 
@@ -102,7 +103,7 @@ const Wallet_Page = () => {
         const userIds = [...new Set(data.flatMap(t => [t.sender_id, t.receiver_id]))];
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, display_name, avatar_url')
+          .select('id, display_name, avatar_url, wallet_address')
           .in('id', userIds);
 
         const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);

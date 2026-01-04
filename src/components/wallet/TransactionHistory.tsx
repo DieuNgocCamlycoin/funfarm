@@ -42,10 +42,12 @@ interface Transaction {
   sender_profile?: {
     display_name: string | null;
     avatar_url: string | null;
+    wallet_address?: string | null;
   };
   receiver_profile?: {
     display_name: string | null;
     avatar_url: string | null;
+    wallet_address?: string | null;
   };
 }
 
@@ -83,14 +85,19 @@ const statusLabels: Record<string, string> = {
 
 const formatNumber = (num: number, currency: string) => {
   if (currency === 'CLC') {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    // Always show full number for CLC
     return num.toLocaleString('vi-VN');
   }
   // For crypto, show more decimal places
   if (num < 0.001) return num.toFixed(8);
   if (num < 1) return num.toFixed(6);
   return num.toFixed(4);
+};
+
+const shortenWallet = (address: string | null | undefined) => {
+  if (!address) return '';
+  if (address.length <= 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({
@@ -199,6 +206,11 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                               {isSender ? 'Gửi đến' : 'Nhận từ'} {otherUser?.display_name || 'Người dùng'}
                             </span>
                           </div>
+                          {otherUser?.wallet_address && (
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {shortenWallet(otherUser.wallet_address)}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge 
                               variant="outline" 
@@ -298,6 +310,11 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                           <Badge variant="outline" className="ml-2 text-xs">Bạn</Badge>
                         )}
                       </div>
+                      {selectedTx.sender_profile?.wallet_address && (
+                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                          {shortenWallet(selectedTx.sender_profile.wallet_address)}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -320,6 +337,11 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                           <Badge variant="outline" className="ml-2 text-xs">Bạn</Badge>
                         )}
                       </div>
+                      {selectedTx.receiver_profile?.wallet_address && (
+                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                          {shortenWallet(selectedTx.receiver_profile.wallet_address)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
