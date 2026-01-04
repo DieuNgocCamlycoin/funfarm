@@ -21,6 +21,7 @@ import ShipperDashboard from "./pages/ShipperDashboard";
 import ShipperRegister from "./pages/ShipperRegister";
 import Admin from "./pages/Admin";
 import LoveRules from "./pages/LoveRules";
+import Wallet from "./pages/Wallet";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,8 +47,9 @@ const App = () => (
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/shipper" element={<ShipperDashboard />} />
                 <Route path="/shipper/register" element={<ShipperRegister />} />
-                <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={<Admin />} />
                 <Route path="/love-rules" element={<LoveRules />} />
+                <Route path="/wallet" element={<Wallet />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

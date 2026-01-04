@@ -558,6 +558,8 @@ export type Database = {
           banned: boolean
           banned_at: string | null
           bio: string | null
+          bnb_balance: number | null
+          btc_balance: number | null
           camly_balance: number
           cover_url: string | null
           created_at: string
@@ -578,6 +580,7 @@ export type Database = {
           referral_code: string | null
           reputation_score: number
           updated_at: string
+          usdt_balance: number | null
           verification_bonus_claimed: boolean
           verification_status: string
           verified_at: string | null
@@ -595,6 +598,8 @@ export type Database = {
           banned?: boolean
           banned_at?: string | null
           bio?: string | null
+          bnb_balance?: number | null
+          btc_balance?: number | null
           camly_balance?: number
           cover_url?: string | null
           created_at?: string
@@ -615,6 +620,7 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          usdt_balance?: number | null
           verification_bonus_claimed?: boolean
           verification_status?: string
           verified_at?: string | null
@@ -632,6 +638,8 @@ export type Database = {
           banned?: boolean
           banned_at?: string | null
           bio?: string | null
+          bnb_balance?: number | null
+          btc_balance?: number | null
           camly_balance?: number
           cover_url?: string | null
           created_at?: string
@@ -652,6 +660,7 @@ export type Database = {
           referral_code?: string | null
           reputation_score?: number
           updated_at?: string
+          usdt_balance?: number | null
           verification_bonus_claimed?: boolean
           verification_status?: string
           verified_at?: string | null
@@ -882,6 +891,45 @@ export type Database = {
           user_id?: string
           violation_count?: number
           violation_type?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          message: string | null
+          post_id: string | null
+          receiver_id: string
+          sender_id: string
+          status: string
+          tx_hash: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          message?: string | null
+          post_id?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: string
+          tx_hash?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          message?: string | null
+          post_id?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+          tx_hash?: string | null
         }
         Relationships: []
       }
