@@ -297,11 +297,14 @@ export function RewardCalculationExport() {
               MAX_INTERACTIONS_PER_DAY
             );
 
-            // Count totals from limited interactions
-            const likesSet = new Set<string>();
+            // Count totals from limited interactions - GROUP LIKES BY POST
+            const likesPerPost = new Map<string, Set<string>>();
             for (const i of rewardableInteractions) {
               if (i.type === 'like') {
-                likesSet.add(i.user_id);
+                if (!likesPerPost.has(i.post_id)) {
+                  likesPerPost.set(i.post_id, new Set());
+                }
+                likesPerPost.get(i.post_id)!.add(i.user_id);
                 likesReceived++;
               } else if (i.type === 'comment') {
                 commentsReceived++;
@@ -313,6 +316,15 @@ export function RewardCalculationExport() {
                   basicShares++;
                 }
               }
+            }
+            
+            // Calculate like reward PER POST (3 first likes = 10k each, rest = 1k each)
+            let calculatedLikeReward = 0;
+            for (const [, likers] of likesPerPost) {
+              const likeCount = likers.size;
+              const first3Reward = Math.min(likeCount, 3) * 10000;
+              const restReward = Math.max(0, likeCount - 3) * 1000;
+              calculatedLikeReward += first3Reward + restReward;
             }
 
             // Get friendships với users còn tồn tại - MAX 10/DAY
@@ -341,9 +353,7 @@ export function RewardCalculationExport() {
             const walletBonus = profile.wallet_bonus_claimed ? 50000 : 0;
             const verificationBonus = profile.verification_bonus_claimed ? 50000 : 0;
             const postReward = qualityPosts * 20000;
-            const likeReward = likesReceived <= 3 
-              ? likesReceived * 10000 
-              : 30000 + (likesReceived - 3) * 1000;
+            const likeReward = calculatedLikeReward; // Use per-post calculation
             const commentReward = commentsReceived * 5000;
             const shareReward = (basicShares * 4000) + (qualityShares * 10000);
             const friendshipReward = friendships * 50000;
