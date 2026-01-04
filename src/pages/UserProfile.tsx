@@ -20,8 +20,10 @@ import {
   UserPlus,
   UserMinus,
   Flag,
-  ArrowLeft
+  ArrowLeft,
+  Gift
 } from "lucide-react";
+import SendGiftModal from "@/components/wallet/SendGiftModal";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -88,6 +90,7 @@ const UserProfile = () => {
   const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('none');
   const [friendshipLoading, setFriendshipLoading] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
 
   // Redirect to own profile if viewing self
   useEffect(() => {
@@ -568,6 +571,15 @@ const UserProfile = () => {
                 )}
                 
                 <Button 
+                  variant="outline"
+                  onClick={() => setGiftModalOpen(true)}
+                  className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  Tặng quà
+                </Button>
+                
+                <Button 
                   variant="outline" 
                   size="icon"
                   onClick={() => setReportModalOpen(true)}
@@ -702,6 +714,19 @@ const UserProfile = () => {
         onClose={() => setReportModalOpen(false)}
         reportedUserId={userId || ''}
         contentType="user"
+      />
+
+      {/* Gift Modal */}
+      <SendGiftModal
+        isOpen={giftModalOpen}
+        onClose={() => setGiftModalOpen(false)}
+        onSuccess={() => setGiftModalOpen(false)}
+        preselectedUser={{
+          id: userProfile.id,
+          display_name: userProfile.display_name,
+          avatar_url: userProfile.avatar_url,
+          profile_type: userProfile.profile_type
+        }}
       />
     </div>
   );
