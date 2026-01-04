@@ -218,6 +218,20 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 
       if (error) throw error;
 
+      // Link post_id back to wallet_transaction for bidirectional sync
+      // Find the most recent transaction from sender to receiver within last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      await supabase
+        .from('wallet_transactions')
+        .update({ post_id: post.id })
+        .eq('sender_id', user.id)
+        .eq('receiver_id', giftData.receiverId)
+        .eq('currency', giftData.currency)
+        .gte('created_at', fiveMinutesAgo)
+        .is('post_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
       // Create notification for receiver
       await supabase.from('notifications').insert({
         user_id: giftData.receiverId,
