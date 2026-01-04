@@ -451,6 +451,7 @@ export type Database = {
           content: string | null
           created_at: string
           delivery_options: string[] | null
+          gift_receiver_id: string | null
           hashtags: string[] | null
           id: string
           images: string[] | null
@@ -466,6 +467,9 @@ export type Database = {
           price_vnd: number | null
           product_name: string | null
           quantity_kg: number | null
+          receiver_approved: boolean | null
+          receiver_wallet: string | null
+          sender_wallet: string | null
           share_comment: string | null
           shares_count: number
           updated_at: string
@@ -478,6 +482,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           delivery_options?: string[] | null
+          gift_receiver_id?: string | null
           hashtags?: string[] | null
           id?: string
           images?: string[] | null
@@ -493,6 +498,9 @@ export type Database = {
           price_vnd?: number | null
           product_name?: string | null
           quantity_kg?: number | null
+          receiver_approved?: boolean | null
+          receiver_wallet?: string | null
+          sender_wallet?: string | null
           share_comment?: string | null
           shares_count?: number
           updated_at?: string
@@ -505,6 +513,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           delivery_options?: string[] | null
+          gift_receiver_id?: string | null
           hashtags?: string[] | null
           id?: string
           images?: string[] | null
@@ -520,6 +529,9 @@ export type Database = {
           price_vnd?: number | null
           product_name?: string | null
           quantity_kg?: number | null
+          receiver_approved?: boolean | null
+          receiver_wallet?: string | null
+          sender_wallet?: string | null
           share_comment?: string | null
           shares_count?: number
           updated_at?: string

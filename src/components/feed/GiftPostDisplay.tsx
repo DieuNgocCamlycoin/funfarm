@@ -55,9 +55,21 @@ interface GiftPostDisplayProps {
   content: string;
   autoPlaySound?: boolean;
   customSoundId?: string;
+  senderName?: string;
+  senderWallet?: string;
+  receiverName?: string;
+  receiverWallet?: string;
 }
 
-const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySound = true, customSoundId }) => {
+const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ 
+  content, 
+  autoPlaySound = true, 
+  customSoundId,
+  senderName,
+  senderWallet,
+  receiverName,
+  receiverWallet 
+}) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -67,14 +79,24 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
   const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
   const receiverMatch = content.match(/@(\S+)/);
   const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐)/);
+  // Parse message from content (between first line and gift line)
+  const messageMatch = content.match(/^[^\n]*\n\n?([\s\S]*?)(?=\n*🎁 Đã tặng|$)/);
+  const customMessage = messageMatch ? messageMatch[1].trim() : '';
   // Parse sound ID from content if exists
   const soundIdMatch = content.match(/\[sound:(\w+)\]/);
   const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId;
   
   const amount = amountMatch ? amountMatch[1] : '0';
   const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CLC';
-  const receiver = receiverMatch ? receiverMatch[1] : 'bạn';
+  const receiver = receiverMatch ? receiverMatch[1] : receiverName || 'bạn';
   const emoji = emojiMatch ? emojiMatch[1] : '🎁';
+  
+  // Helper to shorten wallet address
+  const shortenWallet = (address: string | undefined) => {
+    if (!address) return '';
+    if (address.length <= 12) return address;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
   
   // Find matching template
   const template = giftTemplates.find(t => t.emoji === emoji) || giftTemplates[0];
@@ -105,8 +127,8 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
   const playSound = () => {
     if (isMuted) return;
     
-    // Priority: custom sound from content > custom sound prop > effect default
-    let soundUrl = effectSoundMap[template.effect] || '/sounds/gift-rich-1.mp3';
+    // Default to rich sound that loops
+    let soundUrl = '/sounds/gift-rich-1.mp3';
     
     if (parsedSoundId) {
       const customSound = giftSoundOptions.find(s => s.id === parsedSoundId);
@@ -119,11 +141,21 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
     
     audioRef.current = new Audio(soundUrl);
     audioRef.current.volume = 0.4;
+    audioRef.current.loop = true; // Loop continuously
     audioRef.current.play().catch(() => {
-      // Autoplay may be blocked by browser
       console.log('Sound autoplay blocked');
     });
   };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
@@ -350,7 +382,36 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
           </div>
         </div>
 
-        {/* Gift info with glowing effect */}
+        {/* Congratulation message */}
+        <div className="text-center mb-4">
+          <div className="bg-white/20 rounded-xl py-3 px-4 backdrop-blur-sm">
+            <p className="text-base sm:text-lg font-bold leading-relaxed">
+              🎊 Chúc mừng{' '}
+              <span className="underline decoration-2 underline-offset-2">
+                {receiverName || receiver}
+              </span>
+              {receiverWallet && (
+                <span className="text-xs opacity-70 font-mono ml-1">
+                  ({shortenWallet(receiverWallet)})
+                </span>
+              )}
+            </p>
+            <p className="text-sm opacity-90 mt-1">
+              được{' '}
+              <span className="font-semibold">
+                {senderName || 'bạn bè'}
+              </span>
+              {senderWallet && (
+                <span className="text-xs opacity-70 font-mono ml-1">
+                  ({shortenWallet(senderWallet)})
+                </span>
+              )}
+              {' '}tặng món quà! 🎁
+            </p>
+          </div>
+        </div>
+
+        {/* Gift amount with glowing effect */}
         <div className="text-center bg-white/25 rounded-2xl py-4 px-6 backdrop-blur-sm border border-white/40 shadow-lg mb-4">
           <div className="flex items-center justify-center gap-3">
             {currency === 'CLC' || currency === 'CAMLY' ? (
@@ -370,11 +431,14 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySoun
               <span className="text-lg sm:text-xl ml-2 font-semibold">{currency}</span>
             </div>
           </div>
-          <div className="mt-2 text-sm opacity-90 flex items-center justify-center gap-1">
-            <Heart className="w-4 h-4 fill-white animate-pulse" />
-            <span>Tặng cho @{receiver}</span>
-          </div>
         </div>
+
+        {/* Custom message if exists */}
+        {customMessage && (
+          <div className="text-center bg-white/15 rounded-xl py-3 px-4 backdrop-blur-sm mb-4">
+            <p className="text-sm italic opacity-90">💬 "{customMessage}"</p>
+          </div>
+        )}
 
         {/* Fun decorative elements */}
         <div className="flex items-center justify-center gap-2 opacity-80">

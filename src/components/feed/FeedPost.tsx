@@ -489,7 +489,13 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
 
       {/* Gift Post Display - Beautiful animated card */}
       {isGiftPost && (
-        <GiftPostDisplay content={post.content} />
+        <GiftPostDisplay 
+          content={post.content}
+          senderName={post.author.name}
+          senderWallet={(post as any).sender_wallet}
+          receiverName={(post as any).receiver_name}
+          receiverWallet={(post as any).receiver_wallet}
+        />
       )}
 
       {/* Regular Content (for non-share and non-gift posts) */}

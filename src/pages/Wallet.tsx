@@ -32,6 +32,7 @@ interface GiftSuccessData {
   receiverId: string;
   receiverName: string;
   receiverAvatar: string | null;
+  receiverWallet?: string;
   message: string;
 }
 
@@ -309,6 +310,7 @@ const Wallet_Page = () => {
             receiverId: celebrationData.receiverId,
             receiverName: celebrationData.receiverName,
             receiverAvatar: celebrationData.receiverAvatar,
+            receiverWallet: celebrationData.receiverWallet,
             message: celebrationData.message,
           }}
         />

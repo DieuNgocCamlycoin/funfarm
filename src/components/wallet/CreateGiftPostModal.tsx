@@ -36,6 +36,7 @@ interface CreateGiftPostModalProps {
     receiverId: string;
     receiverName: string;
     receiverAvatar: string | null;
+    receiverWallet?: string;
     message: string;
   };
 }
@@ -147,6 +148,10 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
           content: postContent,
           post_type: 'gift',
           hashtags: hashtags,
+          gift_receiver_id: giftData.receiverId,
+          receiver_approved: true, // Default approved, receiver can hide later
+          sender_wallet: profile?.wallet_address || null,
+          receiver_wallet: giftData.receiverWallet || null,
         })
         .select()
         .single();
@@ -159,7 +164,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
         from_user_id: user.id,
         type: 'gift_post',
         post_id: post.id,
-        content: `${profile?.display_name || 'Ai đó'} đã đăng bài chúc mừng tặng quà cho bạn!`,
+        content: `${profile?.display_name || 'Ai đó'} đã đăng bài chúc mừng tặng bạn ${formatNumber(giftData.amount)} ${giftData.currency}!`,
       });
 
       toast.success('🎉 Đã đăng bài chúc mừng!');
@@ -257,6 +262,11 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                   <span className="text-sm mt-1 font-medium truncate max-w-[80px]">
                     {giftData.receiverName}
                   </span>
+                  {giftData.receiverWallet && (
+                    <span className="text-[10px] opacity-70 font-mono">
+                      {shortenWallet(giftData.receiverWallet)}
+                    </span>
+                  )}
                 </div>
               </div>
 
