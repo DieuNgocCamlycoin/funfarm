@@ -75,9 +75,10 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Parse gift info from content
-  const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
+  // Support formats like: "10000 CLC", "10.000 CLC", "10,000 CLC" (and crypto)
+  const amountMatch = content.match(/(\d[\d\.,\s]*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
   const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐)/);
-  
+
   // Parse custom message - use prop first, then content
   let customMessage = giftMessage || '';
   if (!customMessage) {
@@ -88,24 +89,23 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     const messageMatch = content.match(/kèm lời nhắn:\n\n?([^\n"]+)/);
     customMessage = messageMatch ? messageMatch[1].trim() : '';
   }
-  
+
   // Truncate long message for display on card (max 80 chars)
-  const truncatedMessage = customMessage.length > 80 
-    ? customMessage.substring(0, 80) + '...' 
+  const truncatedMessage = customMessage.length > 80
+    ? customMessage.substring(0, 80) + '...'
     : customMessage;
-  
+
   // Parse sound ID from content if exists
   const soundIdMatch = content.match(/\[sound:(\w+)\]/);
   const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId || 'rich1';
-  
-  // Use prop amount if available, otherwise parse from content
-  const parsedAmount = amountMatch ? amountMatch[1] : '0';
-  const displayAmount = giftAmount ? giftAmount.toLocaleString('en-US') : parsedAmount.replace(/\./g, ',');
+
+  const parsedAmount = (amountMatch?.[1] || '0').trim();
   const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CAMLY';
   const emoji = emojiMatch ? emojiMatch[1] : '🎁';
-  
+
   // Get gift level based on amount
-  const numericAmount = giftAmount || parseAmountFromString(parsedAmount);
+  const numericAmount = (giftAmount ?? parseAmountFromString(parsedAmount)) || 0;
+  const displayAmount = numericAmount.toLocaleString('vi-VN');
   const giftLevel = getGiftLevel(numericAmount);
   
   // Helper to shorten wallet address
