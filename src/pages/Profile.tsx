@@ -58,6 +58,13 @@ interface Post {
   original_post_id?: string | null;
   share_comment?: string | null;
   original_post?: any;
+  // Gift post fields
+  gift_receiver_id?: string | null;
+  sender_wallet?: string | null;
+  receiver_wallet?: string | null;
+  receiver_approved?: boolean | null;
+  receiver_name?: string;
+  receiver_avatar?: string;
 }
 
 interface Stats {
@@ -94,8 +101,34 @@ const Profile = () => {
 
         if (postsError) throw postsError;
         
-        // For share posts, fetch original post data
+        // Helper to extract receiver name from gift post content
+        const extractGiftReceiverName = (content: string | null | undefined) => {
+          if (!content) return undefined;
+          const m1 = content.match(/@([^@\n]+?)\s+vừa được/i);
+          if (m1?.[1]) return m1[1].trim();
+          const m2 = content.match(/cho\s+@([^\n#\[]+)/i);
+          if (m2?.[1]) return m2[1].trim();
+          return undefined;
+        };
+
+        // Collect all gift receiver IDs for batch fetching
+        const giftReceiverIds = [...new Set(
+          (postsData || [])
+            .filter(p => p.post_type === 'gift' && p.gift_receiver_id)
+            .map(p => p.gift_receiver_id)
+        )];
+
+        const receiverProfilesData: any[] = giftReceiverIds.length
+          ? (((await supabase.rpc('get_public_profiles', { user_ids: giftReceiverIds })).data as any[]) || [])
+          : [];
+
+        const receiverMap = new Map<string, any>(receiverProfilesData.map(p => [p.id, p]));
+        
+        // For share posts, fetch original post data; for gift posts, resolve receiver info
         const postsWithOriginal = await Promise.all((postsData || []).map(async (post) => {
+          let updatedPost: Post = { ...post };
+
+          // Handle share posts
           if (post.post_type === 'share' && post.original_post_id) {
             const { data: origPost } = await supabase
               .from('posts')
@@ -108,25 +141,53 @@ const Profile = () => {
                 user_ids: [origPost.author_id]
               });
               const op = origProfile?.[0];
-              return {
-                ...post,
-                original_post: {
-                  ...origPost,
-                  author: {
-                    id: origPost.author_id,
-                    display_name: op?.display_name || 'Nông dân FUN',
-                    avatar_url: op?.avatar_url,
-                    profile_type: op?.profile_type || 'farmer',
-                    is_verified: op?.is_verified || false,
-                    reputation_score: op?.reputation_score || 0,
-                    location: op?.location,
-                    is_good_heart: false,
-                  }
+              updatedPost.original_post = {
+                ...origPost,
+                author: {
+                  id: origPost.author_id,
+                  display_name: op?.display_name || 'Nông dân FUN',
+                  avatar_url: op?.avatar_url,
+                  profile_type: op?.profile_type || 'farmer',
+                  is_verified: op?.is_verified || false,
+                  reputation_score: op?.reputation_score || 0,
+                  location: op?.location,
+                  is_good_heart: false,
                 }
               };
             }
           }
-          return post;
+
+          // Handle gift posts - resolve receiver info
+          if (post.post_type === 'gift') {
+            let receiverName: string | undefined = undefined;
+            let receiverAvatar: string | undefined = undefined;
+
+            if (post.gift_receiver_id) {
+              const receiverProfile = receiverMap.get(post.gift_receiver_id);
+              receiverName = receiverProfile?.display_name?.trim() || undefined;
+              receiverAvatar = receiverProfile?.avatar_url || undefined;
+            }
+
+            // Fallback: parse from content
+            if (!receiverName) {
+              const extractedName = extractGiftReceiverName(post.content);
+              if (extractedName) {
+                receiverName = extractedName;
+                const { data: foundProfiles } = await supabase
+                  .from('profiles')
+                  .select('display_name, avatar_url')
+                  .ilike('display_name', extractedName)
+                  .limit(1);
+                const fp: any = (foundProfiles || [])[0];
+                receiverAvatar = fp?.avatar_url || undefined;
+              }
+            }
+
+            updatedPost.receiver_name = receiverName;
+            updatedPost.receiver_avatar = receiverAvatar;
+          }
+
+          return updatedPost;
         }));
         
         setPosts(postsWithOriginal);
@@ -318,10 +379,17 @@ const Profile = () => {
       isSaved: false,
       location: post.location || undefined,
       hashtags: post.hashtags || [],
-      post_type: post.post_type as 'post' | 'share',
+      post_type: post.post_type as 'post' | 'share' | 'gift',
       original_post_id: post.original_post_id || undefined,
       share_comment: post.share_comment || undefined,
       original_post: originalPost,
+      // Gift post fields
+      gift_receiver_id: post.gift_receiver_id || undefined,
+      sender_wallet: post.sender_wallet || undefined,
+      receiver_wallet: post.receiver_wallet || undefined,
+      receiver_approved: post.receiver_approved || undefined,
+      receiver_name: post.receiver_name,
+      receiver_avatar: post.receiver_avatar,
     };
   });
 
