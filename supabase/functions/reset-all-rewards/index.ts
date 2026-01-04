@@ -50,7 +50,7 @@ async function processUser(
   const userId = profile.id;
   let calculatedReward = 0;
 
-  // 1. Welcome bonus (50,000)
+  // 1. Welcome bonus (50,000) - GỘP: xác minh email + hồ sơ thật + đồng ý Luật Ánh Sáng
   if (profile.welcome_bonus_claimed) {
     calculatedReward += 50000;
   }
@@ -60,20 +60,31 @@ async function processUser(
     calculatedReward += 50000;
   }
 
-  // 3. Verification bonus (50,000)
-  if (profile.verification_bonus_claimed) {
-    calculatedReward += 50000;
-  }
+  // NOTE: verification_bonus_claimed đã được gộp vào welcome_bonus_claimed
+  // Không tính riêng verification_bonus nữa
 
-  // 4. Quality posts - filter from pre-fetched data
+  // 3. Posts - filter from pre-fetched data
   const userPosts = allPostsData.filter(p => p.author_id === userId && p.post_type === 'post');
+  
+  // Quality posts: >100 chars + media = 20,000 CLC
   const qualityPosts = userPosts.filter(p => {
     const hasContent = (p.content?.length || 0) > 100;
     const hasMedia = (p.images && p.images.length > 0) || p.video_url;
     return hasContent && hasMedia;
   });
-  const rewardablePosts = applyDailyLimit(qualityPosts, p => p.created_at, MAX_POSTS_PER_DAY);
-  calculatedReward += rewardablePosts.length * 20000;
+  
+  // Normal posts: không đạt chất lượng = 5,000 CLC
+  const normalPosts = userPosts.filter(p => {
+    const hasContent = (p.content?.length || 0) > 100;
+    const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+    return !(hasContent && hasMedia);
+  });
+  
+  const rewardableQualityPosts = applyDailyLimit(qualityPosts, p => p.created_at, MAX_POSTS_PER_DAY);
+  const rewardableNormalPosts = applyDailyLimit(normalPosts, p => p.created_at, MAX_POSTS_PER_DAY);
+  
+  calculatedReward += rewardableQualityPosts.length * 20000;
+  calculatedReward += rewardableNormalPosts.length * 5000;
 
   // 5. Get user's original post IDs
   const originalPostIds = new Set(userPosts.map(p => p.id));
@@ -85,6 +96,7 @@ async function processUser(
       post_id: string;
       created_at: string;
       share_comment_length?: number;
+      content_length?: number;
     }
     const allInteractions: Interaction[] = [];
 
@@ -100,14 +112,15 @@ async function processUser(
       }
     }
 
-    // Comments received (>20 chars)
+    // Comments received - ALL comments (quality and normal)
     for (const comment of allCommentsData) {
-      if (originalPostIds.has(comment.post_id) && comment.author_id !== userId && (comment.content?.length || 0) > 20) {
+      if (originalPostIds.has(comment.post_id) && comment.author_id !== userId && existingUserIds.has(comment.author_id)) {
         allInteractions.push({
           type: 'comment',
           user_id: comment.author_id,
           post_id: comment.post_id,
-          created_at: comment.created_at
+          created_at: comment.created_at,
+          content_length: comment.content?.length || 0
         });
       }
     }
@@ -151,7 +164,12 @@ async function processUser(
         }
         likesPerPost.get(interaction.post_id)!.add(interaction.user_id);
       } else if (interaction.type === 'comment') {
-        calculatedReward += 5000;
+        // Quality comment (>20 chars) = 5,000 CLC, Normal comment = 1,000 CLC
+        if ((interaction.content_length || 0) > 20) {
+          calculatedReward += 5000;
+        } else {
+          calculatedReward += 1000;
+        }
       } else if (interaction.type === 'share') {
         if ((interaction.share_comment_length || 0) >= 20) {
           calculatedReward += 10000;

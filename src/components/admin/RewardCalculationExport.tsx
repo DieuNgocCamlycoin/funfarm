@@ -182,22 +182,33 @@ export function RewardCalculationExport() {
               .lte('created_at', '2025-12-31T23:59:59Z')
               .order('created_at', { ascending: true });
 
-            // Filter quality posts
+            // Filter quality posts: >100 chars + media = 20,000 CLC
             const qualityPostsData = (allPosts || []).filter(p => {
               const hasContent = (p.content?.length || 0) > 100;
               const hasMedia = (p.images && p.images.length > 0) || p.video_url;
               return hasContent && hasMedia;
             });
+            
+            // Filter normal posts: không đạt chất lượng = 5,000 CLC
+            const normalPostsData = (allPosts || []).filter(p => {
+              const hasContent = (p.content?.length || 0) > 100;
+              const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+              return !(hasContent && hasMedia);
+            });
 
             // Apply 10 posts/day limit
-            const rewardablePosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
-            const qualityPosts = rewardablePosts.length;
+            const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
+            const rewardableNormalPosts = applyDailyLimit(normalPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
+            const qualityPosts = rewardableQualityPosts.length;
+            const normalPosts = rewardableNormalPosts.length;
 
             // Get original post IDs
             const postIds = (allPosts || []).map(p => p.id);
             
             let likesReceived = 0;
             let commentsReceived = 0;
+            let qualityComments = 0;
+            let normalComments = 0;
             let sharesReceived = 0;
             let basicShares = 0;
             let qualityShares = 0;
@@ -234,7 +245,7 @@ export function RewardCalculationExport() {
                 }
               }
 
-              // Fetch comments received (>20 chars)
+              // Fetch ALL comments received
               const { data: commentsData } = await supabase
                 .from('comments')
                 .select('author_id, post_id, content, created_at')
@@ -244,7 +255,7 @@ export function RewardCalculationExport() {
                 .order('created_at', { ascending: true });
 
               for (const comment of commentsData || []) {
-                if ((comment.content?.length || 0) > 20) {
+                if (existingUserIds.has(comment.author_id)) {
                   allInteractions.push({
                     type: 'comment',
                     user_id: comment.author_id,
@@ -308,6 +319,12 @@ export function RewardCalculationExport() {
                 likesReceived++;
               } else if (i.type === 'comment') {
                 commentsReceived++;
+                // Phân loại comment: chất lượng >20 chars, thường <=20 chars
+                if ((i.content_length || 0) > 20) {
+                  qualityComments++;
+                } else {
+                  normalComments++;
+                }
               } else if (i.type === 'share') {
                 sharesReceived++;
                 if ((i.share_comment_length || 0) >= 20) {
@@ -351,10 +368,11 @@ export function RewardCalculationExport() {
 
             const welcomeBonus = profile.welcome_bonus_claimed ? 50000 : 0;
             const walletBonus = profile.wallet_bonus_claimed ? 50000 : 0;
-            const verificationBonus = profile.verification_bonus_claimed ? 50000 : 0;
-            const postReward = qualityPosts * 20000;
-            const likeReward = calculatedLikeReward; // Use per-post calculation
-            const commentReward = commentsReceived * 5000;
+            // verification_bonus_claimed đã gộp vào welcome_bonus, không tính riêng
+            const verificationBonus = 0;
+            const postReward = (qualityPosts * 20000) + (normalPosts * 5000); // Bài CL = 20k, Bài thường = 5k
+            const likeReward = calculatedLikeReward;
+            const commentReward = (qualityComments * 5000) + (normalComments * 1000); // Comment CL = 5k, Comment thường = 1k
             const shareReward = (basicShares * 4000) + (qualityShares * 10000);
             const friendshipReward = friendships * 50000;
 
