@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift } from "lucide-react";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,6 +165,19 @@ const Navbar = () => {
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user && profile ? (
               <div className="flex items-center gap-3">
+                {/* Wallet Link */}
+                <Link 
+                  to="/wallet" 
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full transition-colors ${
+                    location.pathname === '/wallet' 
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Gift className="w-4 h-4" />
+                  <span className="text-sm font-medium hidden lg:inline">Ví & Quà</span>
+                </Link>
+
                 {/* Notification Bell */}
                 <NotificationBell />
 
@@ -294,14 +307,24 @@ const Navbar = () => {
                 Trang Chủ
               </Link>
               {user && profile && (
-                <Link 
-                  to="/profile" 
-                  className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-medium"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <User className="w-4 h-4" />
-                  Trang cá nhân
-                </Link>
+                <>
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <User className="w-4 h-4" />
+                    Trang cá nhân
+                  </Link>
+                  <Link 
+                    to="/wallet" 
+                    className="flex items-center gap-2 text-amber-600 hover:text-amber-700 transition-colors font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Gift className="w-4 h-4" />
+                    Ví & Quà tặng
+                  </Link>
+                </>
               )}
               {isAdmin && (
                 <Link 
