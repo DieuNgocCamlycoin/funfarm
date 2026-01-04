@@ -492,6 +492,41 @@ const Admin = () => {
     }
   };
 
+  const [resettingApproved, setResettingApproved] = useState(false);
+  
+  const handleResetAllApprovedRewards = async () => {
+    if (!confirm('⚠️ Bạn có chắc muốn RESET toàn bộ approved_reward về 0?\n\nHành động này sẽ:\n- Đặt approved_reward = 0 cho TẤT CẢ users\n- Xóa lịch sử reward_approvals\n\nHành động này KHÔNG THỂ hoàn tác!')) {
+      return;
+    }
+    
+    setResettingApproved(true);
+    try {
+      // Reset approved_reward to 0 for all users
+      const { error: profilesError } = await supabase
+        .from('profiles')
+        .update({ approved_reward: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all
+      
+      if (profilesError) throw profilesError;
+      
+      // Delete all reward_approvals history
+      const { error: approvalsError } = await supabase
+        .from('reward_approvals')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      
+      if (approvalsError) throw approvalsError;
+      
+      toast.success('✅ Đã reset toàn bộ approved_reward về 0!');
+      fetchAllUsers();
+    } catch (err: any) {
+      console.error('Reset approved error:', err);
+      toast.error('Lỗi: ' + (err.message || 'Không thể reset'));
+    } finally {
+      setResettingApproved(false);
+    }
+  };
+
   const handleUnbanUser = async (banId: string, userId: string) => {
     setProcessingId(banId);
     try {
@@ -896,14 +931,26 @@ const Admin = () => {
           {/* Approved Users Tab */}
           <TabsContent value="approved" className="mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-blue-500" />
-                  Tài khoản đã được DUYỆT thưởng CAMLY
-                </CardTitle>
-                <CardDescription>
-                  Danh sách {allUsers.filter(u => (u.total_approved_history || 0) > 0).length} tài khoản đã được admin duyệt thưởng
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-blue-500" />
+                    Tài khoản đã được DUYỆT thưởng CAMLY
+                  </CardTitle>
+                  <CardDescription>
+                    Danh sách {allUsers.filter(u => (u.total_approved_history || 0) > 0).length} tài khoản đã được admin duyệt thưởng
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleResetAllApprovedRewards}
+                  disabled={resettingApproved}
+                  className="gap-2"
+                >
+                  {resettingApproved ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Reset toàn bộ
+                </Button>
               </CardHeader>
               <CardContent>
                 {/* Summary Stats */}
