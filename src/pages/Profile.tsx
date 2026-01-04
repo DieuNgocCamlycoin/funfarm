@@ -65,6 +65,8 @@ interface Post {
   receiver_approved?: boolean | null;
   receiver_name?: string;
   receiver_avatar?: string;
+  gift_amount?: number;
+  gift_currency?: string;
 }
 
 interface Stats {
@@ -123,6 +125,29 @@ const Profile = () => {
           : [];
 
         const receiverMap = new Map<string, any>(receiverProfilesData.map(p => [p.id, p]));
+
+        // Gift transaction amounts (batch) - source of truth from wallet_transactions
+        const giftPostIds = [...new Set(
+          (postsData || [])
+            .filter(p => p.post_type === 'gift')
+            .map(p => p.id)
+        )];
+
+        const giftTxMap = new Map<string, { amount: number; currency: string }>();
+        if (giftPostIds.length) {
+          const { data: txRows } = await supabase
+            .from('wallet_transactions')
+            .select('post_id, amount, currency')
+            .in('post_id', giftPostIds);
+
+          (txRows || []).forEach((r: any) => {
+            if (!r?.post_id) return;
+            giftTxMap.set(r.post_id, {
+              amount: Number(r.amount) || 0,
+              currency: r.currency || 'CAMLY',
+            });
+          });
+        }
         
         // For share posts, fetch original post data; for gift posts, resolve receiver info
         const postsWithOriginal = await Promise.all((postsData || []).map(async (post) => {
@@ -141,7 +166,8 @@ const Profile = () => {
                 user_ids: [origPost.author_id]
               });
               const op = origProfile?.[0];
-              updatedPost.original_post = {
+
+              const original: any = {
                 ...origPost,
                 author: {
                   id: origPost.author_id,
@@ -154,6 +180,33 @@ const Profile = () => {
                   is_good_heart: false,
                 }
               };
+
+              // If original is gift, attach receiver + amount so SharedPostCard renders correctly
+              if (origPost.post_type === 'gift') {
+                if (origPost.gift_receiver_id) {
+                  const { data: rp } = await supabase.rpc('get_public_profiles', {
+                    user_ids: [origPost.gift_receiver_id]
+                  });
+                  const r0: any = rp?.[0];
+                  original.receiver_name = r0?.display_name?.trim() || undefined;
+                  original.receiver_avatar = r0?.avatar_url || undefined;
+                }
+
+                const { data: tx } = await supabase
+                  .from('wallet_transactions')
+                  .select('amount, currency')
+                  .eq('post_id', origPost.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                if (tx) {
+                  original.gift_amount = Number((tx as any).amount) || 0;
+                  original.gift_currency = (tx as any).currency || undefined;
+                }
+              }
+
+              updatedPost.original_post = original;
             }
           }
 
@@ -185,6 +238,8 @@ const Profile = () => {
 
             updatedPost.receiver_name = receiverName;
             updatedPost.receiver_avatar = receiverAvatar;
+            updatedPost.gift_amount = giftTxMap.get(post.id)?.amount;
+            updatedPost.gift_currency = giftTxMap.get(post.id)?.currency;
           }
 
           return updatedPost;
@@ -349,6 +404,14 @@ const Profile = () => {
         is_product_post: op.is_product_post,
         product_name: op.product_name,
         price_camly: op.price_camly,
+        post_type: op.post_type || 'post',
+        gift_receiver_id: op.gift_receiver_id,
+        sender_wallet: op.sender_wallet,
+        receiver_wallet: op.receiver_wallet,
+        receiver_name: op.receiver_name,
+        receiver_avatar: op.receiver_avatar,
+        gift_amount: op.gift_amount,
+        gift_currency: op.gift_currency,
       };
     }
 
@@ -390,6 +453,8 @@ const Profile = () => {
       receiver_approved: post.receiver_approved || undefined,
       receiver_name: post.receiver_name,
       receiver_avatar: post.receiver_avatar,
+      gift_amount: (post as any).gift_amount,
+      gift_currency: (post as any).gift_currency,
     };
   });
 

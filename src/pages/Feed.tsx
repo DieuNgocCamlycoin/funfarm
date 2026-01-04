@@ -93,6 +93,29 @@ const Feed = () => {
         ? (((await supabase.rpc('get_public_profiles', { user_ids: receiverIds })).data as any[]) || [])
         : [];
 
+      // Gift transaction amounts (batch) - source of truth from wallet_transactions
+      const giftPostIds = [...new Set(
+        postsData
+          .filter((p: any) => p.post_type === 'gift')
+          .map((p: any) => p.id)
+      )];
+
+      const giftTxMap = new Map<string, { amount: number; currency: string }>();
+      if (giftPostIds.length) {
+        const { data: txRows } = await supabase
+          .from('wallet_transactions')
+          .select('post_id, amount, currency')
+          .in('post_id', giftPostIds);
+
+        (txRows || []).forEach((r: any) => {
+          if (!r?.post_id) return;
+          giftTxMap.set(r.post_id, {
+            amount: Number(r.amount) || 0,
+            currency: r.currency || 'CAMLY',
+          });
+        });
+      }
+
       // Create maps for quick profile lookup
       const profilesMap = new Map<string, any>(profilesData.map((p: any) => [p.id, p] as [string, any]));
       const receiverMap = new Map<string, any>(receiverProfilesData.map((p: any) => [p.id, p] as [string, any]));
@@ -120,6 +143,37 @@ const Feed = () => {
             });
             const op = origProfile?.[0];
             const opName = op?.display_name?.trim() || 'Nông dân FUN';
+
+            // If original is a gift post, enrich receiver + amount so SharedPostCard can render the gift card
+            let origReceiverName: string | undefined;
+            let origReceiverAvatar: string | undefined;
+            let origGiftAmount: number | undefined;
+            let origGiftCurrency: string | undefined;
+
+            if (origPost.post_type === 'gift') {
+              if (origPost.gift_receiver_id) {
+                const { data: rp } = await supabase.rpc('get_public_profiles', {
+                  user_ids: [origPost.gift_receiver_id]
+                });
+                const r0: any = rp?.[0];
+                origReceiverName = r0?.display_name?.trim() || undefined;
+                origReceiverAvatar = r0?.avatar_url || undefined;
+              }
+
+              const { data: tx } = await supabase
+                .from('wallet_transactions')
+                .select('amount, currency')
+                .eq('post_id', origPost.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (tx) {
+                origGiftAmount = Number((tx as any).amount) || 0;
+                origGiftCurrency = (tx as any).currency || undefined;
+              }
+            }
+
             originalPost = {
               id: origPost.id,
               author: {
@@ -148,6 +202,16 @@ const Feed = () => {
               is_product_post: origPost.is_product_post,
               product_name: origPost.product_name,
               price_camly: origPost.price_camly,
+              // IMPORTANT: keep original post_type so SharedPostCard can decide gift vs normal
+              post_type: origPost.post_type || 'post',
+              // Gift fields if applicable
+              gift_receiver_id: origPost.gift_receiver_id,
+              sender_wallet: origPost.sender_wallet,
+              receiver_wallet: origPost.receiver_wallet,
+              receiver_name: origReceiverName,
+              receiver_avatar: origReceiverAvatar,
+              gift_amount: origGiftAmount,
+              gift_currency: origGiftCurrency,
             };
           }
         }
@@ -241,6 +305,8 @@ const Feed = () => {
           receiver_wallet: post.receiver_wallet,
           receiver_name: receiverName,
           receiver_avatar: receiverAvatar,
+          gift_amount: giftTxMap.get(post.id)?.amount,
+          gift_currency: giftTxMap.get(post.id)?.currency,
         };
       }));
       if (append) {

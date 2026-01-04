@@ -497,6 +497,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
           receiverName={(post as any).receiver_name}
           receiverWallet={(post as any).receiver_wallet}
           receiverAvatar={(post as any).receiver_avatar}
+          giftAmount={(post as any).gift_amount}
         />
       )}
 
