@@ -1030,6 +1030,7 @@ export type Database = {
           content: string
           created_at: string
           delivery_options: string[]
+          gift_receiver_id: string
           hashtags: string[]
           id: string
           images: string[]
@@ -1045,6 +1046,9 @@ export type Database = {
           price_vnd: number
           product_name: string
           quantity_kg: number
+          receiver_approved: boolean
+          receiver_wallet: string
+          sender_wallet: string
           share_comment: string
           shares_count: number
           video_url: string
