@@ -51,6 +51,8 @@ interface GiftPostDisplayProps {
   receiverName?: string;
   receiverWallet?: string;
   receiverAvatar?: string;
+  giftAmount?: number;
+  giftMessage?: string;
 }
 
 const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ 
@@ -62,7 +64,9 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   senderAvatar,
   receiverName,
   receiverWallet,
-  receiverAvatar 
+  receiverAvatar,
+  giftAmount,
+  giftMessage 
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
@@ -74,26 +78,34 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
   const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐)/);
   
-  // Parse custom message - look for quoted text first "..."
-  const quotedMessageMatch = content.match(/"([^"]+)"/);
-  let customMessage = quotedMessageMatch ? quotedMessageMatch[1].trim() : '';
-  
-  // If no quoted message, try to extract from between lines
+  // Parse custom message - use prop first, then content
+  let customMessage = giftMessage || '';
+  if (!customMessage) {
+    const quotedMessageMatch = content.match(/"([^"]+)"/);
+    customMessage = quotedMessageMatch ? quotedMessageMatch[1].trim() : '';
+  }
   if (!customMessage) {
     const messageMatch = content.match(/kèm lời nhắn:\n\n?([^\n"]+)/);
     customMessage = messageMatch ? messageMatch[1].trim() : '';
   }
   
+  // Truncate long message for display on card (max 80 chars)
+  const truncatedMessage = customMessage.length > 80 
+    ? customMessage.substring(0, 80) + '...' 
+    : customMessage;
+  
   // Parse sound ID from content if exists
   const soundIdMatch = content.match(/\[sound:(\w+)\]/);
   const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId || 'rich1';
   
-  const amount = amountMatch ? amountMatch[1] : '0';
+  // Use prop amount if available, otherwise parse from content
+  const parsedAmount = amountMatch ? amountMatch[1] : '0';
+  const displayAmount = giftAmount ? giftAmount.toLocaleString('en-US') : parsedAmount.replace(/\./g, ',');
   const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CAMLY';
   const emoji = emojiMatch ? emojiMatch[1] : '🎁';
   
   // Get gift level based on amount
-  const numericAmount = parseAmountFromString(amount);
+  const numericAmount = giftAmount || parseAmountFromString(parsedAmount);
   const giftLevel = getGiftLevel(numericAmount);
   
   // Helper to shorten wallet address
@@ -459,13 +471,28 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
           <span className="text-4xl animate-bounce drop-shadow-lg">{giftLevel.emoji}</span>
         </div>
 
-        {/* Main title - Celebration message */}
+        {/* Main title - Celebration message with receiver avatar */}
         <div className="relative z-10 text-center mb-5">
           <div className="bg-white/20 rounded-2xl py-3 px-4 backdrop-blur-md border border-white/30">
-            <p className="text-lg sm:text-xl font-bold leading-relaxed drop-shadow-md">
-              🎁 <span className="text-yellow-200">@{receiverName || 'Bạn'}</span> vừa được{' '}
-              <span className="text-yellow-200">@{senderName || 'ai đó'}</span> tặng
-            </p>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <span className="text-xl">🎁</span>
+              <Avatar className="w-6 h-6 border border-white/50 inline-flex">
+                <AvatarImage src={receiverAvatar || ''} />
+                <AvatarFallback className="bg-white/30 text-white text-xs">
+                  {receiverName?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-lg sm:text-xl font-bold text-yellow-200">@{receiverName || 'Bạn'}</span>
+              <span className="text-base sm:text-lg">vừa được</span>
+              <Avatar className="w-6 h-6 border border-white/50 inline-flex">
+                <AvatarImage src={senderAvatar || ''} />
+                <AvatarFallback className="bg-white/30 text-white text-xs">
+                  {senderName?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-lg sm:text-xl font-bold text-yellow-200">@{senderName || 'ai đó'}</span>
+              <span className="text-base sm:text-lg">tặng</span>
+            </div>
           </div>
         </div>
 
@@ -586,7 +613,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
                     WebkitTextFillColor: 'transparent',
                   }}
                 >
-                  {formatNumber(amount)}
+                  {displayAmount}
                 </span>
                 <span className="text-sm font-bold opacity-90 tracking-wider">
                   {currency === 'CAMLY' || currency === 'CLC' ? 'CAMLY COIN' : currency}
@@ -596,14 +623,14 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
           </div>
         </div>
 
-        {/* Custom Message - Highlighted */}
-        {customMessage && (
+        {/* Custom Message - Highlighted (truncated on card) */}
+        {truncatedMessage && (
           <div className="relative z-10 mt-4">
             <div className="bg-white/25 rounded-xl p-4 backdrop-blur-md border border-white/30">
               <div className="flex items-start gap-2">
                 <span className="text-2xl">💬</span>
                 <p className="text-base sm:text-lg font-medium italic leading-relaxed">
-                  "{customMessage}"
+                  "{truncatedMessage}"
                 </p>
               </div>
             </div>
@@ -616,6 +643,35 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
             <span className="text-xl animate-bounce" style={{ animationDelay: '0s' }}>💰</span>
             <span className="font-bold text-sm tracking-wide">Rich Rich Rich!</span>
             <span className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>💎</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Text content with icons below the card */}
+      <div className="px-4 py-3 bg-gradient-to-r from-transparent via-white/5 to-transparent">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0">🎁</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-white/90 leading-relaxed">
+              <span className="font-semibold text-yellow-300">@{receiverName || 'Người nhận'}</span>
+              {' '}vừa được{' '}
+              <span className="font-semibold text-yellow-300">@{senderName || 'Người tặng'}</span>
+              {' '}tặng{' '}
+              <span className="font-bold text-green-300">{displayAmount} {currency}</span>
+              {customMessage && (
+                <>
+                  {' '}kèm lời nhắn: 
+                  <span className="italic text-white/80"> "{customMessage.length > 100 ? customMessage.substring(0, 100) + '...' : customMessage}"</span>
+                </>
+              )}
+            </p>
+            <div className="flex items-center gap-2 mt-2 text-xs text-white/60">
+              <span>💝 Yêu thương</span>
+              <span>•</span>
+              <span>🌾 FUN FARM</span>
+              <span>•</span>
+              <span>✨ {giftLevel.name}</span>
+            </div>
           </div>
         </div>
       </div>
