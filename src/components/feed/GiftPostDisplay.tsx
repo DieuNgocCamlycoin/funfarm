@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Gift, Volume2, VolumeX, Sparkles, ArrowRight } from 'lucide-react';
+import { Gift, Volume2, VolumeX, Sparkles, ArrowRight, Heart, Crown, Gem } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import { getGiftLevel, parseAmountFromString, GiftLevel } from '@/lib/giftLevels';
 
 // Custom sound effects saved locally
 export const giftSoundOptions = [
@@ -65,6 +66,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +91,10 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   const amount = amountMatch ? amountMatch[1] : '0';
   const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CAMLY';
   const emoji = emojiMatch ? emojiMatch[1] : '🎁';
+  
+  // Get gift level based on amount
+  const numericAmount = parseAmountFromString(amount);
+  const giftLevel = getGiftLevel(numericAmount);
   
   // Helper to shorten wallet address
   const shortenWallet = (address: string | undefined) => {
@@ -115,6 +121,11 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
           if (entry.isIntersecting && !hasPlayed) {
             playSound();
             setHasPlayed(true);
+            
+            // Trigger screen shake for Diamond level
+            if (giftLevel.effects.hasScreenShake) {
+              triggerScreenShake();
+            }
           }
         });
       },
@@ -126,13 +137,26 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
 
     return () => observer.disconnect();
-  }, [autoPlaySound, hasPlayed]);
+  }, [autoPlaySound, hasPlayed, giftLevel]);
+
+  const triggerScreenShake = () => {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+    // Repeat shake a few times
+    let count = 0;
+    const shakeInterval = setInterval(() => {
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 300);
+      count++;
+      if (count >= 5) clearInterval(shakeInterval);
+    }, 1500);
+  };
 
   const playSound = () => {
     if (isMuted) return;
     
-    // Default to rich sound that loops
-    let soundUrl = '/sounds/gift-rich-1.mp3';
+    // Use level-appropriate sound
+    let soundUrl = giftLevel.sound;
     
     if (parsedSoundId) {
       const customSound = giftSoundOptions.find(s => s.id === parsedSoundId);
@@ -173,121 +197,221 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
   };
 
-  // Render animated particles based on effect type
-  const renderEffectParticles = () => {
-    const particles = [];
+  // Level badge component
+  const LevelBadge = () => {
+    const icons: Record<GiftLevel, React.ReactNode> = {
+      basic: <Heart className="w-3 h-3" />,
+      silver: <Sparkles className="w-3 h-3" />,
+      gold: <Crown className="w-3 h-3" />,
+      diamond: <Gem className="w-3 h-3" />,
+    };
     
-    // Sparkle/star particles for all templates
-    for (let i = 0; i < 25; i++) {
-      const size = 2 + Math.random() * 6;
-      const left = Math.random() * 100;
-      const top = Math.random() * 100;
-      const delay = Math.random() * 3;
-      const duration = 1 + Math.random() * 2;
-      
-      particles.push(
-        <div
-          key={`sparkle-${i}`}
-          className="absolute rounded-full bg-white"
-          style={{
-            width: size,
-            height: size,
-            left: `${left}%`,
-            top: `${top}%`,
-            opacity: 0.4 + Math.random() * 0.4,
-            animation: `pulse ${duration}s infinite`,
-            animationDelay: `${delay}s`,
-            boxShadow: '0 0 6px 2px rgba(255,255,255,0.5)',
-          }}
-        />
-      );
-    }
+    const bgColors: Record<GiftLevel, string> = {
+      basic: 'from-pink-400 to-rose-500',
+      silver: 'from-gray-300 to-gray-400',
+      gold: 'from-yellow-400 to-amber-500',
+      diamond: 'from-cyan-400 to-blue-500',
+    };
+    
+    return (
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r ${bgColors[giftLevel.level]} text-white text-[10px] font-bold shadow-lg`}>
+        {icons[giftLevel.level]}
+        <span>{giftLevel.name}</span>
+      </div>
+    );
+  };
 
-    // Gold confetti falling
-    for (let i = 0; i < 15; i++) {
-      particles.push(
-        <div
-          key={`confetti-${i}`}
-          className="absolute text-yellow-400"
-          style={{
-            left: `${5 + i * 7}%`,
-            top: `${-10 + (i % 4) * 10}%`,
-            fontSize: `${12 + Math.random() * 8}px`,
-            animation: `fall ${3 + Math.random() * 2}s linear infinite`,
-            animationDelay: `${i * 0.2}s`,
-          }}
-        >
-          ✦
-        </div>
-      );
-    }
-
-    // Effect-specific particles
-    if (template.effect === 'hearts') {
-      for (let i = 0; i < 10; i++) {
-        particles.push(
-          <div
-            key={`heart-${i}`}
-            className="absolute text-xl opacity-50"
-            style={{
-              left: `${5 + i * 10}%`,
-              top: `${20 + (i % 4) * 20}%`,
-              animation: `float ${2 + Math.random()}s ease-in-out infinite`,
-              animationDelay: `${i * 0.2}s`,
-            }}
-          >
-            ❤️
-          </div>
-        );
-      }
-    }
-
-    if (template.effect === 'coins') {
+  // Render animated particles based on level
+  const renderLevelEffects = () => {
+    const particles: React.ReactNode[] = [];
+    
+    // Basic: Gentle floating hearts
+    if (giftLevel.level === 'basic') {
       for (let i = 0; i < 12; i++) {
         particles.push(
           <div
-            key={`coin-${i}`}
-            className="absolute text-xl opacity-60"
+            key={`heart-${i}`}
+            className="absolute text-lg pointer-events-none"
             style={{
-              left: `${8 + i * 8}%`,
-              top: `${15 + (i % 4) * 22}%`,
-              animation: `spin ${2 + Math.random()}s linear infinite, float ${3 + Math.random()}s ease-in-out infinite`,
-              animationDelay: `${i * 0.15}s`,
+              left: `${5 + i * 8}%`,
+              bottom: `${10 + (i % 3) * 15}%`,
+              animation: `floatUp ${4 + Math.random() * 2}s ease-out infinite`,
+              animationDelay: `${i * 0.3}s`,
+              opacity: 0.7,
             }}
           >
-            🪙
+            {['💕', '❤️', '💖', '💗'][i % 4]}
           </div>
         );
       }
     }
-
-    if (template.effect === 'confetti') {
-      const confettiEmojis = ['🎊', '🎉', '🎈', '✨', '🌟', '⭐'];
-      for (let i = 0; i < 15; i++) {
+    
+    // Silver: Confetti + light coin rain
+    if (giftLevel.level === 'silver') {
+      // Confetti
+      for (let i = 0; i < 20; i++) {
+        const colors = ['#C0C0C0', '#E8E8E8', '#FFD700', '#FFA500'];
         particles.push(
           <div
-            key={`party-${i}`}
-            className="absolute text-lg opacity-70"
+            key={`confetti-${i}`}
+            className="absolute w-2 h-2 rounded-sm pointer-events-none"
             style={{
-              left: `${3 + i * 7}%`,
-              top: `${5 + (i % 5) * 20}%`,
-              animation: `bounce ${1 + Math.random() * 0.5}s infinite`,
-              animationDelay: `${i * 0.1}s`,
+              left: `${Math.random() * 100}%`,
+              top: `-5%`,
+              backgroundColor: colors[i % colors.length],
+              animation: `silverFall ${3 + Math.random() * 2}s linear infinite`,
+              animationDelay: `${Math.random() * 2}s`,
+              transform: `rotate(${Math.random() * 360}deg)`,
+            }}
+          />
+        );
+      }
+      // Light coins
+      for (let i = 0; i < 8; i++) {
+        particles.push(
+          <div
+            key={`silver-coin-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${10 + i * 11}%`,
+              top: `-10%`,
+              animation: `silverFall ${4 + Math.random() * 2}s linear infinite`,
+              animationDelay: `${i * 0.4}s`,
             }}
           >
-            {confettiEmojis[i % confettiEmojis.length]}
+            <img src={camlyCoinImg} alt="" className="w-5 h-5 animate-spin opacity-60" />
           </div>
         );
       }
     }
-
+    
+    // Gold: Fireworks + trumpet feel
+    if (giftLevel.level === 'gold') {
+      // Firework bursts
+      const fireworkColors = ['#FFD700', '#FF6347', '#FF69B4', '#00CED1'];
+      for (let i = 0; i < 6; i++) {
+        const x = 15 + Math.random() * 70;
+        const y = 10 + Math.random() * 40;
+        particles.push(
+          <div
+            key={`firework-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              animation: `fireworkBurst 2s ease-out infinite`,
+              animationDelay: `${i * 0.5}s`,
+            }}
+          >
+            {[...Array(8)].map((_, j) => (
+              <div
+                key={j}
+                className="absolute w-1.5 h-1.5 rounded-full"
+                style={{
+                  backgroundColor: fireworkColors[i % fireworkColors.length],
+                  transform: `rotate(${j * 45}deg) translateY(-20px)`,
+                  boxShadow: `0 0 8px ${fireworkColors[i % fireworkColors.length]}`,
+                }}
+              />
+            ))}
+          </div>
+        );
+      }
+      // Golden sparkles
+      for (let i = 0; i < 25; i++) {
+        particles.push(
+          <div
+            key={`gold-sparkle-${i}`}
+            className="absolute text-yellow-400 pointer-events-none"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              fontSize: `${10 + Math.random() * 10}px`,
+              animation: `sparkle ${1 + Math.random()}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`,
+            }}
+          >
+            ✦
+          </div>
+        );
+      }
+    }
+    
+    // Diamond: RICH RAIN - coins falling everywhere!
+    if (giftLevel.level === 'diamond') {
+      // Massive coin rain
+      for (let i = 0; i < 30; i++) {
+        const size = 20 + Math.random() * 20;
+        particles.push(
+          <div
+            key={`diamond-coin-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-15%`,
+              animation: `richRain ${2 + Math.random() * 3}s linear infinite`,
+              animationDelay: `${Math.random() * 3}s`,
+            }}
+          >
+            <img 
+              src={camlyCoinImg} 
+              alt="" 
+              className="animate-spin"
+              style={{ 
+                width: size, 
+                height: size,
+                filter: 'drop-shadow(0 0 10px rgba(0,206,209,0.8))',
+              }} 
+            />
+          </div>
+        );
+      }
+      // Diamond sparkles
+      for (let i = 0; i < 20; i++) {
+        particles.push(
+          <div
+            key={`diamond-sparkle-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `diamondGlow 1.5s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 1.5}s`,
+            }}
+          >
+            <Gem 
+              className="text-cyan-300"
+              style={{ 
+                width: 12 + Math.random() * 12,
+                filter: 'drop-shadow(0 0 8px rgba(0,206,209,0.9))',
+              }}
+            />
+          </div>
+        );
+      }
+    }
+    
     return particles;
+  };
+
+  // Dynamic gradient based on level
+  const getLevelGradient = () => {
+    switch (giftLevel.level) {
+      case 'diamond':
+        return 'from-cyan-400 via-blue-500 to-indigo-600';
+      case 'gold':
+        return 'from-yellow-400 via-amber-500 to-orange-500';
+      case 'silver':
+        return 'from-gray-300 via-gray-400 to-gray-500';
+      default:
+        return template.gradient;
+    }
   };
 
   return (
     <div 
       ref={containerRef}
-      className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${template.gradient} p-1 text-white shadow-2xl mx-2 sm:mx-4 my-3`}
+      className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${getLevelGradient()} p-1 text-white shadow-2xl mx-2 sm:mx-4 my-3 transition-transform ${isShaking ? 'animate-shake' : ''}`}
     >
       {/* Inner container with glass effect */}
       <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-4 sm:p-5">
@@ -308,28 +432,31 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
           )}
         </button>
 
-        {/* Animated background effects */}
+        {/* Level-specific animated effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
-          {renderEffectParticles()}
+          {renderLevelEffects()}
           
-          {/* Radial glow */}
+          {/* Radial glow - intensity based on level */}
           <div 
-            className="absolute inset-0 opacity-40"
+            className="absolute inset-0"
             style={{
-              background: 'radial-gradient(circle at 50% 40%, rgba(255,255,255,0.5) 0%, transparent 60%)',
+              background: `radial-gradient(circle at 50% 40%, ${giftLevel.colors.glow} 0%, transparent 60%)`,
               animation: 'pulse 2s infinite',
+              opacity: giftLevel.level === 'diamond' ? 0.7 : giftLevel.level === 'gold' ? 0.5 : 0.3,
             }}
           />
         </div>
 
-        {/* Header badge */}
+        {/* Header badge with Level indicator */}
         <div className="relative z-10 flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 bg-white/25 rounded-full px-4 py-1.5 backdrop-blur-md border border-white/30">
-            <Gift className="w-5 h-5" />
-            <span className="font-bold text-sm">Fun Farm Gift</span>
-            <Sparkles className="w-4 h-4 animate-pulse" />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-white/25 rounded-full px-4 py-1.5 backdrop-blur-md border border-white/30">
+              <Gift className="w-5 h-5" />
+              <span className="font-bold text-sm">Fun Farm Gift</span>
+            </div>
+            <LevelBadge />
           </div>
-          <span className="text-4xl animate-bounce drop-shadow-lg">{template.emoji}</span>
+          <span className="text-4xl animate-bounce drop-shadow-lg">{giftLevel.emoji}</span>
         </div>
 
         {/* Main title - Celebration message */}
@@ -387,7 +514,16 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
           {/* Receiver */}
           <div className="flex flex-col items-center">
             <div className="relative">
-              <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-3 border-white/60 shadow-xl ring-4 ring-yellow-400/50">
+              <Avatar 
+                className="w-14 h-14 sm:w-16 sm:h-16 border-3 border-white/60 shadow-xl"
+                style={{
+                  boxShadow: giftLevel.level === 'diamond' 
+                    ? '0 0 20px rgba(0,206,209,0.8), 0 0 40px rgba(0,206,209,0.4)' 
+                    : giftLevel.level === 'gold'
+                    ? '0 0 15px rgba(255,215,0,0.6)'
+                    : undefined,
+                }}
+              >
                 <AvatarImage src={receiverAvatar || ''} />
                 <AvatarFallback className="bg-white/30 text-white text-lg font-bold">
                   {receiverName?.charAt(0) || '?'}
@@ -410,23 +546,30 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
 
         {/* BIG Amount with spinning coin - CENTERPIECE */}
         <div className="relative z-10 text-center my-5">
-          <div className="bg-gradient-to-r from-yellow-400/30 via-amber-300/40 to-yellow-400/30 rounded-2xl py-5 px-6 backdrop-blur-md border-2 border-yellow-300/50 shadow-xl">
+          <div 
+            className="rounded-2xl py-5 px-6 backdrop-blur-md border-2 shadow-xl"
+            style={{
+              background: `linear-gradient(135deg, ${giftLevel.colors.primary}40, ${giftLevel.colors.secondary}50)`,
+              borderColor: `${giftLevel.colors.primary}80`,
+              boxShadow: `0 0 30px ${giftLevel.colors.glow}`,
+            }}
+          >
             <div className="flex items-center justify-center gap-4">
-              {/* Spinning coin */}
+              {/* Spinning coin with level glow */}
               <div className="relative">
                 <img 
                   src={camlyCoinImg} 
                   alt="coin" 
-                  className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg"
+                  className={`w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg ${giftLevel.level === 'diamond' ? 'animate-spin' : ''}`}
                   style={{ 
-                    animation: 'spin 2s linear infinite',
-                    filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.7))',
+                    animation: giftLevel.level === 'diamond' ? 'spin 1s linear infinite' : 'spin 3s linear infinite',
+                    filter: `drop-shadow(0 0 15px ${giftLevel.colors.glow})`,
                   }} 
                 />
                 <div 
                   className="absolute inset-0"
                   style={{
-                    background: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)',
+                    background: `radial-gradient(circle, ${giftLevel.colors.glow} 0%, transparent 70%)`,
                     animation: 'pulse 1s infinite',
                   }}
                 />
@@ -437,73 +580,155 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
                 <span 
                   className="text-4xl sm:text-5xl font-black drop-shadow-lg"
                   style={{
-                    textShadow: '0 0 20px rgba(255,255,255,0.5), 2px 2px 0 rgba(0,0,0,0.3)',
-                    background: 'linear-gradient(180deg, #fff 0%, #ffd700 100%)',
+                    textShadow: `0 0 20px ${giftLevel.colors.glow}, 2px 2px 0 rgba(0,0,0,0.3)`,
+                    background: `linear-gradient(180deg, #fff 0%, ${giftLevel.colors.primary} 100%)`,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
                   }}
                 >
                   {formatNumber(amount)}
                 </span>
-                <span className="text-xl sm:text-2xl font-bold text-yellow-200 drop-shadow-md">
-                  {currency === 'CLC' ? 'CAMLY' : currency}
+                <span className="text-sm font-bold opacity-90 tracking-wider">
+                  {currency === 'CAMLY' || currency === 'CLC' ? 'CAMLY COIN' : currency}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Custom message - highlighted */}
+        {/* Custom Message - Highlighted */}
         {customMessage && (
-          <div className="relative z-10 text-center mb-4">
-            <div className="bg-white/15 rounded-xl py-3 px-5 backdrop-blur-sm border border-white/20">
-              <p className="text-base sm:text-lg italic font-medium drop-shadow-md">
-                💬 "{customMessage}"
-              </p>
+          <div className="relative z-10 mt-4">
+            <div className="bg-white/25 rounded-xl p-4 backdrop-blur-md border border-white/30">
+              <div className="flex items-start gap-2">
+                <span className="text-2xl">💬</span>
+                <p className="text-base sm:text-lg font-medium italic leading-relaxed">
+                  "{customMessage}"
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Footer decoration */}
-        <div className="relative z-10 flex items-center justify-center gap-2 pt-2 opacity-90">
-          <div className="flex">
-            {['🌟', '💖', '✨'].map((emoji, i) => (
-              <span 
-                key={i} 
-                className="text-lg animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              >
-                {emoji}
-              </span>
-            ))}
-          </div>
-          <span className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full border border-white/30">
-            🌱 with love from Fun Farm
-          </span>
-          <div className="flex">
-            {['✨', '💖', '🌟'].map((emoji, i) => (
-              <span 
-                key={i} 
-                className="text-lg animate-bounce"
-                style={{ animationDelay: `${i * 0.15 + 0.3}s` }}
-              >
-                {emoji}
-              </span>
-            ))}
+        {/* Footer with Rich Rich Rich */}
+        <div className="relative z-10 mt-4 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-2 backdrop-blur-sm">
+            <span className="text-xl animate-bounce" style={{ animationDelay: '0s' }}>💰</span>
+            <span className="font-bold text-sm tracking-wide">Rich Rich Rich!</span>
+            <span className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>💎</span>
           </div>
         </div>
       </div>
 
-      {/* CSS for custom animations */}
+      {/* CSS Animations for all levels */}
       <style>{`
-        @keyframes fall {
-          0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+        @keyframes floatUp {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 0.7;
+          }
+          100% {
+            transform: translateY(-300px) scale(1.2);
+            opacity: 0;
+          }
         }
+        
+        @keyframes silverFall {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(500px) rotate(720deg);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes richRain {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(600px) rotate(1080deg);
+            opacity: 0.5;
+          }
+        }
+        
+        @keyframes fireworkBurst {
+          0%, 100% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          20% {
+            transform: scale(1.2);
+            opacity: 1;
+          }
+          80% {
+            transform: scale(1.5);
+            opacity: 0.5;
+          }
+        }
+        
+        @keyframes sparkle {
+          0%, 100% {
+            transform: scale(0) rotate(0deg);
+            opacity: 0;
+          }
+          50% {
+            transform: scale(1) rotate(180deg);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes diamondGlow {
+          0%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+        
+        @keyframes fall {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(400px) rotate(360deg);
+            opacity: 0;
+          }
+        }
+        
         @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-15px);
+          }
+        }
+        
+        @keyframes bounce {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-8px);
+          }
         }
       `}</style>
     </div>
