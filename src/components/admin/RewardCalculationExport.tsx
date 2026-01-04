@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -40,9 +40,18 @@ interface UserRewardCalculation {
 
 export function RewardCalculationExport() {
   const [users, setUsers] = useState<UserRewardCalculation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [initialLoaded, setInitialLoaded] = useState(false);
+
+  // Auto-load data on mount
+  useEffect(() => {
+    if (!initialLoaded) {
+      fetchCalculations();
+      setInitialLoaded(true);
+    }
+  }, [initialLoaded]);
 
   const resetSingleUser = async (userId: string, calculatedTotal: number) => {
     setResettingUserId(userId);
