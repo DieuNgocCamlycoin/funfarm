@@ -23,7 +23,16 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import SendGiftModal from '@/components/wallet/SendGiftModal';
+import GiftCelebrationModal from '@/components/wallet/GiftCelebrationModal';
 import camlyCoinImg from '@/assets/camly_coin.png';
+
+interface GiftSuccessData {
+  amount: number;
+  currency: string;
+  receiverName: string;
+  receiverAvatar: string | null;
+  message: string;
+}
 
 interface Transaction {
   id: string;
@@ -71,6 +80,8 @@ const Wallet_Page = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationData, setCelebrationData] = useState<GiftSuccessData | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
@@ -344,11 +355,36 @@ const Wallet_Page = () => {
       <SendGiftModal
         isOpen={showSendModal}
         onClose={() => setShowSendModal(false)}
-        onSuccess={() => {
+        onSuccess={(data) => {
           fetchTransactions();
           setShowSendModal(false);
+          setCelebrationData(data);
+          setShowCelebration(true);
         }}
       />
+
+      {/* Celebration Modal */}
+      {celebrationData && (
+        <GiftCelebrationModal
+          isOpen={showCelebration}
+          onClose={() => {
+            setShowCelebration(false);
+            setCelebrationData(null);
+          }}
+          amount={celebrationData.amount}
+          currency={celebrationData.currency}
+          senderName={profile?.display_name || 'Bạn'}
+          senderAvatar={profile?.avatar_url || null}
+          receiverName={celebrationData.receiverName}
+          receiverAvatar={celebrationData.receiverAvatar}
+          message={celebrationData.message}
+          onCreatePost={() => {
+            // TODO: Navigate to create post with prefilled content
+            setShowCelebration(false);
+            navigate('/feed');
+          }}
+        />
+      )}
     </div>
   );
 };
