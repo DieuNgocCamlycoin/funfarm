@@ -1,6 +1,18 @@
-import React from 'react';
-import { Gift, Heart, Sparkles, Star, PartyPopper, Coins, Leaf } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Gift, Heart, Sparkles, Star, PartyPopper, Coins, Leaf, Volume2, VolumeX } from 'lucide-react';
 import camlyCoinImg from '@/assets/camly_coin.png';
+
+// Sound effect URLs (royalty-free celebration sounds)
+const giftSounds: Record<string, string> = {
+  hearts: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', // Romantic sparkle
+  stars: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Magic twinkle
+  confetti: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3', // Party celebration
+  coins: 'https://assets.mixkit.co/active_storage/sfx/888/888-preview.mp3', // Coins dropping
+  leaves: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', // Nature sounds
+  petals: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', // Soft chime
+  rainbow: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', // Magic success
+  sparkle: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', // Achievement unlock
+};
 
 // Gift templates matching CreateGiftPostModal
 const giftTemplates = [
@@ -28,9 +40,15 @@ const giftTemplates = [
 
 interface GiftPostDisplayProps {
   content: string;
+  autoPlaySound?: boolean;
 }
 
-const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content }) => {
+const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content, autoPlaySound = true }) => {
+  const [isMuted, setIsMuted] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Parse gift info from content
   const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
   const receiverMatch = content.match(/@(\S+)/);
@@ -43,6 +61,53 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content }) => {
   
   // Find matching template
   const template = giftTemplates.find(t => t.emoji === emoji) || giftTemplates[0];
+
+  // Play sound when component becomes visible
+  useEffect(() => {
+    if (!autoPlaySound || hasPlayed || isMuted) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasPlayed) {
+            playSound();
+            setHasPlayed(true);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [autoPlaySound, hasPlayed, isMuted, template.effect]);
+
+  const playSound = () => {
+    if (isMuted) return;
+    
+    const soundUrl = giftSounds[template.effect] || giftSounds.sparkle;
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    audioRef.current = new Audio(soundUrl);
+    audioRef.current.volume = 0.3;
+    audioRef.current.play().catch(() => {
+      // Autoplay may be blocked by browser
+      console.log('Sound autoplay blocked');
+    });
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+    }
+  };
 
   // Render effect particles
   const renderEffectParticles = () => {
@@ -214,7 +279,23 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ content }) => {
   };
 
   return (
-    <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${template.gradient} p-4 sm:p-6 text-white shadow-xl mx-3 sm:mx-4 my-3`}>
+    <div 
+      ref={containerRef}
+      className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${template.gradient} p-4 sm:p-6 text-white shadow-xl mx-3 sm:mx-4 my-3`}
+    >
+      {/* Sound control button */}
+      <button
+        onClick={toggleMute}
+        className="absolute top-3 right-3 z-20 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors backdrop-blur-sm"
+        title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+      >
+        {isMuted ? (
+          <VolumeX className="w-4 h-4" />
+        ) : (
+          <Volume2 className="w-4 h-4" />
+        )}
+      </button>
+
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {renderEffectParticles()}
