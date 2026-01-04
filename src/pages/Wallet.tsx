@@ -11,13 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
   Wallet, 
-  Send, 
   ArrowDownLeft, 
   ArrowUpRight, 
-  TrendingUp,
   Gift,
-  History,
-  Coins,
   Bitcoin
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -27,6 +23,7 @@ import GiftCelebrationModal from '@/components/wallet/GiftCelebrationModal';
 import CreateGiftPostModal from '@/components/wallet/CreateGiftPostModal';
 import WalletPriceChart from '@/components/wallet/WalletPriceChart';
 import MetaMaskConnect from '@/components/wallet/MetaMaskConnect';
+import TransactionHistory from '@/components/wallet/TransactionHistory';
 import camlyCoinImg from '@/assets/camly_coin.png';
 
 interface GiftSuccessData {
@@ -58,20 +55,6 @@ interface Transaction {
   };
 }
 
-const currencyIcons: Record<string, React.ReactNode> = {
-  CLC: <img src={camlyCoinImg} alt="CLC" className="w-5 h-5" />,
-  BTC: <Bitcoin className="w-5 h-5 text-orange-500" />,
-  USDT: <span className="text-green-500 font-bold text-sm">₮</span>,
-  BNB: <span className="text-yellow-500 font-bold text-sm">◆</span>,
-};
-
-const currencyColors: Record<string, string> = {
-  CLC: 'text-primary',
-  BTC: 'text-orange-500',
-  USDT: 'text-green-500',
-  BNB: 'text-yellow-500',
-};
-
 const formatNumber = (num: number) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -87,7 +70,6 @@ const Wallet_Page = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [celebrationData, setCelebrationData] = useState<GiftSuccessData | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -141,12 +123,6 @@ const Wallet_Page = () => {
       setIsLoading(false);
     }
   };
-
-  const filteredTransactions = transactions.filter(t => {
-    if (activeTab === 'sent') return t.sender_id === user?.id;
-    if (activeTab === 'received') return t.receiver_id === user?.id;
-    return true;
-  });
 
   const totalSent = transactions
     .filter(t => t.sender_id === user?.id && t.currency === 'CLC')
@@ -275,89 +251,11 @@ const Wallet_Page = () => {
         <WalletPriceChart />
 
         {/* Transactions */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <History className="w-5 h-5" />
-                Lịch sử giao dịch
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="all">Tất cả</TabsTrigger>
-                <TabsTrigger value="sent">Đã gửi</TabsTrigger>
-                <TabsTrigger value="received">Đã nhận</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={activeTab} className="mt-0">
-                {isLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : filteredTransactions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Coins className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Chưa có giao dịch nào</p>
-                    <p className="text-sm mt-1">Hãy tặng quà cho bạn bè ngay!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filteredTransactions.map((tx) => {
-                      const isSender = tx.sender_id === user?.id;
-                      const otherUser = isSender ? tx.receiver_profile : tx.sender_profile;
-                      
-                      return (
-                        <div
-                          key={tx.id}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={otherUser?.avatar_url || ''} />
-                            <AvatarFallback>
-                              {otherUser?.display_name?.charAt(0) || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium truncate">
-                                {isSender ? 'Gửi đến' : 'Nhận từ'} {otherUser?.display_name || 'Người dùng'}
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                {tx.currency}
-                              </Badge>
-                            </div>
-                            {tx.message && (
-                              <p className="text-sm text-muted-foreground truncate">
-                                "{tx.message}"
-                              </p>
-                            )}
-                            <div className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(tx.created_at), { 
-                                addSuffix: true, 
-                                locale: vi 
-                              })}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            {currencyIcons[tx.currency]}
-                            <span className={`font-bold ${isSender ? 'text-red-500' : 'text-green-500'}`}>
-                              {isSender ? '-' : '+'}{formatNumber(tx.amount)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <TransactionHistory
+          transactions={transactions}
+          isLoading={isLoading}
+          userId={user?.id || ''}
+        />
       </main>
 
       <Footer />
