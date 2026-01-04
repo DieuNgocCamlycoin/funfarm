@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Gift, Volume2, VolumeX, Sparkles, ArrowRight, Heart, Crown, Gem } from 'lucide-react';
+import { Gift, Volume2, VolumeX, Sparkles, ArrowRight, Heart, Crown, Gem, Download } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import camlyCoinImg from '@/assets/camly_coin.png';
 import { getGiftLevel, parseAmountFromString, GiftLevel } from '@/lib/giftLevels';
+import { toast } from 'sonner';
 
 // Custom sound effects saved locally
 export const giftSoundOptions = [
@@ -206,6 +208,62 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       } else {
         audioRef.current.play().catch(() => {});
       }
+    }
+  };
+
+  // Download gift card as image
+  const handleDownloadGift = async () => {
+    if (!containerRef.current) return;
+    
+    toast.info('Đang chuẩn bị ảnh quà tặng...', { duration: 2000 });
+    
+    try {
+      // Dynamic import html2canvas for smaller bundle
+      const html2canvas = (await import('html2canvas')).default;
+      
+      // Temporarily remove shake animation and sound button for clean capture
+      const container = containerRef.current;
+      const soundBtn = container.querySelector('button[title*="âm thanh"]');
+      const downloadBtn = container.querySelector('button:last-of-type');
+      
+      if (soundBtn) (soundBtn as HTMLElement).style.display = 'none';
+      if (downloadBtn) (downloadBtn as HTMLElement).style.display = 'none';
+      
+      // Capture the gift card
+      const canvas = await html2canvas(container, {
+        backgroundColor: null,
+        scale: 2, // High quality
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+      });
+      
+      // Restore buttons
+      if (soundBtn) (soundBtn as HTMLElement).style.display = '';
+      if (downloadBtn) (downloadBtn as HTMLElement).style.display = '';
+      
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error('Không thể tạo ảnh');
+          return;
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `funfarm-gift-${displayAmount}-${currency}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast.success('🎁 Đã tải về ảnh quà tặng!');
+      }, 'image/png', 1.0);
+      
+    } catch (error) {
+      console.error('Download gift error:', error);
+      toast.error('Không thể tải về. Vui lòng thử lại!');
     }
   };
 
@@ -637,13 +695,24 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
           </div>
         )}
 
-        {/* Footer with Rich Rich Rich */}
-        <div className="relative z-10 mt-4 text-center">
+        {/* Footer with Rich Rich Rich + Download Button */}
+        <div className="relative z-10 mt-4 flex items-center justify-center gap-3">
           <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-2 backdrop-blur-sm">
             <span className="text-xl animate-bounce" style={{ animationDelay: '0s' }}>💰</span>
             <span className="font-bold text-sm tracking-wide">Rich Rich Rich!</span>
             <span className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>💎</span>
           </div>
+          
+          {/* Download Button */}
+          <Button
+            onClick={handleDownloadGift}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 border-white/30 hover:bg-white/30 text-white gap-1.5 backdrop-blur-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Tải về</span>
+          </Button>
         </div>
       </div>
 

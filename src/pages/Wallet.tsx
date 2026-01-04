@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -315,6 +316,12 @@ const Wallet_Page = () => {
           }}
         />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+
+      {/* Bottom padding for mobile nav */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 };

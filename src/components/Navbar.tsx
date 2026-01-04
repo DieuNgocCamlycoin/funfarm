@@ -119,25 +119,8 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile quick actions: Wallet + Notifications */}
-          {user && profile && (
-            <div className="flex md:hidden items-center gap-1">
-              {/* Wallet & Gift Link - Mobile */}
-              <Link 
-                to="/wallet" 
-                className={`flex items-center justify-center h-9 w-9 rounded-full transition-colors ${
-                  location.pathname === '/wallet' 
-                    ? 'bg-amber-100 text-amber-700' 
-                    : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-                }`}
-              >
-                <Gift className="w-5 h-5" />
-              </Link>
-
-              {/* Notification Bell - Mobile */}
-              <NotificationBell />
-            </div>
-          )}
+          {/* Mobile quick actions: Search only - other icons moved to bottom nav */}
+          {/* Removed to avoid duplication with MobileBottomNav */}
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
