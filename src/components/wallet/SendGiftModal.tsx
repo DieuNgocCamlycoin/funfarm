@@ -24,17 +24,26 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import GiftCelebrationModal from './GiftCelebrationModal';
 
 interface SendGiftModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (data: GiftSuccessData) => void;
   preselectedUser?: {
     id: string;
     display_name: string | null;
     avatar_url: string | null;
     profile_type?: string;
   };
+}
+
+interface GiftSuccessData {
+  amount: number;
+  currency: string;
+  receiverName: string;
+  receiverAvatar: string | null;
+  message: string;
 }
 
 interface UserResult {
@@ -207,7 +216,13 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         description: `Đã gửi ${amountNum.toLocaleString()} ${selectedCurrency} đến ${selectedUser.display_name}`,
       });
 
-      onSuccess();
+      onSuccess({
+        amount: amountNum,
+        currency: selectedCurrency,
+        receiverName: selectedUser.display_name || 'Người dùng',
+        receiverAvatar: selectedUser.avatar_url,
+        message: message,
+      });
     } catch (error) {
       console.error('Error sending gift:', error);
       toast.error('Có lỗi xảy ra khi gửi quà');
