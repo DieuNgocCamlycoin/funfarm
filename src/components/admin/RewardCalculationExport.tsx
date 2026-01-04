@@ -22,9 +22,14 @@ interface UserRewardCalculation {
   avatar_verified: boolean;
   is_verified: boolean;
   quality_posts: number;
+  normal_posts: number;
   likes_received: number;
   comments_received: number;
+  quality_comments: number;
+  normal_comments: number;
   shares_received: number;
+  quality_shares: number;
+  basic_shares: number;
   friendships: number;
   welcome_bonus: number;
   wallet_bonus: number;
@@ -391,9 +396,14 @@ export function RewardCalculationExport() {
               avatar_verified: profile.avatar_verified,
               is_verified: profile.is_verified,
               quality_posts: qualityPosts,
+              normal_posts: normalPosts,
               likes_received: likesReceived,
               comments_received: commentsReceived,
+              quality_comments: qualityComments,
+              normal_comments: normalComments,
               shares_received: sharesReceived,
+              quality_shares: qualityShares,
+              basic_shares: basicShares,
               friendships: friendships,
               welcome_bonus: welcomeBonus,
               wallet_bonus: walletBonus,
@@ -790,9 +800,12 @@ export function RewardCalculationExport() {
                   <TableRow>
                     <TableHead className="sticky top-0 bg-background">Tên</TableHead>
                     <TableHead className="sticky top-0 bg-background">Bài CL</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Bài TT</TableHead>
                     <TableHead className="sticky top-0 bg-background">Like</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Comment</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Share</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Cmt CL</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Cmt TT</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Share CL</TableHead>
+                    <TableHead className="sticky top-0 bg-background">Share TT</TableHead>
                     <TableHead className="sticky top-0 bg-background">Bạn bè</TableHead>
                     <TableHead className="sticky top-0 bg-background">Pending</TableHead>
                     <TableHead className="sticky top-0 bg-background">Approved</TableHead>
@@ -815,19 +828,31 @@ export function RewardCalculationExport() {
                         </TableCell>
                         <TableCell>
                           <div>{user.quality_posts}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.post_reward)}</div>
+                          <div className="text-xs text-green-500">+{formatNumber(user.quality_posts * 20000)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div>{user.normal_posts}</div>
+                          <div className="text-xs text-blue-500">+{formatNumber(user.normal_posts * 5000)}</div>
                         </TableCell>
                         <TableCell>
                           <div>{user.likes_received}</div>
                           <div className="text-xs text-green-500">+{formatNumber(user.like_reward)}</div>
                         </TableCell>
                         <TableCell>
-                          <div>{user.comments_received}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.comment_reward)}</div>
+                          <div>{user.quality_comments}</div>
+                          <div className="text-xs text-green-500">+{formatNumber(user.quality_comments * 5000)}</div>
                         </TableCell>
                         <TableCell>
-                          <div>{user.shares_received}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.share_reward)}</div>
+                          <div>{user.normal_comments}</div>
+                          <div className="text-xs text-blue-500">+{formatNumber(user.normal_comments * 1000)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div>{user.quality_shares}</div>
+                          <div className="text-xs text-green-500">+{formatNumber(user.quality_shares * 10000)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div>{user.basic_shares}</div>
+                          <div className="text-xs text-blue-500">+{formatNumber(user.basic_shares * 4000)}</div>
                         </TableCell>
                         <TableCell>
                           <div>{user.friendships}</div>
