@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useMetaMask, TOKEN_ADDRESSES } from '@/hooks/useMetaMask';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -13,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Gift, 
   Search, 
@@ -20,7 +22,10 @@ import {
   Heart,
   Sparkles,
   Bitcoin,
-  Send
+  Send,
+  AlertTriangle,
+  ExternalLink,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
@@ -55,13 +60,14 @@ interface UserResult {
 }
 
 const currencies = [
-  { id: 'CLC', name: 'Camly Coin', icon: camlyCoinImg, color: 'primary' },
-  { id: 'BTC', name: 'Bitcoin', icon: null, iconComponent: <Bitcoin className="w-5 h-5 text-orange-500" />, color: 'orange-500' },
-  { id: 'USDT', name: 'Tether', icon: null, iconComponent: <span className="text-green-500 font-bold">₮</span>, color: 'green-500' },
-  { id: 'BNB', name: 'BNB', icon: null, iconComponent: <span className="text-yellow-500 font-bold">◆</span>, color: 'yellow-500' },
+  { id: 'CLC', name: 'Camly Coin', icon: camlyCoinImg, color: 'primary', isOnChain: false },
+  { id: 'BNB', name: 'BNB', icon: null, iconComponent: <span className="text-yellow-500 font-bold">◆</span>, color: 'yellow-500', isOnChain: true },
+  { id: 'USDT', name: 'USDT', icon: null, iconComponent: <span className="text-green-500 font-bold">₮</span>, color: 'green-500', isOnChain: true },
+  { id: 'BTCB', name: 'BTCB', icon: null, iconComponent: <Bitcoin className="w-5 h-5 text-orange-500" />, color: 'orange-500', isOnChain: true },
 ];
 
 const quickAmounts = [10000, 50000, 100000, 500000, 1000000];
+const cryptoQuickAmounts = [0.001, 0.01, 0.1, 0.5, 1];
 
 const SendGiftModal: React.FC<SendGiftModalProps> = ({ 
   isOpen, 
@@ -70,6 +76,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   preselectedUser 
 }) => {
   const { user, profile, refreshProfile } = useAuth();
+  const metamask = useMetaMask();
   const [step, setStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
@@ -78,6 +85,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   );
   const [selectedCurrency, setSelectedCurrency] = useState('CLC');
   const [amount, setAmount] = useState('');
+  const [receiverWallet, setReceiverWallet] = useState('');
   const [message, setMessage] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -98,9 +106,30 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
       setSelectedUser(preselectedUser ? { ...preselectedUser, profile_type: preselectedUser.profile_type || 'eater' } : null);
       setSelectedCurrency('CLC');
       setAmount('');
+      setReceiverWallet('');
       setMessage('');
     }
   }, [isOpen, preselectedUser]);
+
+  // Fetch receiver wallet when user selected and on-chain currency
+  useEffect(() => {
+    const fetchReceiverWallet = async () => {
+      if (selectedUser && selectedCurrency !== 'CLC') {
+        const { data } = await supabase
+          .from('profiles')
+          .select('wallet_address')
+          .eq('id', selectedUser.id)
+          .single();
+        
+        if (data?.wallet_address) {
+          setReceiverWallet(data.wallet_address);
+        }
+      }
+    };
+    fetchReceiverWallet();
+  }, [selectedUser, selectedCurrency]);
+
+  const isOnChainCurrency = currencies.find(c => c.id === selectedCurrency)?.isOnChain || false;
 
   const searchUsers = async (query: string) => {
     if (query.length < 2) {
@@ -141,9 +170,9 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   const handleSendGift = async () => {
     if (!user || !selectedUser || !amount) return;
 
-    const amountNum = parseInt(amount);
+    const amountNum = selectedCurrency === 'CLC' ? parseInt(amount) : parseFloat(amount);
     
-    // Validate
+    // Validate for CLC
     if (selectedCurrency === 'CLC') {
       if (amountNum > (profile?.camly_balance || 0)) {
         toast.error('Số dư CAMLY không đủ!');
@@ -153,40 +182,84 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         toast.error('Số tiền tối thiểu là 1,000 CLC');
         return;
       }
-    } else {
-      toast.info('Tính năng gửi crypto sẽ được hỗ trợ sớm!');
-      return;
+    }
+
+    // Validate for on-chain currencies
+    if (isOnChainCurrency) {
+      if (!metamask.isConnected) {
+        toast.error('Vui lòng kết nối MetaMask trước!');
+        return;
+      }
+      if (!receiverWallet || !receiverWallet.startsWith('0x')) {
+        toast.error('Người nhận chưa có địa chỉ ví hợp lệ!');
+        return;
+      }
+      if (amountNum <= 0) {
+        toast.error('Số tiền phải lớn hơn 0');
+        return;
+      }
     }
 
     setIsSending(true);
+    let txHash: string | null = null;
+
     try {
-      // 1. Trừ tiền người gửi
-      const { error: deductError } = await supabase
-        .from('profiles')
-        .update({ 
-          camly_balance: (profile?.camly_balance || 0) - amountNum 
-        })
-        .eq('id', user.id);
+      // Handle on-chain transaction
+      if (isOnChainCurrency) {
+        toast.info('Đang xử lý giao dịch on-chain...');
+        
+        try {
+          if (selectedCurrency === 'BNB') {
+            txHash = await metamask.sendBNB(receiverWallet, amount);
+          } else if (selectedCurrency === 'USDT') {
+            txHash = await metamask.sendUSDT(receiverWallet, amount);
+          } else if (selectedCurrency === 'BTCB') {
+            txHash = await metamask.sendBTCB(receiverWallet, amount);
+          }
+        } catch (err: any) {
+          toast.error(err.message || 'Giao dịch blockchain thất bại');
+          setIsSending(false);
+          return;
+        }
 
-      if (deductError) throw deductError;
+        if (!txHash) {
+          toast.error('Không thể hoàn tất giao dịch');
+          setIsSending(false);
+          return;
+        }
+      } else {
+        // Handle CLC in-app transfer
+        // 1. Trừ tiền người gửi
+        const { error: deductError } = await supabase
+          .from('profiles')
+          .update({ 
+            camly_balance: (profile?.camly_balance || 0) - amountNum 
+          })
+          .eq('id', user.id);
 
-      // 2. Cộng tiền người nhận
-      const { data: receiverProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('camly_balance')
-        .eq('id', selectedUser.id)
-        .single();
+        if (deductError) throw deductError;
 
-      if (fetchError) throw fetchError;
+        // 2. Cộng tiền người nhận
+        const { data: receiverProfile, error: fetchError } = await supabase
+          .from('profiles')
+          .select('camly_balance')
+          .eq('id', selectedUser.id)
+          .single();
 
-      const { error: addError } = await supabase
-        .from('profiles')
-        .update({ 
-          camly_balance: (receiverProfile?.camly_balance || 0) + amountNum 
-        })
-        .eq('id', selectedUser.id);
+        if (fetchError) throw fetchError;
 
-      if (addError) throw addError;
+        const { error: addError } = await supabase
+          .from('profiles')
+          .update({ 
+            camly_balance: (receiverProfile?.camly_balance || 0) + amountNum 
+          })
+          .eq('id', selectedUser.id);
+
+        if (addError) throw addError;
+
+        // Refresh profile
+        refreshProfile();
+      }
 
       // 3. Ghi log giao dịch
       const { error: txError } = await supabase
@@ -194,27 +267,30 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         .insert({
           sender_id: user.id,
           receiver_id: selectedUser.id,
-          amount: amountNum,
+          amount: isOnChainCurrency ? Math.floor(parseFloat(amount) * 1e8) : amountNum, // Store in smallest unit for crypto
           currency: selectedCurrency,
           message: message || null,
+          tx_hash: txHash,
           status: 'completed',
         });
 
       if (txError) throw txError;
 
       // 4. Tạo thông báo cho người nhận
+      const amountDisplay = isOnChainCurrency ? amount : amountNum.toLocaleString();
       await supabase.from('notifications').insert({
         user_id: selectedUser.id,
         from_user_id: user.id,
         type: 'gift',
-        content: `${profile?.display_name || 'Ai đó'} đã tặng bạn ${amountNum.toLocaleString()} ${selectedCurrency}${message ? `: "${message}"` : ''}`,
+        content: `${profile?.display_name || 'Ai đó'} đã tặng bạn ${amountDisplay} ${selectedCurrency}${message ? `: "${message}"` : ''}`,
       });
 
-      // Refresh profile
-      refreshProfile();
+      const successMessage = txHash 
+        ? `Đã gửi ${amount} ${selectedCurrency} on-chain!`
+        : `Đã gửi ${amountNum.toLocaleString()} ${selectedCurrency} đến ${selectedUser.display_name}`;
 
       toast.success('🎉 Tặng quà thành công!', {
-        description: `Đã gửi ${amountNum.toLocaleString()} ${selectedCurrency} đến ${selectedUser.display_name}`,
+        description: successMessage,
       });
 
       onSuccess({
@@ -343,19 +419,82 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
               </div>
             </div>
 
+            {/* On-chain Warning */}
+            {isOnChainCurrency && (
+              <Alert className="border-yellow-500/30 bg-yellow-500/10">
+                <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                <AlertDescription className="text-sm">
+                  Giao dịch on-chain trên BSC. Cần có MetaMask và gas fee (BNB).
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* MetaMask Connect for on-chain */}
+            {isOnChainCurrency && !metamask.isConnected && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={metamask.connect}
+                disabled={metamask.isConnecting}
+              >
+                <Wallet className="w-4 h-4" />
+                {metamask.isConnecting ? 'Đang kết nối...' : 'Kết nối MetaMask'}
+              </Button>
+            )}
+
+            {/* Receiver wallet for on-chain */}
+            {isOnChainCurrency && metamask.isConnected && (
+              <div>
+                <Label className="mb-2 block">Ví người nhận (BSC)</Label>
+                <Input
+                  value={receiverWallet}
+                  onChange={(e) => setReceiverWallet(e.target.value)}
+                  placeholder="0x..."
+                  className="font-mono text-sm"
+                />
+                {receiverWallet && (
+                  <a
+                    href={`https://bscscan.com/address/${receiverWallet}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                  >
+                    Xem trên BscScan <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            )}
+
             {/* Amount */}
             <div>
               <Label className="mb-2 block">Số lượng</Label>
               <Input
                 type="number"
-                placeholder="Nhập số tiền"
+                placeholder={isOnChainCurrency ? "0.00" : "Nhập số tiền"}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="text-lg font-semibold"
+                step={isOnChainCurrency ? "0.001" : "1000"}
               />
               {selectedCurrency === 'CLC' && (
                 <div className="text-sm text-muted-foreground mt-1">
                   Số dư: {(profile?.camly_balance || 0).toLocaleString()} CLC
+                </div>
+              )}
+              {selectedCurrency === 'BNB' && metamask.isConnected && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  Số dư: {parseFloat(metamask.bnbBalance).toFixed(4)} BNB
+                </div>
+              )}
+              {selectedCurrency === 'USDT' && metamask.isConnected && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  Số dư: {parseFloat(metamask.usdtBalance).toFixed(2)} USDT
+                </div>
+              )}
+              {selectedCurrency === 'BTCB' && metamask.isConnected && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  Số dư: {parseFloat(metamask.btcbBalance).toFixed(6)} BTCB
                 </div>
               )}
               
@@ -372,6 +511,22 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                       className="text-xs"
                     >
                       {qa >= 1000000 ? `${qa/1000000}M` : `${qa/1000}K`}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {isOnChainCurrency && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {cryptoQuickAmounts.map((qa) => (
+                    <Button
+                      key={qa}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAmount(qa.toString())}
+                      className="text-xs"
+                    >
+                      {qa}
                     </Button>
                   ))}
                 </div>
