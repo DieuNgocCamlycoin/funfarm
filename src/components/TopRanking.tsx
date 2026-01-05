@@ -145,6 +145,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
   return (
     <div 
       className="relative overflow-hidden rounded-xl border border-white/40"
+      data-angel-perch="ranking"
       style={{
         background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
         backdropFilter: 'saturate(120%)',

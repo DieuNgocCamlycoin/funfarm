@@ -8,7 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/hooks/useAuth';
 import { RealtimeNotificationsProvider } from "@/components/RealtimeNotificationsProvider";
 import { ConfettiProvider } from "@/components/ConfettiProvider";
-import { FairyCursorProvider, FairyCursorSettings } from "@/components/cursor";
+import { AngelProvider, AngelSettings } from "@/components/angel";
 
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
@@ -34,7 +34,7 @@ const App = () => (
     <AuthProvider>
       <RealtimeNotificationsProvider>
         <ConfettiProvider>
-          <FairyCursorProvider defaultVariant="pink" defaultEnabled={true}>
+          <AngelProvider defaultEnabled={true}>
             <TooltipProvider>
               <Toaster />
               <Sonner />
@@ -60,9 +60,9 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
-              <FairyCursorSettings />
+              <AngelSettings />
             </TooltipProvider>
-          </FairyCursorProvider>
+          </AngelProvider>
         </ConfettiProvider>
       </RealtimeNotificationsProvider>
     </AuthProvider>

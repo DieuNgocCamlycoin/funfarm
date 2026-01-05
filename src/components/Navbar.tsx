@@ -77,6 +77,7 @@ const Navbar = () => {
                 src={funFarmLogo} 
                 alt="FUN FARM Web3" 
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover shadow-glow"
+                data-angel-perch="logo"
               />
               <span className="font-display font-bold text-xl text-gradient-hero hidden sm:block">
                 FUN FARM
