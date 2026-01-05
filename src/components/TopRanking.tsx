@@ -157,7 +157,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
         {/* Title - 2 vương miện cố định 2 góc với animation, chữ TOP = RANKING */}
         <div className="relative mb-5">
-          {/* Vương miện trái - animation glow pulse */}
+          {/* Ngôi sao trái - animation glow pulse */}
           <span 
             className="absolute left-2 top-0 text-2xl"
             style={{ 
@@ -165,10 +165,10 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               animation: 'pulse 2s ease-in-out infinite',
             }}
           >
-            👑
+            ⭐
           </span>
           
-          {/* Vương miện phải - animation glow pulse */}
+          {/* Ngôi sao phải - animation glow pulse */}
           <span 
             className="absolute right-2 top-0 text-2xl"
             style={{ 
@@ -177,7 +177,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               animationDelay: '1s',
             }}
           >
-            👑
+            ⭐
           </span>
           
           {/* Chữ TOP RANKING - 2 hàng, căn giữa, cùng kích thước */}
