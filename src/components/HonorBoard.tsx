@@ -274,17 +274,18 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           <h2 
             className={`${compact ? 'text-2xl' : 'text-3xl md:text-4xl'} uppercase whitespace-nowrap relative`}
             style={{ 
-              fontFamily: "'Impact', 'Arial Black', sans-serif",
-              fontWeight: 900,
-              letterSpacing: '0.03em',
-              color: '#f5f5f5',
-              WebkitTextStroke: '2px #ffd700',
+              fontFamily: "'Trebuchet MS', 'Verdana', sans-serif",
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              color: '#ffffff',
+              WebkitTextStroke: '2.5px #ffd700',
               textShadow: `
-                2px 2px 0 #ffc107,
-                3px 3px 0 #e6a800,
-                4px 4px 0 #cc9600,
-                5px 5px 0 #b38600,
-                6px 6px 8px rgba(0,0,0,0.3)
+                0 0 2px #fff8dc,
+                1px 1px 0 #ffc107,
+                2px 2px 0 #ffb300,
+                3px 3px 0 #ffa000,
+                4px 4px 0 #ff8f00,
+                5px 5px 10px rgba(0,0,0,0.25)
               `,
               paintOrder: 'stroke fill',
             }}
