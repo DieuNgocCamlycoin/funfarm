@@ -10,6 +10,8 @@ import angelExcitedGif from '@/assets/angel-gifs/angel-excited.gif';
 import angelSittingGif from '@/assets/angel-gifs/angel-sitting.gif';
 import angelAppearingGif from '@/assets/angel-gifs/angel-appearing.gif';
 import angelHidingGif from '@/assets/angel-gifs/angel-hiding.gif';
+import angelFlyingGif from '@/assets/angel-gifs/angel-flying.gif';
+import angelSpecialGif from '@/assets/angel-gifs/angel-special.gif';
 
 export type AngelState = 
   | 'idle'
@@ -20,7 +22,11 @@ export type AngelState =
   | 'sitting'
   | 'hiding'
   | 'appearing'
-  | 'excited';
+  | 'excited'
+  | 'flying'
+  | 'special'
+  | 'wandering'
+  | 'spinning';
 
 interface Sparkle {
   id: number;
@@ -34,7 +40,7 @@ interface Sparkle {
 // Map trạng thái với GIF
 const STATE_GIFS: Record<AngelState, string> = {
   idle: angelIdleGif,
-  following: angelIdleGif,
+  following: angelFlyingGif,
   dancing: angelDancingGif,
   sleeping: angelSleepingGif,
   waking: angelWakingGif,
@@ -42,6 +48,10 @@ const STATE_GIFS: Record<AngelState, string> = {
   hiding: angelHidingGif,
   appearing: angelAppearingGif,
   excited: angelExcitedGif,
+  flying: angelFlyingGif,
+  special: angelSpecialGif,
+  wandering: angelFlyingGif,
+  spinning: angelExcitedGif,
 };
 
 // Các trạng thái one-shot với thời gian chuyển về idle
@@ -49,15 +59,25 @@ const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
   waking: 2000,
   appearing: 1500,
   excited: 2000,
+  special: 3000,
+  spinning: 1500,
 };
 
-// Random behaviors khi idle
+// Random behaviors khi idle - đa dạng hơn
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
   { action: 'dancing', chance: 0.08, duration: 4000 },
-  { action: 'sleeping', chance: 0.04, duration: 8000 },
-  { action: 'hiding', chance: 0.05, duration: 5000 },
-  { action: 'excited', chance: 0.06, duration: 2000 },
+  { action: 'sleeping', chance: 0.03, duration: 8000 },
+  { action: 'hiding', chance: 0.04, duration: 5000 },
+  { action: 'excited', chance: 0.05, duration: 2000 },
+  { action: 'spinning', chance: 0.06, duration: 1500 },
+  { action: 'special', chance: 0.04, duration: 3000 },
+  { action: 'wandering', chance: 0.1, duration: 4000 },
 ];
+
+// Kích thước Angel và khoảng cách an toàn
+const ANGEL_SIZE = 180;
+const SAFE_DISTANCE = 100;
+const OFFSET_ANGLE = Math.PI / 4; // 45 độ
 
 interface AngelCompanionProps {
   enabled?: boolean;
@@ -71,10 +91,14 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
   const [isMoving, setIsMoving] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [isSitting, setIsSitting] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
   
   const lastMoveTime = useRef(Date.now());
+  const lastMousePosition = useRef({ x: 0, y: 0 });
   const idleTimer = useRef<NodeJS.Timeout>();
   const behaviorTimer = useRef<NodeJS.Timeout>();
+  const wanderTimer = useRef<NodeJS.Timeout>();
   const frameRef = useRef<number>();
 
   // Preload all GIFs for smooth transitions
@@ -90,9 +114,17 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
     const duration = ONE_SHOT_DURATIONS[state];
     if (duration) {
       const timer = setTimeout(() => {
+        setIsSpinning(false);
         setState('idle');
       }, duration);
       return () => clearTimeout(timer);
+    }
+  }, [state]);
+
+  // Handle spinning state
+  useEffect(() => {
+    if (state === 'spinning') {
+      setIsSpinning(true);
     }
   }, [state]);
 
@@ -108,7 +140,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
         
         if (distance < 1) return prev;
         
-        const speed = isSitting ? 0.02 : 0.08;
+        const speed = isSitting ? 0.02 : state === 'wandering' ? 0.03 : 0.06;
         return {
           x: prev.x + dx * speed,
           y: prev.y + dy * speed,
@@ -122,35 +154,54 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, [targetPosition, enabled, isSitting]);
+  }, [targetPosition, enabled, isSitting, state]);
 
   // Create sparkle particles
   const createSparkle = useCallback((x: number, y: number) => {
-    const colors = ['#ffd700', '#ff69b4', '#00ff88', '#87ceeb', '#ff6b6b'];
+    const colors = ['#ffd700', '#ff69b4', '#00ff88', '#87ceeb', '#ff6b6b', '#da70d6'];
     const newSparkle: Sparkle = {
       id: Date.now() + Math.random(),
-      x: x + (Math.random() - 0.5) * 60,
-      y: y + (Math.random() - 0.5) * 60,
+      x: x + (Math.random() - 0.5) * 80,
+      y: y + (Math.random() - 0.5) * 80,
       color: colors[Math.floor(Math.random() * colors.length)],
-      size: 8 + Math.random() * 12,
+      size: 10 + Math.random() * 16,
       rotation: Math.random() * 360,
     };
     
-    setParticles(prev => [...prev.slice(-15), newSparkle]);
+    setParticles(prev => [...prev.slice(-20), newSparkle]);
     
     setTimeout(() => {
       setParticles(prev => prev.filter(p => p.id !== newSparkle.id));
-    }, 800);
+    }, 1000);
   }, []);
 
-  // Mouse move handler
+  // Mouse move handler - giữ khoảng cách an toàn
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!enabled || isHidden || isSitting) return;
     
     const now = Date.now();
     lastMoveTime.current = now;
     
-    setTargetPosition({ x: e.clientX, y: e.clientY });
+    // Tính hướng di chuyển để lật Angel
+    const dx = e.clientX - lastMousePosition.current.x;
+    if (Math.abs(dx) > 5) {
+      setIsFlipped(dx < 0); // Lật khi di chuyển sang trái
+    }
+    lastMousePosition.current = { x: e.clientX, y: e.clientY };
+    
+    // Tính vị trí với khoảng cách an toàn - Angel ở phía trên bên phải cursor
+    const offsetX = Math.cos(OFFSET_ANGLE) * SAFE_DISTANCE;
+    const offsetY = Math.sin(OFFSET_ANGLE) * SAFE_DISTANCE;
+    
+    // Điều chỉnh vị trí khi cursor ở gần cạnh màn hình
+    let newX = e.clientX + (isFlipped ? -offsetX : offsetX);
+    let newY = e.clientY - offsetY;
+    
+    // Giữ Angel trong màn hình
+    newX = Math.max(ANGEL_SIZE / 2, Math.min(window.innerWidth - ANGEL_SIZE / 2, newX));
+    newY = Math.max(ANGEL_SIZE / 2, Math.min(window.innerHeight - ANGEL_SIZE / 2, newY));
+    
+    setTargetPosition({ x: newX, y: newY });
     
     if (!isMoving) {
       setIsMoving(true);
@@ -158,8 +209,8 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
     }
     
     // Create sparkle trail
-    if (Math.random() > 0.7) {
-      createSparkle(e.clientX, e.clientY);
+    if (Math.random() > 0.6) {
+      createSparkle(position.x, position.y);
     }
     
     // Clear idle timer and set new one
@@ -167,25 +218,33 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
     idleTimer.current = setTimeout(() => {
       setIsMoving(false);
       if (!isSitting) setState('idle');
-    }, 150);
-  }, [enabled, isHidden, isSitting, isMoving, createSparkle]);
+    }, 200);
+  }, [enabled, isHidden, isSitting, isMoving, isFlipped, createSparkle, position]);
 
   // Click handler - Angel gets excited
   const handleClick = useCallback(() => {
     if (!enabled || isHidden) return;
     
-    setState('excited');
+    // Ngẫu nhiên chọn hành động khi click
+    const actions: AngelState[] = ['excited', 'dancing', 'spinning', 'special'];
+    const randomAction = actions[Math.floor(Math.random() * actions.length)];
+    setState(randomAction);
+    
+    if (randomAction === 'spinning') {
+      setIsSpinning(true);
+    }
     
     // Burst of sparkles
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       setTimeout(() => {
         createSparkle(position.x, position.y);
-      }, i * 50);
+      }, i * 40);
     }
     
     setTimeout(() => {
       if (!isMoving) setState('idle');
-    }, 1500);
+      setIsSpinning(false);
+    }, 2000);
   }, [enabled, isHidden, isMoving, position, createSparkle]);
 
   // Detect perch spots (ranking boards, logo)
@@ -206,7 +265,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
         setState('sitting');
         setTargetPosition({
           x: rect.left + rect.width / 2,
-          y: rect.top - 30,
+          y: rect.top - 40,
         });
         
         setTimeout(() => {
@@ -216,6 +275,32 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
       }
     });
   }, [enabled, isHidden, isMoving, position]);
+
+  // Wandering - bay ngẫu nhiên trên màn hình
+  const startWandering = useCallback(() => {
+    if (!enabled || isMoving || isSitting || isHidden) return;
+    
+    // Chọn vị trí ngẫu nhiên trên màn hình
+    const padding = ANGEL_SIZE;
+    const newX = padding + Math.random() * (window.innerWidth - padding * 2);
+    const newY = padding + Math.random() * (window.innerHeight - padding * 2);
+    
+    // Lật Angel theo hướng bay
+    setIsFlipped(newX < position.x);
+    
+    setState('wandering');
+    setTargetPosition({ x: newX, y: newY });
+    
+    // Sau khi đến nơi, chuyển về idle hoặc làm hành động khác
+    setTimeout(() => {
+      if (Math.random() < 0.3) {
+        setState('dancing');
+        setTimeout(() => setState('idle'), 3000);
+      } else {
+        setState('idle');
+      }
+    }, 4000);
+  }, [enabled, isMoving, isSitting, isHidden, position.x]);
 
   // Random behavior when idle
   useEffect(() => {
@@ -228,19 +313,25 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
       for (const behavior of RANDOM_BEHAVIORS) {
         cumulative += behavior.chance;
         if (random < cumulative) {
-          setState(behavior.action);
-          
-          if (behavior.action === 'hiding') {
+          if (behavior.action === 'wandering') {
+            startWandering();
+          } else if (behavior.action === 'spinning') {
+            setState('spinning');
+            setIsSpinning(true);
+          } else if (behavior.action === 'hiding') {
+            setState(behavior.action);
             setIsHidden(true);
             setTimeout(() => {
               setIsHidden(false);
               setState('appearing');
             }, behavior.duration);
           } else if (behavior.action === 'sleeping') {
+            setState(behavior.action);
             setTimeout(() => {
               setState('waking');
             }, behavior.duration);
           } else {
+            setState(behavior.action);
             setTimeout(() => setState('idle'), behavior.duration);
           }
           break;
@@ -249,12 +340,12 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
       
       // Check for perch spots
       checkPerchSpots();
-    }, 8000);
+    }, 6000);
     
     return () => {
       if (behaviorTimer.current) clearInterval(behaviorTimer.current);
     };
-  }, [enabled, state, isMoving, checkPerchSpots]);
+  }, [enabled, state, isMoving, checkPerchSpots, startWandering]);
 
   // Event listeners
   useEffect(() => {
@@ -263,19 +354,23 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('click', handleClick);
     
-    // Hide default cursor
-    document.body.style.cursor = 'none';
-    
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('click', handleClick);
-      document.body.style.cursor = 'auto';
     };
   }, [enabled, handleMouseMove, handleClick]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (wanderTimer.current) clearTimeout(wanderTimer.current);
+    };
+  }, []);
 
   if (!enabled) return null;
 
   const currentGif = STATE_GIFS[state];
+  const halfSize = ANGEL_SIZE / 2;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[99999]">
@@ -296,20 +391,22 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
           <path
             d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
             fill={particle.color}
-            style={{ filter: `drop-shadow(0 0 4px ${particle.color})` }}
+            style={{ filter: `drop-shadow(0 0 6px ${particle.color})` }}
           />
         </svg>
       ))}
       
-      {/* Angel GIF - nền trong suốt, không cần mix-blend-mode */}
+      {/* Angel GIF - nền trong suốt, kích thước lớn hơn */}
       <div
-        className={`absolute transition-opacity duration-300 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
+        className={`absolute transition-all duration-300 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
         style={{
-          left: position.x - 60,
-          top: position.y - 80,
-          width: 120,
+          left: position.x - halfSize,
+          top: position.y - halfSize - 20,
+          width: ANGEL_SIZE,
           height: 'auto',
-          filter: 'drop-shadow(0 0 20px rgba(255, 215, 0, 0.5)) drop-shadow(0 0 40px rgba(255, 182, 193, 0.3))',
+          filter: 'drop-shadow(0 0 25px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.4))',
+          transform: `${isFlipped ? 'scaleX(-1)' : 'scaleX(1)'} ${isSpinning ? 'rotate(360deg)' : 'rotate(0deg)'}`,
+          transition: isSpinning ? 'transform 0.8s ease-in-out' : 'transform 0.2s ease-out',
         }}
       >
         <img
@@ -317,33 +414,51 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
           src={currentGif}
           alt="Angel Companion"
           className="w-full h-auto"
-          style={{ transformOrigin: 'center bottom' }}
+          style={{ transformOrigin: 'center center' }}
           draggable={false}
         />
         
         {/* Sleeping Z's */}
         {state === 'sleeping' && (
-          <div className="absolute -top-2 right-0">
-            <span className="text-xl animate-zzz-float text-blue-300" style={{ textShadow: '0 0 8px rgba(147, 197, 253, 0.8)' }}>
+          <div className="absolute -top-4 right-0" style={{ transform: isFlipped ? 'scaleX(-1)' : 'none' }}>
+            <span className="text-2xl animate-zzz-float text-blue-300" style={{ textShadow: '0 0 10px rgba(147, 197, 253, 0.8)' }}>
               💤
             </span>
           </div>
         )}
         
         {/* Excitement stars */}
-        {state === 'excited' && (
+        {(state === 'excited' || state === 'special') && (
           <>
-            <span className="absolute -top-2 -left-2 text-lg animate-bounce">✨</span>
-            <span className="absolute -top-2 -right-2 text-lg animate-bounce" style={{ animationDelay: '0.1s' }}>✨</span>
+            <span className="absolute -top-4 -left-4 text-xl animate-bounce">✨</span>
+            <span className="absolute -top-4 -right-4 text-xl animate-bounce" style={{ animationDelay: '0.1s' }}>✨</span>
+            <span className="absolute top-1/2 -left-6 text-lg animate-ping">💫</span>
+            <span className="absolute top-1/2 -right-6 text-lg animate-ping" style={{ animationDelay: '0.2s' }}>💫</span>
           </>
         )}
         
         {/* Dancing music notes */}
         {state === 'dancing' && (
           <>
-            <span className="absolute -top-4 left-0 text-lg animate-bounce">🎵</span>
-            <span className="absolute -top-6 right-0 text-lg animate-bounce" style={{ animationDelay: '0.2s' }}>🎶</span>
+            <span className="absolute -top-6 left-0 text-xl animate-bounce">🎵</span>
+            <span className="absolute -top-8 right-0 text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>🎶</span>
+            <span className="absolute -top-4 left-1/2 text-lg animate-bounce" style={{ animationDelay: '0.4s' }}>🎵</span>
           </>
+        )}
+        
+        {/* Flying trail */}
+        {(state === 'flying' || state === 'wandering' || state === 'following') && (
+          <>
+            <span className="absolute top-1/2 -left-4 text-sm opacity-60">✨</span>
+            <span className="absolute top-1/2 -left-8 text-xs opacity-40">✨</span>
+          </>
+        )}
+        
+        {/* Spinning effect */}
+        {isSpinning && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-3xl animate-spin">🌟</span>
+          </div>
         )}
       </div>
     </div>
