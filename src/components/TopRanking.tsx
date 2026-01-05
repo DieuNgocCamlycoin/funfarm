@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import camlyCoin from "@/assets/camly_coin.png";
 import honorBoardBg from "@/assets/honor-board-bg.jpeg";
+import angelFrame from "@/assets/angel-frame.png";
 
 interface TopUser {
   id: string;
@@ -25,182 +26,24 @@ interface TopRankingProps {
 const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
 
-// Luxurious Laurel Frame - Khung vòng nguyệt quế lộng lẫy với vương miện
+// Angel Frame - Khung cánh thiên thần từ hình PNG
 const LaurelFrame = ({ rank }: { rank: number }) => {
   const isTop3 = rank <= 3;
-  const size = 64;
-  
-  // Màu gem theo rank
-  const gemColor = rank === 1 ? '#dc143c' : rank === 2 ? '#4169e1' : rank === 3 ? '#32cd32' : '#fbbf24';
-  const gemGlow = rank === 1 ? 'rgba(220, 20, 60, 0.8)' : rank === 2 ? 'rgba(65, 105, 225, 0.8)' : rank === 3 ? 'rgba(50, 205, 50, 0.8)' : 'rgba(251, 191, 36, 0.8)';
   
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 64 64" 
-      className="absolute inset-0"
+    <div 
+      className="absolute inset-0 flex items-center justify-center"
       style={{
         filter: `drop-shadow(0 0 ${isTop3 ? 12 : 6}px rgba(251, 191, 36, ${isTop3 ? 0.8 : 0.5}))`,
       }}
     >
-      <defs>
-        {/* Golden metallic gradient */}
-        <linearGradient id={`luxGold${rank}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fef3c7" />
-          <stop offset="25%" stopColor="#fbbf24" />
-          <stop offset="50%" stopColor="#f59e0b" />
-          <stop offset="75%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#d97706" />
-        </linearGradient>
-        
-        {/* Highlight gradient */}
-        <linearGradient id={`luxHighlight${rank}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#fffef5" />
-          <stop offset="100%" stopColor="#fbbf24" />
-        </linearGradient>
-        
-        {/* Radial glow */}
-        <radialGradient id={`luxGlow${rank}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="rgba(251, 191, 36, 0.3)" />
-          <stop offset="100%" stopColor="rgba(251, 191, 36, 0)" />
-        </radialGradient>
-      </defs>
-      
-      {/* Outer glow circle */}
-      <circle cx="32" cy="32" r="30" fill={`url(#luxGlow${rank})`} />
-      
-      {/* Main circular frame */}
-      <circle 
-        cx="32" 
-        cy="32" 
-        r="28" 
-        fill="none" 
-        stroke={`url(#luxGold${rank})`}
-        strokeWidth="3"
+      <img 
+        src={angelFrame} 
+        alt="frame" 
+        className="w-full h-full object-contain"
+        draggable={false}
       />
-      
-      {/* Inner decorative ring */}
-      <circle 
-        cx="32" 
-        cy="32" 
-        r="25" 
-        fill="none" 
-        stroke={`url(#luxHighlight${rank})`}
-        strokeWidth="1"
-        opacity="0.6"
-      />
-      
-      {/* Left laurel branch - detailed leaves */}
-      <g transform="translate(6, 32)">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <ellipse
-            key={`left-${i}`}
-            cx={3 + i * 0.5}
-            cy={-6 - i * 4}
-            rx={4}
-            ry={7}
-            fill={`url(#luxGold${rank})`}
-            transform={`rotate(${25 + i * 6})`}
-            opacity={1 - i * 0.08}
-          />
-        ))}
-        {/* Stem */}
-        <path 
-          d="M2,0 Q4,-15 8,-28" 
-          stroke="#b45309" 
-          strokeWidth="1.5" 
-          fill="none"
-          opacity="0.7"
-        />
-      </g>
-      
-      {/* Right laurel branch - detailed leaves */}
-      <g transform="translate(58, 32)">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <ellipse
-            key={`right-${i}`}
-            cx={-3 - i * 0.5}
-            cy={-6 - i * 4}
-            rx={4}
-            ry={7}
-            fill={`url(#luxGold${rank})`}
-            transform={`rotate(${-25 - i * 6})`}
-            opacity={1 - i * 0.08}
-          />
-        ))}
-        {/* Stem */}
-        <path 
-          d="M-2,0 Q-4,-15 -8,-28" 
-          stroke="#b45309" 
-          strokeWidth="1.5" 
-          fill="none"
-          opacity="0.7"
-        />
-      </g>
-      
-      {/* Bottom ribbon/bow */}
-      <g transform="translate(32, 58)">
-        <path 
-          d="M-10,0 Q-5,-3 0,-2 Q5,-3 10,0 Q5,2 0,1 Q-5,2 -10,0" 
-          fill={`url(#luxGold${rank})`}
-          stroke="#b45309"
-          strokeWidth="0.5"
-        />
-        {/* Ribbon tails */}
-        <path d="M-8,0 L-12,4" stroke={`url(#luxGold${rank})`} strokeWidth="2" />
-        <path d="M8,0 L12,4" stroke={`url(#luxGold${rank})`} strokeWidth="2" />
-      </g>
-      
-      {/* Crown for Top 1-3 */}
-      {isTop3 && (
-        <g transform="translate(32, 4)">
-          {/* Crown base */}
-          <path 
-            d={rank === 1 
-              ? "M-12,8 L-10,0 L-5,5 L0,-2 L5,5 L10,0 L12,8 Z"  // 5 peaks for Top 1
-              : rank === 2 
-                ? "M-10,6 L-8,0 L0,4 L8,0 L10,6 Z"  // 3 peaks for Top 2
-                : "M-8,5 L-5,0 L0,3 L5,0 L8,5 Z"  // smaller for Top 3
-            }
-            fill={`url(#luxGold${rank})`}
-            stroke="#b45309"
-            strokeWidth="0.5"
-          />
-          {/* Crown gem */}
-          <circle 
-            cx="0" 
-            cy={rank === 1 ? 1 : rank === 2 ? 2 : 2}
-            r={rank === 1 ? 3 : rank === 2 ? 2.5 : 2}
-            fill={gemColor}
-            style={{ filter: `drop-shadow(0 0 4px ${gemGlow})` }}
-          >
-            {rank === 1 && (
-              <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
-            )}
-          </circle>
-          {/* Side gems for Top 1 */}
-          {rank === 1 && (
-            <>
-              <circle cx="-6" cy="3" r="1.5" fill="#4169e1" opacity="0.9" />
-              <circle cx="6" cy="3" r="1.5" fill="#32cd32" opacity="0.9" />
-            </>
-          )}
-        </g>
-      )}
-      
-      {/* Decorative dots around frame */}
-      {[0, 60, 120, 180, 240, 300].map((angle) => (
-        <circle
-          key={angle}
-          cx={32 + 26 * Math.cos((angle - 90) * Math.PI / 180)}
-          cy={32 + 26 * Math.sin((angle - 90) * Math.PI / 180)}
-          r="1.5"
-          fill={`url(#luxGold${rank})`}
-          opacity="0.8"
-        />
-      ))}
-    </svg>
+    </div>
   );
 };
 
@@ -367,23 +210,24 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                       : 'inset 0 1px 0 rgba(255,255,255,0.1)',
                   }}
                 >
-                  {/* Avatar with Luxurious Laurel Frame */}
+                  {/* Avatar with Angel Frame */}
                   <div 
                     className={`relative flex-shrink-0 ${rank === 1 ? 'animate-pulse' : ''}`} 
                     style={{ 
-                      width: 64, 
+                      width: 90, 
                       height: 64,
                       animationDuration: rank === 1 ? '3s' : undefined,
                     }}
                   >
                     <LaurelFrame rank={rank} />
                     <Avatar 
-                      className="absolute"
+                      className="absolute rounded-full"
                       style={{ 
-                        width: 42, 
-                        height: 42, 
-                        top: 11, 
-                        left: 11,
+                        width: 36, 
+                        height: 36, 
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
                         border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
                         boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
                       }}
