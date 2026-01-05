@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FeedPost from "@/components/feed/FeedPost";
 import { ReportModal } from "@/components/ReportModal";
+import ProfileHonorBoard from "@/components/profile/ProfileHonorBoard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -453,11 +454,20 @@ const UserProfile = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="absolute top-4 left-4 bg-background/50 hover:bg-background/80"
+            className="absolute top-4 left-4 bg-background/50 hover:bg-background/80 z-50"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
+
+          {/* Profile Honor Board - Right half of cover */}
+          <div className="absolute top-4 right-4 bottom-4 hidden md:flex items-center justify-center z-40 w-1/2">
+            <ProfileHonorBoard 
+              userId={userProfile.id} 
+              displayName={userProfile.display_name} 
+              avatarUrl={userProfile.avatar_url} 
+            />
+          </div>
         </div>
 
         {/* Profile Info Section */}
