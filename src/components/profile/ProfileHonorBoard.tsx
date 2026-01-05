@@ -76,6 +76,12 @@ const AnimatedNumber = ({ value, suffix = "" }: { value: number; suffix?: string
   return <span>{formatNumber(displayValue)}{suffix}</span>;
 };
 
+// Metallic gold text style
+const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-amber-400 to-yellow-600 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]";
+
+// Metallic frame style
+const metallicFrameStyle = "bg-gradient-to-b from-emerald-800/90 via-emerald-900/95 to-emerald-950/90 border border-amber-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.3)] backdrop-blur-sm";
+
 // Stat row with given/received breakdown
 const StatRowDouble = ({ 
   icon: Icon, 
@@ -88,23 +94,23 @@ const StatRowDouble = ({
   given: number;
   received: number;
 }) => (
-  <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-500/20 hover:bg-emerald-800/50 transition-colors">
+  <div className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${metallicFrameStyle} hover:border-amber-300/80 transition-all`}>
     <div className="flex items-center gap-1.5">
-      <Icon className="w-3.5 h-3.5 text-amber-400" />
-      <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wide">
+      <Icon className={`w-3.5 h-3.5 ${goldTextStyle}`} style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
+      <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
         {label}
       </span>
     </div>
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-0.5 text-emerald-300">
-        <ArrowUp className="w-3 h-3" />
-        <span className="text-xs font-bold tabular-nums">
+      <div className="flex items-center gap-0.5">
+        <ArrowUp className="w-3 h-3 text-emerald-300" />
+        <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <AnimatedNumber value={given} />
         </span>
       </div>
-      <div className="flex items-center gap-0.5 text-amber-300">
-        <ArrowDown className="w-3 h-3" />
-        <span className="text-xs font-bold tabular-nums">
+      <div className="flex items-center gap-0.5">
+        <ArrowDown className="w-3 h-3 text-amber-300" />
+        <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <AnimatedNumber value={received} />
         </span>
       </div>
@@ -122,14 +128,14 @@ const StatRow = ({
   label: string; 
   value: number;
 }) => (
-  <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-500/20 hover:bg-emerald-800/50 transition-colors">
+  <div className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${metallicFrameStyle} hover:border-amber-300/80 transition-all`}>
     <div className="flex items-center gap-1.5">
-      <Icon className="w-3.5 h-3.5 text-amber-400" />
-      <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wide">
+      <Icon className={`w-3.5 h-3.5 ${goldTextStyle}`} style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
+      <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
         {label}
       </span>
     </div>
-    <span className="text-xs font-bold text-white tabular-nums">
+    <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
       <AnimatedNumber value={value} />
     </span>
   </div>
@@ -147,18 +153,18 @@ const TotalRow = ({
   value: number;
   highlight?: boolean;
 }) => (
-  <div className={`flex items-center justify-between px-3 py-1.5 rounded-lg border ${
+  <div className={`flex items-center justify-between px-3 py-2 rounded-lg ${
     highlight 
-      ? 'bg-gradient-to-r from-amber-900/50 via-emerald-900/40 to-amber-900/50 border-amber-500/40' 
-      : 'bg-emerald-900/40 border-emerald-500/20'
-  }`}>
+      ? 'bg-gradient-to-r from-amber-700/90 via-amber-600/90 to-amber-700/90 border-2 border-amber-300/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_8px_rgba(0,0,0,0.4)]' 
+      : metallicFrameStyle
+  } backdrop-blur-sm`}>
     <div className="flex items-center gap-2">
-      <Icon className={`w-4 h-4 ${highlight ? 'text-amber-300' : 'text-amber-400'}`} />
-      <span className={`text-xs font-semibold uppercase tracking-wide ${highlight ? 'text-amber-300' : 'text-amber-400'}`}>
+      <Icon className={`w-4 h-4 ${highlight ? 'text-white' : goldTextStyle}`} style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.6))' }} />
+      <span className={`text-xs font-bold uppercase tracking-wide ${highlight ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : goldTextStyle}`}>
         {label}
       </span>
     </div>
-    <span className={`text-sm font-bold tabular-nums ${highlight ? 'text-amber-200' : 'text-white'}`}>
+    <span className={`text-sm font-bold tabular-nums ${highlight ? 'text-yellow-100' : 'text-white'} drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]`}>
       <AnimatedNumber value={value} />
     </span>
   </div>
@@ -187,7 +193,6 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
       
       setIsLoading(true);
       try {
-        // First get user's post IDs for counting received interactions
         const { data: userPosts } = await supabase
           .from('posts')
           .select('id')
@@ -208,20 +213,17 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
           profileResult,
           receivedResult
         ] = await Promise.all([
-          // Posts count (only original posts)
           supabase
             .from('posts')
             .select('id', { count: 'exact', head: true })
             .eq('author_id', userId)
             .neq('post_type', 'share'),
           
-          // Reactions given (likes user gave to others)
           supabase
             .from('post_likes')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', userId),
           
-          // Reactions received (likes on user's posts)
           userPostIds.length > 0
             ? supabase
                 .from('post_likes')
@@ -229,13 +231,11 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
                 .in('post_id', userPostIds)
             : Promise.resolve({ count: 0 }),
           
-          // Comments given (comments user made)
           supabase
             .from('comments')
             .select('id', { count: 'exact', head: true })
             .eq('author_id', userId),
           
-          // Comments received (comments on user's posts)
           userPostIds.length > 0
             ? supabase
                 .from('comments')
@@ -243,14 +243,12 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
                 .in('post_id', userPostIds)
             : Promise.resolve({ count: 0 }),
           
-          // Shares given (shares user made)
           supabase
             .from('posts')
             .select('id', { count: 'exact', head: true })
             .eq('author_id', userId)
             .eq('post_type', 'share'),
           
-          // Shares received (others sharing user's posts)
           userPostIds.length > 0
             ? supabase
                 .from('posts')
@@ -259,28 +257,24 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
                 .eq('post_type', 'share')
             : Promise.resolve({ count: 0 }),
           
-          // Friends as follower
           supabase
             .from('followers')
             .select('id', { count: 'exact', head: true })
             .eq('follower_id', userId)
             .eq('status', 'accepted'),
           
-          // Friends as following
           supabase
             .from('followers')
             .select('id', { count: 'exact', head: true })
             .eq('following_id', userId)
             .eq('status', 'accepted'),
           
-          // Profile data for claimable/claimed
           supabase
             .from('profiles')
             .select('pending_reward, approved_reward, camly_balance')
             .eq('id', userId)
             .maybeSingle(),
           
-          // Total received from wallet_transactions
           supabase
             .from('wallet_transactions')
             .select('amount')
@@ -324,14 +318,14 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
   const totalMoney = totalReward + stats.totalReceived;
 
   return (
-    <div className="relative w-full max-w-[480px] overflow-hidden rounded-xl border-2 border-amber-500/60 shadow-[0_0_40px_rgba(16,185,129,0.3),0_0_80px_rgba(251,191,36,0.15)]">
-      {/* Background image */}
+    <div className="relative w-full max-w-[480px] overflow-hidden rounded-xl border-2 border-amber-400/70 shadow-[0_0_30px_rgba(16,185,129,0.4),0_0_60px_rgba(251,191,36,0.2),inset_0_1px_0_rgba(255,255,255,0.1)]">
+      {/* Background image - reduced overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${honorBoardBg})` }}
       />
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+      {/* Very light overlay for readability */}
+      <div className="absolute inset-0 bg-black/10" />
       
       {/* Content */}
       <div className="relative z-10 p-3">
@@ -343,38 +337,41 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
               <img 
                 src={logoFunFarm} 
                 alt="FUN FARM" 
-                className="w-8 h-8 rounded-full drop-shadow-[0_0_12px_rgba(16,185,129,0.9)] border border-emerald-400/50"
+                className="w-8 h-8 rounded-full border-2 border-amber-400/80 shadow-[0_0_15px_rgba(16,185,129,0.8)]"
               />
-              <div className="absolute inset-0 rounded-full animate-pulse bg-emerald-400/20" />
+              <div className="absolute inset-0 rounded-full animate-pulse bg-emerald-400/30" />
             </div>
             <h2 
-              className="text-lg font-bold tracking-[0.12em] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.7)]"
-              style={{ fontFamily: "'Orbitron', 'Segoe UI', sans-serif" }}
+              className={`text-lg font-bold tracking-[0.12em] ${goldTextStyle}`}
+              style={{ 
+                fontFamily: "'Orbitron', 'Segoe UI', sans-serif",
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+              }}
             >
               HONOR BOARD
             </h2>
           </div>
           
           {/* User Avatar + Name */}
-          <div className="flex items-center gap-2 bg-black/30 px-2 py-1 rounded-full border border-amber-500/30">
-            <Avatar className="w-5 h-5 border border-amber-500/50">
+          <div className={`flex items-center gap-2 px-2 py-1 rounded-full ${metallicFrameStyle}`}>
+            <Avatar className="w-5 h-5 border border-amber-400/60">
               <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback className="text-[10px] bg-emerald-900/70 text-amber-400">
+              <AvatarFallback className="text-[10px] bg-emerald-900/80 text-amber-300">
                 {(displayName || 'U')[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className="text-xs font-medium text-white truncate max-w-[100px]">
+            <span className="text-xs font-semibold text-white truncate max-w-[100px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
               {displayName || 'FUN Farmer'}
             </span>
           </div>
         </div>
 
         {/* Legend for arrows */}
-        <div className="flex justify-end gap-3 mb-1.5 text-[9px] text-muted-foreground">
-          <span className="flex items-center gap-0.5 text-emerald-300">
+        <div className="flex justify-end gap-3 mb-1.5 text-[9px]">
+          <span className="flex items-center gap-0.5 text-emerald-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
             <ArrowUp className="w-2.5 h-2.5" /> Đã tương tác
           </span>
-          <span className="flex items-center gap-0.5 text-amber-300">
+          <span className="flex items-center gap-0.5 text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
             <ArrowDown className="w-2.5 h-2.5" /> Được nhận
           </span>
         </div>
@@ -405,8 +402,8 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
         </div>
       </div>
 
-      {/* Bottom decorative gradient line */}
-      <div className="relative z-10 h-1 bg-gradient-to-r from-transparent via-amber-500/70 to-transparent" />
+      {/* Bottom decorative metallic line */}
+      <div className="relative z-10 h-1 bg-gradient-to-r from-amber-600/50 via-amber-400 to-amber-600/50 shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
     </div>
   );
 };
