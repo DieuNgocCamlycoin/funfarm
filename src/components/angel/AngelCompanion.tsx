@@ -1,15 +1,15 @@
-// 🧚 FUN FARM Angel Companion - Thiên thần đồng hành với Video Animation
+// 🧚 FUN FARM Angel Companion - Thiên thần đồng hành với GIF Animation (nền trong suốt)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-// Import video animations
-import angelIdleVideo from '@/assets/angel-videos/angel-idle.mp4';
-import angelDancingVideo from '@/assets/angel-videos/angel-dancing.mp4';
-import angelSleepingVideo from '@/assets/angel-videos/angel-sleeping.mp4';
-import angelWakingVideo from '@/assets/angel-videos/angel-waking.mp4';
-import angelExcitedVideo from '@/assets/angel-videos/angel-excited.mp4';
-import angelSittingVideo from '@/assets/angel-videos/angel-sitting.mp4';
-import angelAppearingVideo from '@/assets/angel-videos/angel-appearing.mp4';
-import angelHidingVideo from '@/assets/angel-videos/angel-hiding.mp4';
+// Import GIF animations (hỗ trợ nền trong suốt - không cần mix-blend-mode)
+import angelIdleGif from '@/assets/angel-gifs/angel-idle.gif';
+import angelDancingGif from '@/assets/angel-gifs/angel-dancing.gif';
+import angelSleepingGif from '@/assets/angel-gifs/angel-sleeping.gif';
+import angelWakingGif from '@/assets/angel-gifs/angel-waking.gif';
+import angelExcitedGif from '@/assets/angel-gifs/angel-excited.gif';
+import angelSittingGif from '@/assets/angel-gifs/angel-sitting.gif';
+import angelAppearingGif from '@/assets/angel-gifs/angel-appearing.gif';
+import angelHidingGif from '@/assets/angel-gifs/angel-hiding.gif';
 
 export type AngelState = 
   | 'idle'
@@ -31,21 +31,25 @@ interface Sparkle {
   rotation: number;
 }
 
-// Map trạng thái với video
-const STATE_VIDEOS: Record<AngelState, string> = {
-  idle: angelIdleVideo,
-  following: angelIdleVideo,
-  dancing: angelDancingVideo,
-  sleeping: angelSleepingVideo,
-  waking: angelWakingVideo,
-  sitting: angelSittingVideo,
-  hiding: angelHidingVideo,
-  appearing: angelAppearingVideo,
-  excited: angelExcitedVideo,
+// Map trạng thái với GIF
+const STATE_GIFS: Record<AngelState, string> = {
+  idle: angelIdleGif,
+  following: angelIdleGif,
+  dancing: angelDancingGif,
+  sleeping: angelSleepingGif,
+  waking: angelWakingGif,
+  sitting: angelSittingGif,
+  hiding: angelHidingGif,
+  appearing: angelAppearingGif,
+  excited: angelExcitedGif,
 };
 
-// Các video chỉ phát 1 lần (không loop)
-const ONE_SHOT_STATES: AngelState[] = ['waking', 'appearing', 'hiding'];
+// Các trạng thái one-shot với thời gian chuyển về idle
+const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
+  waking: 2000,
+  appearing: 1500,
+  excited: 2000,
+};
 
 // Random behaviors khi idle
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
@@ -72,36 +76,23 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
   const idleTimer = useRef<NodeJS.Timeout>();
   const behaviorTimer = useRef<NodeJS.Timeout>();
   const frameRef = useRef<number>();
-  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Preload all videos for smooth transitions
+  // Preload all GIFs for smooth transitions
   useEffect(() => {
-    Object.values(STATE_VIDEOS).forEach(src => {
-      const video = document.createElement('video');
-      video.preload = 'auto';
-      video.src = src;
+    Object.values(STATE_GIFS).forEach(src => {
+      const img = new Image();
+      img.src = src;
     });
   }, []);
 
-  // Handle video state changes
+  // Handle one-shot animations với setTimeout (GIF không có onEnded event)
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.load();
-      videoRef.current.play().catch(() => {
-        // Handle autoplay restrictions silently
-      });
-    }
-  }, [state]);
-
-  // Handle video ended for one-shot animations
-  const handleVideoEnded = useCallback(() => {
-    if (ONE_SHOT_STATES.includes(state)) {
-      if (state === 'appearing') {
+    const duration = ONE_SHOT_DURATIONS[state];
+    if (duration) {
+      const timer = setTimeout(() => {
         setState('idle');
-      } else if (state === 'waking') {
-        setState('idle');
-      }
-      // hiding state is handled by the random behavior logic
+      }, duration);
+      return () => clearTimeout(timer);
     }
   }, [state]);
 
@@ -284,8 +275,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
 
   if (!enabled) return null;
 
-  const currentVideo = STATE_VIDEOS[state];
-  const shouldLoop = !ONE_SHOT_STATES.includes(state);
+  const currentGif = STATE_GIFS[state];
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[99999]">
@@ -311,7 +301,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
         </svg>
       ))}
       
-      {/* Angel Video */}
+      {/* Angel GIF - nền trong suốt, không cần mix-blend-mode */}
       <div
         className={`absolute transition-opacity duration-300 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
         style={{
@@ -322,21 +312,13 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
           filter: 'drop-shadow(0 0 20px rgba(255, 215, 0, 0.5)) drop-shadow(0 0 40px rgba(255, 182, 193, 0.3))',
         }}
       >
-        <video
-          ref={videoRef}
-          key={currentVideo}
-          src={currentVideo}
-          autoPlay
-          loop={shouldLoop}
-          muted
-          playsInline
-          onEnded={handleVideoEnded}
+        <img
+          key={currentGif}
+          src={currentGif}
+          alt="Angel Companion"
           className="w-full h-auto"
-          style={{
-            transformOrigin: 'center bottom',
-            mixBlendMode: 'multiply', // Ẩn nền trắng
-            filter: 'brightness(1.1) contrast(1.05)',
-          }}
+          style={{ transformOrigin: 'center bottom' }}
+          draggable={false}
         />
         
         {/* Sleeping Z's */}
