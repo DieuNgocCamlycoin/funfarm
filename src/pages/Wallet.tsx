@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// 🌱 Divine Mantra: "Farmers rich, Eaters happy. Free-Fee & Earn with Love."
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
