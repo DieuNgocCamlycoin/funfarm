@@ -22,7 +22,7 @@ interface ProfileHonorBoardProps {
   userId: string;
   displayName: string | null;
   avatarUrl: string | null;
-  variant?: 'cover' | 'standalone'; // cover = trong ảnh bìa, standalone = riêng biệt (mobile)
+  variant?: 'cover' | 'standalone';
 }
 
 interface ProfileStats {
@@ -42,7 +42,7 @@ interface ProfileStats {
   totalReceivedFromUsers: number;
 }
 
-// Animated counter component - shows full numbers
+// Animated counter
 const AnimatedNumber = ({ value }: { value: number }) => {
   const [displayValue, setDisplayValue] = useState(0);
 
@@ -69,19 +69,13 @@ const AnimatedNumber = ({ value }: { value: number }) => {
   return <span>{displayValue.toLocaleString('vi-VN')}</span>;
 };
 
-// Metallic gold text style
+// Styles
 const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
-
-// Title gold style
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
+const metallicFrameStyle = "bg-black/20 border border-emerald-400/40 backdrop-blur-[2px] rounded-md";
+const goldenFrameStyle = "bg-black/25 border-2 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.25)] backdrop-blur-[2px] rounded-lg";
 
-// Metallic frame - subtle
-const metallicFrameStyle = "bg-black/20 border border-emerald-400/40 backdrop-blur-[2px] rounded-lg";
-
-// Golden frame
-const goldenFrameStyle = "bg-black/25 border-2 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.25)] backdrop-blur-[2px] rounded-xl";
-
-// Stat row with given/received
+// Stat row with given/received - compact
 const StatRowDouble = ({ 
   icon: Icon, 
   label, 
@@ -93,23 +87,23 @@ const StatRowDouble = ({
   given: number;
   received: number;
 }) => (
-  <div className={`flex items-center justify-between px-2 py-1.5 ${metallicFrameStyle}`}>
-    <div className="flex items-center gap-1.5">
-      <Icon className="w-3.5 h-3.5 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
-      <span className={`text-xs font-bold uppercase tracking-wide ${goldTextStyle}`}>
+  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`}>
+    <div className="flex items-center gap-1">
+      <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
+      <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
         {label}
       </span>
     </div>
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-0.5">
-        <ArrowUp className="w-3 h-3 text-emerald-300" />
-        <span className="text-sm font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+        <ArrowUp className="w-2.5 h-2.5 text-emerald-300" />
+        <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
           <AnimatedNumber value={given} />
         </span>
       </div>
       <div className="flex items-center gap-0.5">
-        <ArrowDown className="w-3 h-3 text-amber-300" />
-        <span className="text-sm font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+        <ArrowDown className="w-2.5 h-2.5 text-amber-300" />
+        <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
           <AnimatedNumber value={received} />
         </span>
       </div>
@@ -117,7 +111,7 @@ const StatRowDouble = ({
   </div>
 );
 
-// Simple stat row
+// Simple stat row - compact
 const StatRow = ({ 
   icon: Icon, 
   label, 
@@ -127,20 +121,20 @@ const StatRow = ({
   label: string; 
   value: number;
 }) => (
-  <div className={`flex items-center justify-between px-2 py-1.5 ${metallicFrameStyle}`}>
-    <div className="flex items-center gap-1.5">
-      <Icon className="w-3.5 h-3.5 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
-      <span className={`text-xs font-bold uppercase tracking-wide ${goldTextStyle}`}>
+  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`}>
+    <div className="flex items-center gap-1">
+      <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
+      <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
         {label}
       </span>
     </div>
-    <span className="text-sm font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+    <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
       <AnimatedNumber value={value} />
     </span>
   </div>
 );
 
-// Total row
+// Total row - compact
 const TotalRow = ({ 
   icon: Icon, 
   label, 
@@ -154,21 +148,21 @@ const TotalRow = ({
   subLabel?: string;
   isGold?: boolean;
 }) => (
-  <div className={`flex items-center justify-between px-3 py-2 ${isGold ? goldenFrameStyle : metallicFrameStyle}`}>
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-2">
-        <Icon className={`w-5 h-5 ${isGold ? 'text-amber-300' : 'text-emerald-300'}`} style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.4))' }} />
-        <span className={`text-base font-extrabold uppercase tracking-wide ${goldTextStyle}`}>
+  <div className={`flex items-center justify-between px-2 py-1.5 ${isGold ? goldenFrameStyle : metallicFrameStyle}`}>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-1.5">
+        <Icon className={`w-4 h-4 ${isGold ? 'text-amber-300' : 'text-emerald-300'}`} style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.4))' }} />
+        <span className={`text-sm font-extrabold uppercase tracking-wide ${goldTextStyle}`}>
           {label}
         </span>
       </div>
       {subLabel && (
-        <span className="text-[10px] text-amber-200/70 ml-7">
+        <span className="text-[9px] text-amber-200/70 ml-5">
           {subLabel}
         </span>
       )}
     </div>
-    <span className={`text-xl font-black tabular-nums ${isGold ? titleGoldStyle : 'text-emerald-300'} drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]`}>
+    <span className={`text-lg font-black tabular-nums ${isGold ? titleGoldStyle : 'text-emerald-300'} drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]`}>
       <AnimatedNumber value={value} />
     </span>
   </div>
@@ -328,16 +322,10 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
     fetchStats();
   }, [userId]);
 
-  // TOTAL REWARD = pending + approved + camly_balance
   const totalReward = stats.claimable + stats.claimed;
-  
-  // TOTAL RECEIVED = Total Reward + Quà từ người dùng khác
   const totalReceived = totalReward + stats.totalReceivedFromUsers;
-  
-  // TOTAL MONEY = Đã gửi + Đã nhận (tổng lưu thông)
   const totalMoney = stats.totalSent + totalReceived;
 
-  // Metallic border gradient
   const metallicBorderStyle = variant === 'cover' 
     ? "border-2 border-amber-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_20px_rgba(251,191,36,0.3),0_0_40px_rgba(16,185,129,0.2)]"
     : "border-2 border-amber-400/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_20px_rgba(0,0,0,0.3),0_0_30px_rgba(251,191,36,0.25)]";
@@ -347,7 +335,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
       className={`
         relative overflow-hidden rounded-xl 
         ${metallicBorderStyle}
-        ${variant === 'cover' ? 'w-full max-w-[480px] h-full max-h-[350px]' : 'w-full'}
+        ${variant === 'cover' ? 'w-full max-w-[460px]' : 'w-full'}
       `}
     >
       {/* Background image */}
@@ -355,70 +343,62 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${honorBoardBg})` }}
       />
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/10" />
       
-      {/* Sparkle effects */}
+      {/* Sparkles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-3 left-6 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '3s' }} />
-        <div className="absolute top-8 right-12 w-1 h-1 bg-yellow-200 rounded-full animate-ping opacity-40" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
-        <div className="absolute bottom-12 left-1/4 w-1 h-1 bg-white rounded-full animate-ping opacity-30" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
-        <div className="absolute bottom-6 right-8 w-1 h-1 bg-amber-200 rounded-full animate-ping opacity-40" style={{ animationDuration: '2.8s', animationDelay: '1.5s' }} />
+        <div className="absolute top-2 left-4 w-1 h-1 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '3s' }} />
+        <div className="absolute top-6 right-8 w-1 h-1 bg-yellow-200 rounded-full animate-ping opacity-40" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
+        <div className="absolute bottom-8 left-1/4 w-1 h-1 bg-white rounded-full animate-ping opacity-30" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
       </div>
       
-      {/* Top metallic edge highlight */}
+      {/* Top highlight */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
       
-      {/* Content */}
-      <div className="relative z-10 p-3">
-        {/* Header - CENTERED */}
-        <div className="flex flex-col items-center mb-2">
-          {/* Logo + Title */}
+      {/* Content - compact padding */}
+      <div className="relative z-10 p-2">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-1.5">
           <div className="flex items-center gap-2 justify-center">
-            <div className="relative">
-              <img 
-                src={logoFunFarm} 
-                alt="FUN FARM" 
-                className="w-10 h-10 rounded-full border-2 border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.5)]"
-              />
-            </div>
+            <img 
+              src={logoFunFarm} 
+              alt="FUN FARM" 
+              className="w-8 h-8 rounded-full border-2 border-amber-400/60 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+            />
             <h2 
-              className={`text-xl md:text-2xl font-black tracking-[0.08em] ${titleGoldStyle}`}
+              className={`text-lg md:text-xl font-black tracking-[0.06em] ${titleGoldStyle}`}
               style={{ 
                 fontFamily: "'Orbitron', 'Segoe UI', sans-serif",
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.7)) drop-shadow(0 0 15px rgba(251,191,36,0.4))',
+                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.7)) drop-shadow(0 0 12px rgba(251,191,36,0.4))',
               }}
             >
               ✦ HONOR BOARD ✦
             </h2>
           </div>
           
-          {/* Avatar + Name */}
-          <div className="flex items-center gap-2 justify-center mt-2">
-            <Avatar className="w-7 h-7 border-2 border-amber-400/60 shadow-[0_0_8px_rgba(251,191,36,0.4)]">
+          <div className="flex items-center gap-1.5 justify-center mt-1">
+            <Avatar className="w-6 h-6 border border-amber-400/60 shadow-[0_0_6px_rgba(251,191,36,0.4)]">
               <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback className="text-xs bg-amber-700 text-amber-100 font-bold">
+              <AvatarFallback className="text-[10px] bg-amber-700 text-amber-100 font-bold">
                 {(displayName || 'U')[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className={`text-base font-bold ${goldTextStyle}`} style={{ textShadow: '0 0 8px rgba(251,191,36,0.3)' }}>
+            <span className={`text-sm font-bold ${goldTextStyle}`} style={{ textShadow: '0 0 6px rgba(251,191,36,0.3)' }}>
               {displayName || 'FUN Farmer'}
             </span>
           </div>
         </div>
 
-        {/* Stats Grid - 2 columns, compact */}
-        <div className="grid grid-cols-2 gap-1.5 mb-2">
-          {/* Left Column */}
-          <div className="space-y-1.5">
+        {/* Stats Grid - tighter */}
+        <div className="grid grid-cols-2 gap-1 mb-1.5">
+          <div className="space-y-1">
             <StatRow icon={TrendingUp} label="POSTS" value={stats.postsCount} />
             <StatRowDouble icon={Star} label="REACTIONS" given={stats.reactionsGiven} received={stats.reactionsReceived} />
             <StatRowDouble icon={MessageCircle} label="COMMENTS" given={stats.commentsGiven} received={stats.commentsReceived} />
             <StatRowDouble icon={Share2} label="SHARES" given={stats.sharesGiven} received={stats.sharesReceived} />
           </div>
           
-          {/* Right Column */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <StatRow icon={Users} label="FRIENDS" value={stats.friendsCount} />
             <StatRow icon={Gift} label="NFTS" value={stats.nftsCount} />
             <StatRow icon={Coins} label="CLAIMABLE" value={stats.claimable} />
@@ -426,8 +406,8 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
           </div>
         </div>
 
-        {/* Full-width totals */}
-        <div className="space-y-1.5">
+        {/* Totals - tighter */}
+        <div className="space-y-1">
           <TotalRow 
             icon={DollarSign} 
             label="TOTAL REWARD" 
@@ -444,7 +424,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
         </div>
       </div>
 
-      {/* Bottom metallic edge */}
+      {/* Bottom edge */}
       <div className="relative z-10 h-1 bg-gradient-to-r from-emerald-600/30 via-amber-400/60 to-emerald-600/30" />
     </div>
   );
