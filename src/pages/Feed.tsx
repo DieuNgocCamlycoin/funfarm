@@ -351,7 +351,7 @@ const Feed = () => {
       const profile = profilesData?.[0];
       const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
       
-      // If this is a share post, fetch the original post
+      // If this is a share post, fetch the original post with full gift data
       let originalPost = undefined;
       if (newPost.post_type === 'share' && newPost.original_post_id) {
         const { data: origPost } = await supabase
@@ -366,6 +366,54 @@ const Feed = () => {
           });
           const op = origProfile?.[0];
           const opName = op?.display_name?.trim() || 'Nông dân FUN';
+          
+          // If original is a gift post, enrich receiver + amount
+          let origReceiverName: string | undefined;
+          let origReceiverAvatar: string | undefined;
+          let origGiftAmount: number | undefined;
+          let origGiftCurrency: string | undefined;
+
+          if (origPost.post_type === 'gift') {
+            // Fetch receiver profile
+            if (origPost.gift_receiver_id) {
+              const { data: rp } = await supabase.rpc('get_public_profiles', {
+                user_ids: [origPost.gift_receiver_id]
+              });
+              const r0: any = rp?.[0];
+              origReceiverName = r0?.display_name?.trim() || undefined;
+              origReceiverAvatar = r0?.avatar_url || undefined;
+            }
+
+            // Fallback: parse from content
+            if (!origReceiverName) {
+              const extractedName = extractGiftReceiverName(origPost.content);
+              if (extractedName) {
+                origReceiverName = extractedName;
+                const { data: foundProfiles } = await supabase
+                  .from('profiles')
+                  .select('display_name, avatar_url')
+                  .ilike('display_name', extractedName)
+                  .limit(1);
+                const fp: any = (foundProfiles || [])[0];
+                origReceiverAvatar = fp?.avatar_url || undefined;
+              }
+            }
+
+            // Fetch gift amount from wallet_transactions
+            const { data: tx } = await supabase
+              .from('wallet_transactions')
+              .select('amount, currency')
+              .eq('post_id', origPost.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (tx) {
+              origGiftAmount = Number((tx as any).amount) || 0;
+              origGiftCurrency = (tx as any).currency || 'CAMLY';
+            }
+          }
+          
           originalPost = {
             id: origPost.id,
             author: {
@@ -394,6 +442,15 @@ const Feed = () => {
             is_product_post: origPost.is_product_post,
             product_name: origPost.product_name,
             price_camly: origPost.price_camly,
+            // Gift post fields
+            post_type: origPost.post_type || 'post',
+            gift_receiver_id: origPost.gift_receiver_id,
+            sender_wallet: origPost.sender_wallet,
+            receiver_wallet: origPost.receiver_wallet,
+            receiver_name: origReceiverName,
+            receiver_avatar: origReceiverAvatar,
+            gift_amount: origGiftAmount,
+            gift_currency: origGiftCurrency,
           };
         }
       }
