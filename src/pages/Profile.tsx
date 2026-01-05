@@ -503,12 +503,13 @@ const Profile = () => {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
           
-          {/* Profile Honor Board - Right half of cover */}
-          <div className="absolute top-4 right-4 bottom-4 hidden md:flex items-center justify-center z-40 w-1/2">
+          {/* Profile Honor Board - In cover (desktop only) */}
+          <div className="absolute top-2 right-2 bottom-2 hidden md:flex items-center justify-center z-40 w-[55%] lg:w-1/2">
             <ProfileHonorBoard 
               userId={user?.id || ''} 
               displayName={profile?.display_name || null} 
               avatarUrl={avatarUrl || null} 
+              variant="cover"
             />
           </div>
           
@@ -522,6 +523,16 @@ const Profile = () => {
               />
             </div>
           )}
+        </div>
+        
+        {/* Profile Honor Board - Mobile (below cover) */}
+        <div className="md:hidden px-4 -mt-6 relative z-30">
+          <ProfileHonorBoard 
+            userId={user?.id || ''} 
+            displayName={profile?.display_name || null} 
+            avatarUrl={avatarUrl || null} 
+            variant="standalone"
+          />
         </div>
 
         {/* Profile Info Section */}
