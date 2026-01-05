@@ -2,7 +2,19 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  TrendingUp, 
+  Users, 
+  Star, 
+  MessageCircle, 
+  Share2, 
+  Gift, 
+  Coins, 
+  DollarSign,
+  Wallet
+} from "lucide-react";
 import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
+import honorBoardBg from "@/assets/honor-board-bg.jpeg";
 
 interface ProfileHonorBoardProps {
   userId: string;
@@ -17,9 +29,9 @@ interface ProfileStats {
   sharesCount: number;
   friendsCount: number;
   nftsCount: number;
-  claimable: number; // pending_reward + approved_reward
-  claimed: number; // camly_balance (đã rút về ví)
-  totalReceived: number; // Tiền nhận từ user khác qua wallet_transactions
+  claimable: number;
+  claimed: number;
+  totalReceived: number;
 }
 
 // Animated counter component
@@ -51,7 +63,7 @@ const AnimatedNumber = ({ value, suffix = "" }: { value: number; suffix?: string
       return (num / 1000000).toFixed(1) + 'M';
     }
     if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+      return (num / 1000).toFixed(num >= 10000 ? 0 : 1) + 'K';
     }
     return num.toLocaleString();
   };
@@ -59,26 +71,54 @@ const AnimatedNumber = ({ value, suffix = "" }: { value: number; suffix?: string
   return <span>{formatNumber(displayValue)}{suffix}</span>;
 };
 
-// Stat item component
-const StatItem = ({ label, value, suffix = "" }: { label: string; value: number; suffix?: string }) => (
-  <div className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg bg-emerald-900/50 border border-emerald-500/20 min-w-[70px]">
-    <span className="text-[10px] font-medium text-amber-400 uppercase tracking-wider drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]">
-      {label}
-    </span>
-    <span className="text-sm font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-      <AnimatedNumber value={value} suffix={suffix} />
+// Stat row component with icon
+const StatRow = ({ 
+  icon: Icon, 
+  label, 
+  value 
+}: { 
+  icon: React.ElementType; 
+  label: string; 
+  value: number;
+}) => (
+  <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-500/20 hover:bg-emerald-800/50 transition-colors">
+    <div className="flex items-center gap-2">
+      <Icon className="w-4 h-4 text-amber-400" />
+      <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
+        {label}
+      </span>
+    </div>
+    <span className="text-sm font-bold text-white tabular-nums">
+      <AnimatedNumber value={value} />
     </span>
   </div>
 );
 
-// Full-width stat row
-const FullWidthStat = ({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) => (
-  <div className={`flex justify-between items-center p-2 rounded-lg ${highlight ? 'bg-gradient-to-r from-amber-900/50 via-emerald-900/50 to-amber-900/50 border border-amber-500/30' : 'bg-emerald-900/50 border border-emerald-500/20'}`}>
-    <span className="text-xs font-medium text-amber-400 uppercase tracking-wider drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]">
-      {label}
-    </span>
-    <span className={`text-sm font-bold ${highlight ? 'text-amber-300' : 'text-white'} drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]`}>
-      <AnimatedNumber value={value} suffix=" CLC" />
+// Full-width stat row for totals
+const TotalRow = ({ 
+  icon: Icon, 
+  label, 
+  value,
+  highlight = false 
+}: { 
+  icon: React.ElementType; 
+  label: string; 
+  value: number;
+  highlight?: boolean;
+}) => (
+  <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+    highlight 
+      ? 'bg-gradient-to-r from-amber-900/50 via-emerald-900/40 to-amber-900/50 border-amber-500/40' 
+      : 'bg-emerald-900/40 border-emerald-500/20'
+  }`}>
+    <div className="flex items-center gap-2">
+      <Icon className={`w-4 h-4 ${highlight ? 'text-amber-300' : 'text-amber-400'}`} />
+      <span className={`text-xs font-semibold uppercase tracking-wide ${highlight ? 'text-amber-300' : 'text-amber-400'}`}>
+        {label}
+      </span>
+    </div>
+    <span className={`text-sm font-bold tabular-nums ${highlight ? 'text-amber-200' : 'text-white'}`}>
+      <AnimatedNumber value={value} />
     </span>
   </div>
 );
@@ -103,7 +143,6 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
       
       setIsLoading(true);
       try {
-        // Fetch all stats in parallel for performance
         const [
           postsResult,
           reactionsResult,
@@ -114,54 +153,46 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
           profileResult,
           receivedResult
         ] = await Promise.all([
-          // Posts count (only original posts, không đếm shares)
           supabase
             .from('posts')
             .select('id', { count: 'exact', head: true })
             .eq('author_id', userId)
             .neq('post_type', 'share'),
           
-          // Reactions count (likes user gave)
           supabase
             .from('post_likes')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', userId),
           
-          // Comments count (comments user made)
           supabase
             .from('comments')
             .select('id', { count: 'exact', head: true })
             .eq('author_id', userId),
           
-          // Shares count (shares user made)
           supabase
             .from('posts')
             .select('id', { count: 'exact', head: true })
             .eq('author_id', userId)
             .eq('post_type', 'share'),
           
-          // Friends count (as follower)
           supabase
             .from('followers')
             .select('id', { count: 'exact', head: true })
             .eq('follower_id', userId)
             .eq('status', 'accepted'),
           
-          // Friends count (as following)
           supabase
             .from('followers')
             .select('id', { count: 'exact', head: true })
             .eq('following_id', userId)
             .eq('status', 'accepted'),
           
-          // Profile data for claimable/claimed
           supabase
             .from('profiles')
             .select('pending_reward, approved_reward, camly_balance')
             .eq('id', userId)
             .single(),
           
-          // Total received from wallet_transactions
           supabase
             .from('wallet_transactions')
             .select('amount')
@@ -173,7 +204,6 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
         const approvedReward = profileResult.data?.approved_reward || 0;
         const camlyBalance = profileResult.data?.camly_balance || 0;
         
-        // Calculate total received from other users
         const totalReceived = (receivedResult.data || []).reduce(
           (sum, tx) => sum + (tx.amount || 0), 0
         );
@@ -184,7 +214,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
           commentsCount: commentsResult.count || 0,
           sharesCount: sharesResult.count || 0,
           friendsCount: (friendsResult1.count || 0) + (friendsResult2.count || 0),
-          nftsCount: 0, // NFTs chưa có trong schema
+          nftsCount: 0,
           claimable: pendingReward + approvedReward,
           claimed: camlyBalance,
           totalReceived,
@@ -203,74 +233,79 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl }: ProfileHonorBoard
   const totalMoney = totalReward + stats.totalReceived;
 
   return (
-    <div className="relative w-full max-w-[320px] overflow-hidden rounded-xl backdrop-blur-md bg-black/40 border border-amber-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2),0_0_60px_rgba(251,191,36,0.1)]">
-      {/* Decorative glow effects */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative w-full max-w-[500px] overflow-hidden rounded-xl border-2 border-amber-500/60 shadow-[0_0_40px_rgba(16,185,129,0.3),0_0_80px_rgba(251,191,36,0.15)]">
+      {/* Background image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${honorBoardBg})` }}
+      />
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
       
-      {/* Header */}
-      <div className="relative z-10 px-3 py-2 border-b border-amber-500/30 bg-gradient-to-r from-emerald-900/30 via-black/20 to-emerald-900/30">
-        {/* Logo + Title */}
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="relative">
-            <img 
-              src={logoFunFarm} 
-              alt="FUN FARM" 
-              className="w-6 h-6 rounded-full drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]"
-            />
-            <div className="absolute inset-0 rounded-full animate-pulse bg-emerald-500/30" />
+      {/* Content */}
+      <div className="relative z-10 p-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          {/* Logo + Title */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <img 
+                src={logoFunFarm} 
+                alt="FUN FARM" 
+                className="w-10 h-10 rounded-full drop-shadow-[0_0_12px_rgba(16,185,129,0.9)] border border-emerald-400/50"
+              />
+              <div className="absolute inset-0 rounded-full animate-pulse bg-emerald-400/20" />
+            </div>
+            <h2 
+              className="text-xl font-bold tracking-[0.15em] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.7)]"
+              style={{ fontFamily: "'Orbitron', 'Segoe UI', sans-serif" }}
+            >
+              HONOR BOARD
+            </h2>
           </div>
-          <h2 className="text-sm font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]"
-            style={{ fontFamily: "'Orbitron', sans-serif" }}
-          >
-            HONOR BOARD
-          </h2>
+          
+          {/* User Avatar + Name */}
+          <div className="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-full border border-amber-500/30">
+            <Avatar className="w-6 h-6 border border-amber-500/50">
+              <AvatarImage src={avatarUrl || undefined} />
+              <AvatarFallback className="text-xs bg-emerald-900/70 text-amber-400">
+                {(displayName || 'U')[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium text-white truncate max-w-[120px]">
+              {displayName || 'FUN Farmer'}
+            </span>
+          </div>
         </div>
-        
-        {/* User Avatar + Name */}
-        <div className="flex items-center justify-center gap-2">
-          <Avatar className="w-5 h-5 border border-amber-500/50">
-            <AvatarImage src={avatarUrl || undefined} />
-            <AvatarFallback className="text-[8px] bg-emerald-900/50">
-              {(displayName || 'U')[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-xs font-medium text-white/90 truncate max-w-[150px]">
-            {displayName || 'FUN Farmer'}
-          </span>
-        </div>
-      </div>
 
-      {/* Stats Content */}
-      <div className="relative z-10 p-3 space-y-2">
-        {/* Two columns grid */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Stats Grid - 2 columns horizontal */}
+        <div className="grid grid-cols-2 gap-2 mb-2">
           {/* Left Column */}
           <div className="space-y-1.5">
-            <StatItem label="Posts" value={stats.postsCount} />
-            <StatItem label="Reactions" value={stats.reactionsCount} />
-            <StatItem label="Comments" value={stats.commentsCount} />
-            <StatItem label="Shares" value={stats.sharesCount} />
+            <StatRow icon={TrendingUp} label="POSTS" value={stats.postsCount} />
+            <StatRow icon={Star} label="REACTIONS" value={stats.reactionsCount} />
+            <StatRow icon={MessageCircle} label="COMMENTS" value={stats.commentsCount} />
+            <StatRow icon={Share2} label="SHARES" value={stats.sharesCount} />
           </div>
           
           {/* Right Column */}
           <div className="space-y-1.5">
-            <StatItem label="Friends" value={stats.friendsCount} />
-            <StatItem label="NFTs" value={stats.nftsCount} />
-            <StatItem label="Claimable" value={stats.claimable} />
-            <StatItem label="Claimed" value={stats.claimed} />
+            <StatRow icon={Users} label="FRIENDS" value={stats.friendsCount} />
+            <StatRow icon={Gift} label="NFTS" value={stats.nftsCount} />
+            <StatRow icon={Coins} label="CLAIMABLE" value={stats.claimable} />
+            <StatRow icon={Wallet} label="CLAIMED" value={stats.claimed} />
           </div>
         </div>
 
         {/* Full-width totals */}
-        <div className="space-y-1.5 pt-1">
-          <FullWidthStat label="Total Reward" value={totalReward} />
-          <FullWidthStat label="Total Money" value={totalMoney} highlight />
+        <div className="space-y-1.5">
+          <TotalRow icon={DollarSign} label="TOTAL REWARD" value={totalReward} />
+          <TotalRow icon={Wallet} label="TOTAL MONEY" value={totalMoney} highlight />
         </div>
       </div>
 
-      {/* Bottom decorative line */}
-      <div className="h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+      {/* Bottom decorative gradient line */}
+      <div className="relative z-10 h-1 bg-gradient-to-r from-transparent via-amber-500/70 to-transparent" />
     </div>
   );
 };
