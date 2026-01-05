@@ -71,8 +71,8 @@ const AnimatedNumber = ({ value }: { value: number }) => {
 // Styles
 const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
-const metallicFrameStyle = "bg-black/20 border border-emerald-400/40 backdrop-blur-[2px] rounded-md";
-const goldenFrameStyle = "bg-black/25 border-2 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.25)] backdrop-blur-[2px] rounded-lg";
+const metallicFrameStyle = "border border-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] rounded-md";
+const goldenFrameStyle = "border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_10px_rgba(100,180,220,0.2)] rounded-lg";
 
 // Stat row with given/received - compact
 const StatRowDouble = ({ 
@@ -86,7 +86,7 @@ const StatRowDouble = ({
   given: number;
   received: number;
 }) => (
-  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`}>
+  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`} style={{ background: 'rgba(100, 180, 220, 0.25)' }}>
     <div className="flex items-center gap-1">
       <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
       <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
@@ -120,7 +120,7 @@ const StatRow = ({
   label: string; 
   value: number;
 }) => (
-  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`}>
+  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`} style={{ background: 'rgba(100, 180, 220, 0.25)' }}>
     <div className="flex items-center gap-1">
       <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
       <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
@@ -147,7 +147,7 @@ const TotalRow = ({
   subLabel?: string;
   isGold?: boolean;
 }) => (
-  <div className={`flex items-center justify-between px-2 py-1.5 ${isGold ? goldenFrameStyle : metallicFrameStyle}`}>
+  <div className={`flex items-center justify-between px-2 py-1.5 ${isGold ? goldenFrameStyle : metallicFrameStyle}`} style={{ background: isGold ? 'rgba(80, 160, 200, 0.35)' : 'rgba(100, 180, 220, 0.25)' }}>
     <div className="flex flex-col">
       <div className="flex items-center gap-1.5">
         <Icon className={`w-4 h-4 ${isGold ? 'text-amber-300' : 'text-emerald-300'}`} style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.4))' }} />
