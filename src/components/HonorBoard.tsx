@@ -134,9 +134,11 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
         .from("profiles")
         .select("*", { count: "exact", head: true });
 
+      // Chỉ đếm bài viết gốc (không tính share)
       const { count: postsCount } = await supabase
         .from("posts")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .neq("post_type", "share");
 
       const { data: postsWithMedia } = await supabase
         .from("posts")
