@@ -645,58 +645,60 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="reward-calc" className="w-full">
-          <TabsList className="grid w-full grid-cols-13">
-            <TabsTrigger value="reward-calc" className="flex items-center gap-2 text-xs sm:text-sm">
+          <TabsList className="flex flex-wrap h-auto gap-1 p-2 bg-muted/50">
+            {/* Hàng 1: Quản lý & Công cụ */}
+            <TabsTrigger value="reward-calc" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Download className="h-4 w-4 text-purple-500" />
-              <span className="hidden sm:inline text-purple-500 font-medium">Tính thưởng</span>
+              <span className="text-purple-500 font-medium">Tính thưởng</span>
             </TabsTrigger>
-            <TabsTrigger value="verification" className="flex items-center gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="verification" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Shield className="h-4 w-4 text-blue-500" />
-              <span className="hidden sm:inline text-blue-500 font-medium">Xác minh</span>
+              <span className="text-blue-500 font-medium">Xác minh</span>
             </TabsTrigger>
-            <TabsTrigger value="gift-backfill" className="flex items-center gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="gift-backfill" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Gift className="h-4 w-4 text-pink-500" />
-              <span className="hidden sm:inline text-pink-500 font-medium">Backfill</span>
+              <span className="text-pink-500 font-medium">Backfill</span>
             </TabsTrigger>
-            <TabsTrigger value="quick-delete" className="flex items-center gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="quick-delete" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Search className="h-4 w-4 text-red-500" />
-              <span className="hidden sm:inline text-red-500 font-medium">Xóa nhanh</span>
+              <span className="text-red-500 font-medium">Xóa nhanh</span>
             </TabsTrigger>
-            <TabsTrigger value="deleted-users" className="flex items-center gap-2 text-xs sm:text-sm">
+            <TabsTrigger value="deleted-users" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Trash2 className="h-4 w-4 text-orange-500" />
-              <span className="hidden sm:inline text-orange-500">Đã xóa</span>
+              <span className="text-orange-500">Đã xóa</span>
             </TabsTrigger>
-            <TabsTrigger value="rewards" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Gift className="h-4 w-4" />
-              <span className="hidden sm:inline">Duyệt</span> ({pendingUsers.length})
+            <TabsTrigger value="rewards" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Gift className="h-4 w-4 text-yellow-600" />
+              <span>Duyệt ({pendingUsers.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="abuse" className="flex items-center gap-2 text-xs sm:text-sm">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="hidden sm:inline">Lạm dụng</span>
+            <TabsTrigger value="abuse" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <span>Lạm dụng</span>
             </TabsTrigger>
-            <TabsTrigger value="review" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Rà soát</span>
+            {/* Hàng 2: Danh sách & Thống kê */}
+            <TabsTrigger value="review" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Search className="h-4 w-4 text-indigo-500" />
+              <span>Rà soát</span>
             </TabsTrigger>
-            <TabsTrigger value="approved" className="flex items-center gap-2 text-xs sm:text-sm">
-              <CheckCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Đã Duyệt</span> ({allUsers.filter(u => (u.total_approved_history || 0) > 0).length})
+            <TabsTrigger value="approved" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>Đã Duyệt ({allUsers.filter(u => (u.total_approved_history || 0) > 0).length})</span>
             </TabsTrigger>
-            <TabsTrigger value="claimed" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Đã Claim</span> ({allUsers.filter(u => u.camly_balance > 0).length})
+            <TabsTrigger value="claimed" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Wallet className="h-4 w-4 text-cyan-500" />
+              <span>Đã Claim ({allUsers.filter(u => u.camly_balance > 0).length})</span>
             </TabsTrigger>
-            <TabsTrigger value="blockchain" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Link className="h-4 w-4" />
-              <span className="hidden sm:inline">BSC</span> ({blockchainData.length})
+            <TabsTrigger value="blockchain" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Link className="h-4 w-4 text-emerald-500" />
+              <span>BSC ({blockchainData.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="all-users" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Tất cả</span> ({allUsers.length})
+            <TabsTrigger value="all-users" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Users className="h-4 w-4 text-violet-500" />
+              <span>Tất cả ({allUsers.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="bans" className="flex items-center gap-2 text-xs sm:text-sm">
-              <Ban className="h-4 w-4" />
-              <span className="hidden sm:inline">Ban</span> ({bannedUsers.length})
+            <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Ban className="h-4 w-4 text-red-600" />
+              <span>Ban ({bannedUsers.length})</span>
             </TabsTrigger>
           </TabsList>
 
