@@ -219,11 +219,14 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:bg-white/15 bg-white/10 border border-white/20 backdrop-blur-sm"
+                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:brightness-110 border border-white/35"
                   style={{
+                    background: isTop3 
+                      ? 'rgba(80, 160, 200, 0.35)'
+                      : 'rgba(100, 180, 220, 0.25)',
                     boxShadow: isTop3 
                       ? 'inset 0 1px 0 rgba(255,255,255,0.25), 0 0 12px rgba(251,191,36,0.2)'
-                      : 'inset 0 1px 0 rgba(255,255,255,0.15)',
+                      : 'inset 0 1px 0 rgba(255,255,255,0.2)',
                   }}
                 >
                   {/* Avatar with Frame - khung lớn hơn, sát mép trái */}
