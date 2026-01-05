@@ -30,8 +30,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ImageCropUpload } from "@/components/profile/ImageCropUpload";
-import { CoverPhotoEditor } from "@/components/profile/CoverPhotoEditor";
+import { AvatarUploadMenu } from "@/components/profile/AvatarUploadMenu";
 import { FriendRequests } from "@/components/FriendRequests";
 import { FriendsList } from "@/components/FriendsList";
 import { FriendSearch } from "@/components/FriendSearch";
@@ -512,27 +511,6 @@ const Profile = () => {
               variant="cover"
             />
           </div>
-          
-          {/* Cover Photo Editor Button */}
-          {user?.id && (
-            <div className="absolute bottom-4 right-4 z-50">
-              <CoverPhotoEditor 
-                currentImage={coverUrl} 
-                userId={user.id} 
-                onUploadComplete={handleCoverUpload} 
-              />
-            </div>
-          )}
-        </div>
-        
-        {/* Profile Honor Board - Mobile (below cover) */}
-        <div className="md:hidden px-4 -mt-6 relative z-30">
-          <ProfileHonorBoard 
-            userId={user?.id || ''} 
-            displayName={profile?.display_name || null} 
-            avatarUrl={avatarUrl || null} 
-            variant="standalone"
-          />
         </div>
 
         {/* Profile Info Section */}
@@ -548,11 +526,10 @@ const Profile = () => {
                   </AvatarFallback>
                 </Avatar>
                 {user?.id && (
-                  <ImageCropUpload 
-                    type="avatar" 
-                    currentImage={avatarUrl} 
+                  <AvatarUploadMenu 
                     userId={user.id} 
-                    onUploadComplete={handleAvatarUpload} 
+                    onAvatarUpload={handleAvatarUpload}
+                    onCoverUpload={handleCoverUpload}
                   />
                 )}
               </div>
@@ -679,6 +656,16 @@ const Profile = () => {
                 profileEmoji={roleInfo.emoji}
                 onPostCreated={handlePostCreated}
               />
+              
+              {/* Profile Honor Board - Mobile (below Create Post) */}
+              <div className="md:hidden">
+                <ProfileHonorBoard 
+                  userId={user?.id || ''} 
+                  displayName={profile?.display_name || null} 
+                  avatarUrl={avatarUrl || null} 
+                  variant="standalone"
+                />
+              </div>
 
               {isLoading ? (
                 <div className="flex justify-center py-12">
