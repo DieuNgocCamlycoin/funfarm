@@ -13,6 +13,7 @@ import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { ViolationWarning } from "@/components/ViolationWarning";
 
 import HonorBoard from "@/components/HonorBoard";
+import ProfileHonorBoard from "@/components/profile/ProfileHonorBoard";
 import { 
   MapPin, 
   Calendar, 
@@ -502,11 +503,13 @@ const Profile = () => {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
           
-          {/* Honor Board Overlay - Top Left */}
-          <div className="absolute top-4 left-4 z-40 hidden md:block">
-            <div className="scale-[0.65] origin-top-left opacity-90 hover:opacity-100 transition-opacity">
-              <HonorBoard compact />
-            </div>
+          {/* Profile Honor Board - Right half of cover */}
+          <div className="absolute top-4 right-4 bottom-4 hidden md:flex items-center justify-center z-40 w-1/2">
+            <ProfileHonorBoard 
+              userId={user?.id || ''} 
+              displayName={profile?.display_name || null} 
+              avatarUrl={avatarUrl || null} 
+            />
           </div>
           
           {/* Cover Photo Editor Button */}
