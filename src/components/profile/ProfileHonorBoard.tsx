@@ -16,7 +16,6 @@ import {
   ArrowDown
 } from "lucide-react";
 import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
-import honorBoardBg from "@/assets/honor-board-bg.jpeg";
 
 interface ProfileHonorBoardProps {
   userId: string;
@@ -333,18 +332,15 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
   return (
     <div 
       className={`
-        relative overflow-hidden rounded-xl 
-        ${metallicBorderStyle}
+        relative overflow-hidden rounded-xl border-2 border-white/30
         ${variant === 'cover' ? 'w-full max-w-[460px]' : 'w-full'}
       `}
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.18) 100%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        boxShadow: 'inset 0 0 80px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(251,191,36,0.15)',
+      }}
     >
-      {/* Background image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${honorBoardBg})` }}
-      />
-      <div className="absolute inset-0 bg-black/10" />
-      
       {/* Sparkles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-2 left-4 w-1 h-1 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '3s' }} />
@@ -352,8 +348,8 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
         <div className="absolute bottom-8 left-1/4 w-1 h-1 bg-white rounded-full animate-ping opacity-30" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
       </div>
       
-      {/* Top highlight */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
+      {/* Top highlight - Liquid Glass edge */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
       
       {/* Content - compact padding */}
       <div className="relative z-10 p-2">
@@ -424,8 +420,8 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
         </div>
       </div>
 
-      {/* Bottom edge */}
-      <div className="relative z-10 h-1 bg-gradient-to-r from-emerald-600/30 via-amber-400/60 to-emerald-600/30" />
+      {/* Bottom edge - Liquid Glass */}
+      <div className="relative z-10 h-1 bg-gradient-to-r from-white/10 via-white/30 to-white/10" />
     </div>
   );
 };

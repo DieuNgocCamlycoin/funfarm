@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, FileText, Image, Video, Coins } from "lucide-react";
 import camlyCoin from "@/assets/camly_coin.png";
 import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
-import honorBoardBg from "@/assets/honor-board-bg.jpeg";
 
 interface HonorStats {
   totalUsers: number;
@@ -216,15 +215,13 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-xl border-2 border-amber-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_20px_rgba(0,0,0,0.3),0_0_30px_rgba(251,191,36,0.25)]"
+      className="relative overflow-hidden rounded-xl border-2 border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.18) 100%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        boxShadow: 'inset 0 0 80px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(251,191,36,0.15)',
+      }}
     >
-      {/* Background image - giống ProfileHonorBoard */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${honorBoardBg})` }}
-      />
-      <div className="absolute inset-0 bg-black/10" />
-      
       {/* Sparkle effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-3 left-6 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
@@ -234,8 +231,8 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
         <div className="absolute bottom-6 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '2.8s', animationDelay: '0.5s' }} />
       </div>
       
-      {/* Top highlight */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
+      {/* Top highlight - Liquid Glass edge */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
       
       {/* Content */}
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
@@ -299,8 +296,8 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
         </div>
       </div>
 
-      {/* Bottom edge - giống ProfileHonorBoard */}
-      <div className="relative z-10 h-1.5 bg-gradient-to-r from-emerald-600/30 via-amber-400/60 to-emerald-600/30" />
+      {/* Bottom edge - Liquid Glass */}
+      <div className="relative z-10 h-1.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10" />
     </div>
   );
 };
