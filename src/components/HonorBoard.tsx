@@ -56,8 +56,9 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
 // Styles - đồng bộ với ProfileHonorBoard
 const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
-const metallicFrameStyle = "bg-black/20 border border-emerald-400/40 backdrop-blur-[2px] rounded-md";
-const goldenFrameStyle = "bg-black/25 border-2 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.25)] backdrop-blur-[2px] rounded-lg";
+// Viền kim loại sáng sang trọng
+const metallicFrameStyle = "bg-black/20 border-2 border-amber-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_0_8px_rgba(251,191,36,0.3)] backdrop-blur-[2px] rounded-lg";
+const goldenFrameStyle = "bg-black/25 border-2 border-amber-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_15px_rgba(251,191,36,0.35)] backdrop-blur-[2px] rounded-lg";
 
 // Stat row component
 const StatRow = ({ 
@@ -238,32 +239,52 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
       
       {/* Content */}
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
-        {/* Header */}
-        <div className="flex flex-col items-center mb-3">
-          <div className="flex items-center gap-2 justify-center">
+        {/* Header - Logo trên cùng, to hơn với viền tròn đẹp */}
+        <div className="flex flex-col items-center mb-4">
+          {/* Logo FUN FARM - To, viền tròn kim loại sáng */}
+          <div 
+            className="relative mb-3"
+            style={{
+              background: 'linear-gradient(145deg, rgba(251,191,36,0.8), rgba(180,140,30,0.9))',
+              borderRadius: '50%',
+              padding: '4px',
+              boxShadow: '0 0 20px rgba(251,191,36,0.6), inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 8px rgba(0,0,0,0.3)',
+            }}
+          >
             <img 
               src={logoFunFarm} 
               alt="FUN FARM" 
-              className={`${compact ? 'w-10 h-10' : 'w-12 h-12'} rounded-full border-2 border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.6)]`}
-              style={{ filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.5))' }}
-            />
-            <h2 
-              className={`${compact ? 'text-lg' : 'text-xl md:text-2xl'} font-black tracking-[0.08em] ${titleGoldStyle}`}
+              className={`${compact ? 'w-16 h-16' : 'w-20 h-20'} rounded-full object-cover`}
               style={{ 
-                fontFamily: "'Orbitron', 'Space Grotesk', sans-serif",
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 15px rgba(251,191,36,0.5))',
+                border: '3px solid rgba(255,255,255,0.3)',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.2)',
               }}
-            >
-              ✦ HONOR BOARD ✦
-            </h2>
+            />
+            {/* Glow ring */}
+            <div 
+              className="absolute inset-0 rounded-full animate-pulse"
+              style={{
+                background: 'radial-gradient(circle, transparent 60%, rgba(251,191,36,0.4) 100%)',
+                animationDuration: '2s',
+              }}
+            />
           </div>
           
-          <p 
-            className={`${compact ? 'text-[10px]' : 'text-xs'} text-amber-200/80 mt-1 font-medium tracking-wide`}
-            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+          {/* Chữ HONOR BOARD - 3D kim loại vàng nổi bật */}
+          <h2 
+            className={`${compact ? 'text-xl' : 'text-2xl md:text-3xl'} font-black tracking-[0.1em] uppercase`}
+            style={{ 
+              fontFamily: "'Orbitron', 'Space Grotesk', sans-serif",
+              background: 'linear-gradient(180deg, #fff9e6 0%, #ffd700 25%, #b8860b 50%, #ffd700 75%, #fff9e6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow: 'none',
+              filter: 'drop-shadow(0 2px 0 #8B6914) drop-shadow(0 4px 0 #6B4F0C) drop-shadow(0 6px 8px rgba(0,0,0,0.5)) drop-shadow(0 0 20px rgba(251,191,36,0.6))',
+            }}
           >
-            Community Achievements
-          </p>
+            ✦ HONOR BOARD ✦
+          </h2>
         </div>
 
         {/* Stats */}
