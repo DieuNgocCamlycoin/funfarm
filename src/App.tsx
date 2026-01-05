@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/hooks/useAuth';
 import { RealtimeNotificationsProvider } from "@/components/RealtimeNotificationsProvider";
 import { ConfettiProvider } from "@/components/ConfettiProvider";
+import { FairyCursorProvider, FairyCursorSettings } from "@/components/cursor";
 
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
@@ -33,32 +34,35 @@ const App = () => (
     <AuthProvider>
       <RealtimeNotificationsProvider>
         <ConfettiProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Feed />} />
-                <Route path="/feed" element={<Feed />} />
-                <Route path="/welcome" element={<Welcome />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/user/:userId" element={<UserProfile />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/profile-setup" element={<ProfileSetup />} />
-                <Route path="/reward" element={<Reward />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/shipper" element={<ShipperDashboard />} />
-                <Route path="/shipper/register" element={<ShipperRegister />} />
-              <Route path="/admin" element={<Admin />} />
-                <Route path="/love-rules" element={<LoveRules />} />
-                <Route path="/wallet" element={<Wallet />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/post/:postId" element={<PostDetail />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <FairyCursorProvider defaultVariant="pink" defaultEnabled={true}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Feed />} />
+                  <Route path="/feed" element={<Feed />} />
+                  <Route path="/welcome" element={<Welcome />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/user/:userId" element={<UserProfile />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/profile-setup" element={<ProfileSetup />} />
+                  <Route path="/reward" element={<Reward />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/shipper" element={<ShipperDashboard />} />
+                  <Route path="/shipper/register" element={<ShipperRegister />} />
+                <Route path="/admin" element={<Admin />} />
+                  <Route path="/love-rules" element={<LoveRules />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/post/:postId" element={<PostDetail />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+              <FairyCursorSettings />
+            </TooltipProvider>
+          </FairyCursorProvider>
         </ConfettiProvider>
       </RealtimeNotificationsProvider>
     </AuthProvider>
