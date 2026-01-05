@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import camlyCoin from "@/assets/camly_coin.png";
-import honorBoardBg from "@/assets/honor-board-bg.jpeg";
 import top1Frame from "@/assets/top1-frame.png";
 import top2Frame from "@/assets/top2-frame.png";
 import top3Frame from "@/assets/top3-frame.png";
@@ -145,51 +144,43 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-xl border-2 border-amber-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_20px_rgba(0,0,0,0.3),0_0_30px_rgba(251,191,36,0.25)]"
+      className="relative overflow-hidden rounded-xl border-2 border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.18) 100%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        boxShadow: 'inset 0 0 80px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(251,191,36,0.15)',
+      }}
     >
-      {/* Background image - giống HonorBoard */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${honorBoardBg})` }}
-      />
-      <div className="absolute inset-0 bg-black/10" />
-      
-      {/* Sparkle effects - giống HonorBoard */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-3 left-6 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
-        <div className="absolute top-8 right-10 w-1 h-1 bg-yellow-200 rounded-full animate-ping opacity-50" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
-        <div className="absolute bottom-10 left-1/4 w-1 h-1 bg-white rounded-full animate-ping opacity-40" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
-        <div className="absolute top-1/2 right-6 w-1 h-1 bg-amber-300 rounded-full animate-ping opacity-40" style={{ animationDuration: '3.5s', animationDelay: '2s' }} />
-        <div className="absolute bottom-6 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '2.8s', animationDelay: '0.5s' }} />
-      </div>
-      
-      {/* Top highlight - giống HonorBoard */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
+      {/* Top highlight - Liquid Glass edge */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
 
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
-        {/* Title - 2 ngôi sao cố định 2 góc, chữ chia 2 hàng căn giữa */}
+        {/* Title - 2 vương miện cố định 2 góc với animation, chữ TOP = RANKING */}
         <div className="relative mb-5">
-          {/* Ngôi sao trái - cố định */}
+          {/* Vương miện trái - animation glow pulse */}
           <span 
             className="absolute left-2 top-0 text-2xl"
             style={{ 
-              filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))',
+              filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.9))',
+              animation: 'pulse 2s ease-in-out infinite',
             }}
           >
-            ⭐
+            👑
           </span>
           
-          {/* Ngôi sao phải - cố định */}
+          {/* Vương miện phải - animation glow pulse */}
           <span 
             className="absolute right-2 top-0 text-2xl"
             style={{ 
-              filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))',
+              filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.9))',
+              animation: 'pulse 2s ease-in-out infinite',
+              animationDelay: '1s',
             }}
           >
-            ⭐
+            👑
           </span>
           
-          {/* Chữ TOP RANKING - 2 hàng, căn giữa */}
+          {/* Chữ TOP RANKING - 2 hàng, căn giữa, cùng kích thước */}
           <div 
             className="text-center"
             style={{ 
@@ -200,7 +191,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               letterSpacing: '0.15em',
             }}
           >
-            <div style={{ fontSize: compact ? '1.5rem' : '1.8rem', lineHeight: 1.1 }}>
+            <div style={{ fontSize: compact ? '1.8rem' : '2.2rem', lineHeight: 1.1 }}>
               TOP
             </div>
             <div style={{ fontSize: compact ? '1.8rem' : '2.2rem', lineHeight: 1.1 }}>
@@ -228,28 +219,27 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:bg-white/15 bg-black/25 border border-amber-300/40 backdrop-blur-[2px]"
+                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:bg-white/15 bg-white/10 border border-white/20 backdrop-blur-sm"
                   style={{
                     boxShadow: isTop3 
-                      ? 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 12px rgba(251,191,36,0.25)'
-                      : 'inset 0 1px 0 rgba(255,255,255,0.1)',
+                      ? 'inset 0 1px 0 rgba(255,255,255,0.25), 0 0 12px rgba(251,191,36,0.2)'
+                      : 'inset 0 1px 0 rgba(255,255,255,0.15)',
                   }}
                 >
-                  {/* Avatar with Frame - 5 khung riêng cho Top 5 */}
+                  {/* Avatar with Frame - khung lớn hơn, sát mép trái */}
                   <div 
-                    className={`relative flex-shrink-0 ${rank === 1 ? 'animate-pulse' : ''}`} 
+                    className="relative flex-shrink-0"
                     style={{ 
-                      width: rank === 1 ? 120 : 110, 
-                      height: rank === 1 ? 85 : 78,
-                      animationDuration: rank === 1 ? '3s' : undefined,
+                      width: rank === 1 ? 140 : 130, 
+                      height: rank === 1 ? 100 : 92,
                     }}
                   >
                     <LaurelFrame rank={rank} />
                     <Avatar 
                       className="absolute rounded-full"
                       style={{ 
-                        width: rank === 1 ? 40 : 38, 
-                        height: rank === 1 ? 40 : 38, 
+                        width: rank === 1 ? 48 : 44, 
+                        height: rank === 1 ? 48 : 44, 
                         top: '42%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
@@ -304,7 +294,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
         </div>
 
         {/* Divider */}
-        <div className="mt-4 mb-3 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+        <div className="mt-4 mb-3 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
         {/* View More / View Less Button */}
         {topUsers.length > 5 && (
@@ -313,7 +303,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               variant="ghost"
               size="sm"
               onClick={() => setShowAll(!showAll)}
-              className={`${goldTextStyle} hover:bg-amber-400/15 text-sm px-5 font-semibold`}
+              className={`${goldTextStyle} hover:bg-white/15 text-sm px-5 font-semibold`}
             >
               {showAll ? 'Thu gọn ↑' : 'Xem thêm ↓'}
             </Button>
@@ -337,8 +327,8 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
         </div>
       </div>
 
-      {/* Bottom edge - giống HonorBoard */}
-      <div className="relative z-10 h-1.5 bg-gradient-to-r from-emerald-600/30 via-amber-400/60 to-emerald-600/30" />
+      {/* Bottom edge - Liquid Glass */}
+      <div className="relative z-10 h-1.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10" />
     </div>
   );
 };
