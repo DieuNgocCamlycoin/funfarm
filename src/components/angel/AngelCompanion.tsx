@@ -1,5 +1,6 @@
 // 🧚 FUN FARM Angel Companion - Thiên thần đồng hành với GIF Animation (nền trong suốt)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { AngelSkin } from './AngelContext';
 
 // Import GIF animations (hỗ trợ nền trong suốt - không cần mix-blend-mode)
 import angelIdleGif from '@/assets/angel-gifs/angel-idle.gif';
@@ -79,11 +80,47 @@ const ANGEL_SIZE = 180;
 const SAFE_DISTANCE = 100;
 const OFFSET_ANGLE = Math.PI / 4; // 45 độ
 
+// Skin Filters - thay đổi màu sắc trang phục
+const SKIN_FILTERS: Record<AngelSkin, string> = {
+  rainbow: '',
+  pink: 'hue-rotate(320deg) saturate(1.2)',
+  blue: 'hue-rotate(180deg) saturate(1.1)',
+  gold: 'hue-rotate(40deg) saturate(1.5)',
+  green: 'hue-rotate(100deg) saturate(1.2)',
+  purple: 'hue-rotate(270deg) saturate(1.3)',
+};
+
+// Skin Glows - màu ánh sáng theo skin
+const SKIN_GLOWS: Record<AngelSkin, string> = {
+  rainbow: 'drop-shadow(0 0 25px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.4))',
+  pink: 'drop-shadow(0 0 30px rgba(255, 105, 180, 0.7)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.5))',
+  blue: 'drop-shadow(0 0 30px rgba(135, 206, 235, 0.7)) drop-shadow(0 0 50px rgba(100, 149, 237, 0.5))',
+  gold: 'drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 50px rgba(255, 193, 37, 0.5))',
+  green: 'drop-shadow(0 0 30px rgba(34, 197, 94, 0.7)) drop-shadow(0 0 50px rgba(74, 222, 128, 0.5))',
+  purple: 'drop-shadow(0 0 30px rgba(147, 112, 219, 0.7)) drop-shadow(0 0 50px rgba(186, 85, 211, 0.5))',
+};
+
+// Brightness Levels - độ sáng da
+const BRIGHTNESS_LEVELS: Record<number, string> = {
+  1: 'brightness(0.8)',
+  2: 'brightness(0.9)',
+  3: 'brightness(1.0)', // Mặc định
+  4: 'brightness(1.15)',
+  5: 'brightness(1.3) saturate(0.9)',
+  6: 'brightness(1.5) saturate(0.8) contrast(1.1)', // Trắng sáng nhất
+};
+
 interface AngelCompanionProps {
   enabled?: boolean;
+  skin?: AngelSkin;
+  brightness?: number;
 }
 
-const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
+const AngelCompanion: React.FC<AngelCompanionProps> = ({ 
+  enabled = true, 
+  skin = 'rainbow',
+  brightness = 3 
+}) => {
   const [position, setPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [targetPosition, setTargetPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [state, setState] = useState<AngelState>('idle');
@@ -372,6 +409,12 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
   const currentGif = STATE_GIFS[state];
   const halfSize = ANGEL_SIZE / 2;
 
+  // Kết hợp các filter: glow + skin + brightness
+  const glowFilter = SKIN_GLOWS[skin];
+  const skinFilter = SKIN_FILTERS[skin];
+  const brightnessFilter = BRIGHTNESS_LEVELS[brightness] || BRIGHTNESS_LEVELS[3];
+  const combinedFilter = [glowFilter, skinFilter, brightnessFilter].filter(Boolean).join(' ');
+
   return (
     <div className="fixed inset-0 pointer-events-none z-[99999]">
       {/* Sparkle particles */}
@@ -396,7 +439,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
         </svg>
       ))}
       
-      {/* Angel GIF - nền trong suốt, kích thước lớn hơn */}
+      {/* Angel GIF - với skin và brightness filters */}
       <div
         className={`absolute transition-all duration-300 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
         style={{
@@ -404,7 +447,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
           top: position.y - halfSize - 20,
           width: ANGEL_SIZE,
           height: 'auto',
-          filter: 'drop-shadow(0 0 25px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.4))',
+          filter: combinedFilter,
           transform: `${isFlipped ? 'scaleX(-1)' : 'scaleX(1)'} ${isSpinning ? 'rotate(360deg)' : 'rotate(0deg)'}`,
           transition: isSpinning ? 'transform 0.8s ease-in-out' : 'transform 0.2s ease-out',
         }}
