@@ -1,5 +1,5 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Mobile Bottom Navigation - Facebook style
+// Mobile Bottom Navigation - Facebook style navigation bar
 
 import { Link, useLocation } from "react-router-dom";
 import { Home, User, Bell, Gift, Menu } from "lucide-react";
