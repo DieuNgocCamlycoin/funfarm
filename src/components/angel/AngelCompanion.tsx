@@ -331,11 +331,11 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
           muted
           playsInline
           onEnded={handleVideoEnded}
-          className="w-full h-auto angel-video"
+          className="w-full h-auto"
           style={{
             transformOrigin: 'center bottom',
-            background: 'transparent',
-            mixBlendMode: 'normal',
+            mixBlendMode: 'multiply', // Ẩn nền trắng
+            filter: 'brightness(1.1) contrast(1.05)',
           }}
         />
         
