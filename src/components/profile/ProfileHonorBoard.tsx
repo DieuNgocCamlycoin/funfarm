@@ -402,7 +402,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
             <StatRow icon={Users} label="FRIENDS" value={stats.friendsCount} />
             <StatRow icon={Gift} label="NFTS" value={stats.nftsCount} />
             <StatRow icon={Coins} label="CLAIMABLE" value={stats.claimable} />
-            <StatRow icon={Wallet} label="BALANCE" value={stats.claimed} />
+            <StatRow icon={Wallet} label="CLAIMED" value={stats.claimed} />
           </div>
         </div>
 
