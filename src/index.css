@@ -4,6 +4,201 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 
+/* ========== ANGEL COMPANION ANIMATIONS ========== */
+
+/* Bay lượn nhẹ nhàng khi idle */
+@keyframes angel-float {
+  0%, 100% { 
+    transform: translateY(0) rotate(-2deg); 
+  }
+  25% { 
+    transform: translateY(-12px) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-8px) rotate(2deg); 
+  }
+  75% { 
+    transform: translateY(-15px) rotate(0deg); 
+  }
+}
+
+/* Di theo chuột nhanh hơn */
+@keyframes angel-follow {
+  0%, 100% { 
+    transform: translateY(-5px) rotate(-3deg) scale(1.02); 
+  }
+  50% { 
+    transform: translateY(-10px) rotate(3deg) scale(1.02); 
+  }
+}
+
+/* Nhảy múa xoay vòng */
+@keyframes angel-dance {
+  0% { 
+    transform: rotate(0deg) scale(1) translateY(0); 
+  }
+  25% { 
+    transform: rotate(15deg) scale(1.08) translateY(-15px); 
+  }
+  50% { 
+    transform: rotate(-12deg) scale(1) translateY(-8px); 
+  }
+  75% { 
+    transform: rotate(10deg) scale(1.05) translateY(-12px); 
+  }
+  100% { 
+    transform: rotate(0deg) scale(1) translateY(0); 
+  }
+}
+
+/* Ngủ gật - đầu gục */
+@keyframes angel-sleep {
+  0%, 100% { 
+    transform: rotate(-8deg) translateY(0); 
+  }
+  50% { 
+    transform: rotate(-15deg) translateY(5px); 
+  }
+}
+
+/* Thức dậy - vươn vai */
+@keyframes angel-wake {
+  0% { 
+    transform: rotate(-15deg) scale(0.95); 
+  }
+  50% { 
+    transform: rotate(5deg) scale(1.1); 
+  }
+  100% { 
+    transform: rotate(0deg) scale(1); 
+  }
+}
+
+/* Ngồi yên trên vật */
+@keyframes angel-sit {
+  0%, 100% { 
+    transform: translateY(0) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-3px) rotate(2deg); 
+  }
+}
+
+/* Ẩn đi */
+@keyframes angel-hide {
+  0% { 
+    transform: scale(1) translateY(0); 
+    opacity: 1;
+  }
+  100% { 
+    transform: scale(0) translateY(50px); 
+    opacity: 0;
+  }
+}
+
+/* Xuất hiện bất ngờ */
+@keyframes angel-appear {
+  0% { 
+    transform: scale(0) rotate(-180deg); 
+    opacity: 0;
+  }
+  60% { 
+    transform: scale(1.2) rotate(15deg); 
+    opacity: 1;
+  }
+  100% { 
+    transform: scale(1) rotate(0deg); 
+    opacity: 1;
+  }
+}
+
+/* Phấn khích vui vẻ */
+@keyframes angel-excited {
+  0%, 100% { 
+    transform: translateY(0) scale(1) rotate(0deg); 
+  }
+  25% { 
+    transform: translateY(-20px) scale(1.1) rotate(8deg); 
+  }
+  50% { 
+    transform: translateY(-10px) scale(1.05) rotate(-5deg); 
+  }
+  75% { 
+    transform: translateY(-18px) scale(1.08) rotate(5deg); 
+  }
+}
+
+/* Chữ Z bay lên khi ngủ */
+@keyframes zzz-float {
+  0% { 
+    opacity: 1; 
+    transform: translateY(0) translateX(0) scale(0.5); 
+  }
+  100% { 
+    opacity: 0; 
+    transform: translateY(-40px) translateX(25px) scale(1.3); 
+  }
+}
+
+/* Sparkle biến mất */
+@keyframes sparkle-fade {
+  0% { 
+    opacity: 1; 
+    transform: scale(1) rotate(0deg); 
+  }
+  100% { 
+    opacity: 0; 
+    transform: scale(0.3) rotate(180deg) translateY(-20px); 
+  }
+}
+
+/* Animation utility classes */
+.animate-angel-float {
+  animation: angel-float 3s ease-in-out infinite;
+}
+
+.animate-angel-follow {
+  animation: angel-follow 0.6s ease-in-out infinite;
+}
+
+.animate-angel-dance {
+  animation: angel-dance 1.5s ease-in-out infinite;
+}
+
+.animate-angel-sleep {
+  animation: angel-sleep 2s ease-in-out infinite;
+}
+
+.animate-angel-wake {
+  animation: angel-wake 1s ease-out forwards;
+}
+
+.animate-angel-sit {
+  animation: angel-sit 2.5s ease-in-out infinite;
+}
+
+.animate-angel-hide {
+  animation: angel-hide 0.5s ease-in forwards;
+}
+
+.animate-angel-appear {
+  animation: angel-appear 0.8s ease-out forwards;
+}
+
+.animate-angel-excited {
+  animation: angel-excited 0.5s ease-in-out infinite;
+}
+
+.animate-zzz-float {
+  animation: zzz-float 2s ease-out infinite;
+}
+
+.animate-sparkle-fade {
+  animation: sparkle-fade 0.8s ease-out forwards;
+}
+
+/* ========== END ANGEL ANIMATIONS ========== */
+
 @layer base {
   :root {
     /* Nature-inspired green palette */
