@@ -147,10 +147,24 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
       let totalPhotos = 0;
       let totalVideos = 0;
 
+      // Helper function để check video URL
+      const isVideoUrl = (url: string): boolean => {
+        const lowerUrl = url.toLowerCase();
+        return lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.mov');
+      };
+
       postsWithMedia?.forEach((post) => {
+        // Đếm từ mảng images (có thể chứa cả video)
         if (post.images && Array.isArray(post.images)) {
-          totalPhotos += post.images.length;
+          post.images.forEach((url: string) => {
+            if (isVideoUrl(url)) {
+              totalVideos += 1;
+            } else {
+              totalPhotos += 1;
+            }
+          });
         }
+        // Đếm từ video_url riêng (nếu có)
         if (post.video_url) {
           totalVideos += 1;
         }
