@@ -470,16 +470,6 @@ const UserProfile = () => {
             />
           </div>
         </div>
-        
-        {/* Profile Honor Board - Mobile (below cover) */}
-        <div className="md:hidden px-4 -mt-6 relative z-30">
-          <ProfileHonorBoard 
-            userId={userProfile.id} 
-            displayName={userProfile.display_name} 
-            avatarUrl={userProfile.avatar_url} 
-            variant="standalone"
-          />
-        </div>
 
         {/* Profile Info Section */}
         <div className="container max-w-5xl mx-auto px-4">
@@ -663,6 +653,16 @@ const UserProfile = () => {
             </TabsList>
 
             <TabsContent value="posts" className="mt-6 space-y-6">
+              {/* Profile Honor Board - Mobile (above posts) */}
+              <div className="md:hidden">
+                <ProfileHonorBoard 
+                  userId={userProfile.id} 
+                  displayName={userProfile.display_name} 
+                  avatarUrl={userProfile.avatar_url} 
+                  variant="standalone"
+                />
+              </div>
+              
               {transformedPosts.length > 0 ? (
                 transformedPosts.map((post) => (
                   <FeedPost key={post.id} post={post} />
