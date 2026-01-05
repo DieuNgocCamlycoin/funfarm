@@ -23,14 +23,14 @@ const ImageGrid = ({ images, onImageClick }: ImageGridProps) => {
     const isVideo = isVideoUrl(images[0]);
     return (
       <div 
-        className="relative aspect-[4/3] cursor-pointer overflow-hidden"
+        className="relative aspect-video cursor-pointer overflow-hidden bg-black"
         onClick={() => onImageClick(0)}
       >
         {isVideo ? (
-          <div className="w-full h-full bg-black flex items-center justify-center relative">
+          <div className="w-full h-full flex items-center justify-center relative">
             <video
               src={images[0]}
-              className="w-full h-full object-contain"
+              className="max-w-full max-h-full object-contain mx-auto"
               muted
               preload="metadata"
             />
