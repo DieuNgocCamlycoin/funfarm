@@ -144,11 +144,11 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-xl border-2 border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+      className="relative overflow-hidden rounded-xl border border-white/40"
       style={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.18) 100%)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        boxShadow: 'inset 0 0 80px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(251,191,36,0.15)',
+        background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
+        backdropFilter: 'saturate(120%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(0,0,0,0.15), 0 0 1px rgba(255,255,255,0.8)',
       }}
     >
       {/* Top highlight - Liquid Glass edge */}
