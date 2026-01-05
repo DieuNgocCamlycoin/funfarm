@@ -1,8 +1,15 @@
-// 🧚 FUN FARM Angel Companion - Thiên thần đồng hành dễ thương
+// 🧚 FUN FARM Angel Companion - Thiên thần đồng hành với Video Animation
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import angelRainbow from '@/assets/angel-rainbow.png';
-import angelGreen from '@/assets/angel-green.png';
-import angelBlue from '@/assets/angel-blue.png';
+
+// Import video animations
+import angelIdleVideo from '@/assets/angel-videos/angel-idle.mp4';
+import angelDancingVideo from '@/assets/angel-videos/angel-dancing.mp4';
+import angelSleepingVideo from '@/assets/angel-videos/angel-sleeping.mp4';
+import angelWakingVideo from '@/assets/angel-videos/angel-waking.mp4';
+import angelExcitedVideo from '@/assets/angel-videos/angel-excited.mp4';
+import angelSittingVideo from '@/assets/angel-videos/angel-sitting.mp4';
+import angelAppearingVideo from '@/assets/angel-videos/angel-appearing.mp4';
+import angelHidingVideo from '@/assets/angel-videos/angel-hiding.mp4';
 
 export type AngelState = 
   | 'idle'
@@ -24,31 +31,21 @@ interface Sparkle {
   rotation: number;
 }
 
-// Map trạng thái với hình ảnh
-const STATE_IMAGES: Record<AngelState, string> = {
-  idle: angelGreen,
-  following: angelGreen,
-  dancing: angelRainbow,
-  sleeping: angelBlue,
-  waking: angelBlue,
-  sitting: angelGreen,
-  hiding: angelRainbow,
-  appearing: angelRainbow,
-  excited: angelRainbow,
+// Map trạng thái với video
+const STATE_VIDEOS: Record<AngelState, string> = {
+  idle: angelIdleVideo,
+  following: angelIdleVideo,
+  dancing: angelDancingVideo,
+  sleeping: angelSleepingVideo,
+  waking: angelWakingVideo,
+  sitting: angelSittingVideo,
+  hiding: angelHidingVideo,
+  appearing: angelAppearingVideo,
+  excited: angelExcitedVideo,
 };
 
-// Animation classes cho từng trạng thái
-const STATE_ANIMATIONS: Record<AngelState, string> = {
-  idle: 'animate-angel-float',
-  following: 'animate-angel-follow',
-  dancing: 'animate-angel-dance',
-  sleeping: 'animate-angel-sleep',
-  waking: 'animate-angel-wake',
-  sitting: 'animate-angel-sit',
-  hiding: 'animate-angel-hide',
-  appearing: 'animate-angel-appear',
-  excited: 'animate-angel-excited',
-};
+// Các video chỉ phát 1 lần (không loop)
+const ONE_SHOT_STATES: AngelState[] = ['waking', 'appearing', 'hiding'];
 
 // Random behaviors khi idle
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
@@ -75,6 +72,38 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
   const idleTimer = useRef<NodeJS.Timeout>();
   const behaviorTimer = useRef<NodeJS.Timeout>();
   const frameRef = useRef<number>();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Preload all videos for smooth transitions
+  useEffect(() => {
+    Object.values(STATE_VIDEOS).forEach(src => {
+      const video = document.createElement('video');
+      video.preload = 'auto';
+      video.src = src;
+    });
+  }, []);
+
+  // Handle video state changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load();
+      videoRef.current.play().catch(() => {
+        // Handle autoplay restrictions silently
+      });
+    }
+  }, [state]);
+
+  // Handle video ended for one-shot animations
+  const handleVideoEnded = useCallback(() => {
+    if (ONE_SHOT_STATES.includes(state)) {
+      if (state === 'appearing') {
+        setState('idle');
+      } else if (state === 'waking') {
+        setState('idle');
+      }
+      // hiding state is handled by the random behavior logic
+    }
+  }, [state]);
 
   // Smooth position interpolation
   useEffect(() => {
@@ -215,12 +244,10 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
             setTimeout(() => {
               setIsHidden(false);
               setState('appearing');
-              setTimeout(() => setState('idle'), 1000);
             }, behavior.duration);
           } else if (behavior.action === 'sleeping') {
             setTimeout(() => {
               setState('waking');
-              setTimeout(() => setState('idle'), 1500);
             }, behavior.duration);
           } else {
             setTimeout(() => setState('idle'), behavior.duration);
@@ -257,8 +284,8 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
 
   if (!enabled) return null;
 
-  const currentImage = STATE_IMAGES[state];
-  const currentAnimation = STATE_ANIMATIONS[state];
+  const currentVideo = STATE_VIDEOS[state];
+  const shouldLoop = !ONE_SHOT_STATES.includes(state);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[99999]">
@@ -284,25 +311,32 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({ enabled = true }) => {
         </svg>
       ))}
       
-      {/* Angel image */}
+      {/* Angel Video */}
       <div
         className={`absolute transition-opacity duration-300 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
         style={{
-          left: position.x - 50,
-          top: position.y - 70,
-          width: 100,
+          left: position.x - 60,
+          top: position.y - 80,
+          width: 120,
           height: 'auto',
           filter: 'drop-shadow(0 0 20px rgba(255, 215, 0, 0.5)) drop-shadow(0 0 40px rgba(255, 182, 193, 0.3))',
         }}
       >
-        <img
-          src={currentImage}
-          alt="Angel Companion"
-          className={`w-full h-auto ${currentAnimation}`}
+        <video
+          ref={videoRef}
+          key={currentVideo}
+          src={currentVideo}
+          autoPlay
+          loop={shouldLoop}
+          muted
+          playsInline
+          onEnded={handleVideoEnded}
+          className="w-full h-auto angel-video"
           style={{
             transformOrigin: 'center bottom',
+            background: 'transparent',
+            mixBlendMode: 'normal',
           }}
-          draggable={false}
         />
         
         {/* Sleeping Z's */}
