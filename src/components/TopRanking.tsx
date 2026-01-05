@@ -1,5 +1,5 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Top Ranking - Bảng xếp hạng gọn gàng - Design đồng bộ với HonorBoard
+// Top Ranking - Bảng xếp hạng sang trọng đẳng cấp vũ trụ
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,114 +25,181 @@ interface TopRankingProps {
 const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
 
-// Laurel Frame - Khung vòng nguyệt quế kim loại vàng
+// Luxurious Laurel Frame - Khung vòng nguyệt quế lộng lẫy với vương miện
 const LaurelFrame = ({ rank }: { rank: number }) => {
-  const intensity = rank === 1 ? 1 : rank === 2 ? 0.85 : rank === 3 ? 0.75 : 0.6;
-  const size = 56;
+  const isTop3 = rank <= 3;
+  const size = 64;
+  
+  // Màu gem theo rank
+  const gemColor = rank === 1 ? '#dc143c' : rank === 2 ? '#4169e1' : rank === 3 ? '#32cd32' : '#fbbf24';
+  const gemGlow = rank === 1 ? 'rgba(220, 20, 60, 0.8)' : rank === 2 ? 'rgba(65, 105, 225, 0.8)' : rank === 3 ? 'rgba(50, 205, 50, 0.8)' : 'rgba(251, 191, 36, 0.8)';
   
   return (
     <svg 
       width={size} 
       height={size} 
-      viewBox="0 0 56 56" 
+      viewBox="0 0 64 64" 
       className="absolute inset-0"
       style={{
-        filter: `drop-shadow(0 0 ${8 * intensity}px rgba(251, 191, 36, ${0.6 * intensity}))`,
+        filter: `drop-shadow(0 0 ${isTop3 ? 12 : 6}px rgba(251, 191, 36, ${isTop3 ? 0.8 : 0.5}))`,
       }}
     >
       <defs>
-        <linearGradient id={`laurelGrad${rank}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={`hsl(45, 100%, ${75 + intensity * 10}%)`} />
-          <stop offset="50%" stopColor={`hsl(45, 100%, ${55 + intensity * 10}%)`} />
-          <stop offset="100%" stopColor={`hsl(40, 90%, ${45 + intensity * 10}%)`} />
-        </linearGradient>
-      </defs>
-      
-      {/* Left laurel branch */}
-      <g transform="translate(2, 28) rotate(-10)">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <ellipse
-            key={`left-${i}`}
-            cx={4}
-            cy={-8 - i * 5}
-            rx={3}
-            ry={6}
-            fill={`url(#laurelGrad${rank})`}
-            transform={`rotate(${20 + i * 8})`}
-            opacity={0.9 - i * 0.1}
-          />
-        ))}
-      </g>
-      
-      {/* Right laurel branch */}
-      <g transform="translate(54, 28) rotate(10)">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <ellipse
-            key={`right-${i}`}
-            cx={-4}
-            cy={-8 - i * 5}
-            rx={3}
-            ry={6}
-            fill={`url(#laurelGrad${rank})`}
-            transform={`rotate(${-20 - i * 8})`}
-            opacity={0.9 - i * 0.1}
-          />
-        ))}
-      </g>
-      
-      {/* Bottom ribbon */}
-      <ellipse 
-        cx={28} 
-        cy={52} 
-        rx={8} 
-        ry={3} 
-        fill={`url(#laurelGrad${rank})`}
-        opacity={0.8}
-      />
-      
-      {/* Top gem/connector */}
-      <circle 
-        cx={28} 
-        cy={4} 
-        r={3} 
-        fill={rank === 1 ? '#dc143c' : rank === 2 ? '#4169e1' : rank === 3 ? '#32cd32' : '#fbbf24'}
-        style={{
-          filter: `drop-shadow(0 0 4px ${rank === 1 ? 'rgba(220, 20, 60, 0.8)' : rank === 2 ? 'rgba(65, 105, 225, 0.8)' : rank === 3 ? 'rgba(50, 205, 50, 0.8)' : 'rgba(251, 191, 36, 0.8)'})`,
-        }}
-      />
-    </svg>
-  );
-};
-
-// Star Crown - Ngôi sao vương miện cho Top 1
-const StarCrown = () => {
-  return (
-    <svg 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      className="absolute -top-3 left-1/2 -translate-x-1/2 z-20"
-      style={{
-        filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 1))',
-      }}
-    >
-      <defs>
-        <linearGradient id="starGold" x1="0%" y1="0%" x2="100%" y2="100%">
+        {/* Golden metallic gradient */}
+        <linearGradient id={`luxGold${rank}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#fef3c7" />
-          <stop offset="50%" stopColor="#fbbf24" />
+          <stop offset="25%" stopColor="#fbbf24" />
+          <stop offset="50%" stopColor="#f59e0b" />
+          <stop offset="75%" stopColor="#fbbf24" />
           <stop offset="100%" stopColor="#d97706" />
         </linearGradient>
+        
+        {/* Highlight gradient */}
+        <linearGradient id={`luxHighlight${rank}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fffef5" />
+          <stop offset="100%" stopColor="#fbbf24" />
+        </linearGradient>
+        
+        {/* Radial glow */}
+        <radialGradient id={`luxGlow${rank}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(251, 191, 36, 0.3)" />
+          <stop offset="100%" stopColor="rgba(251, 191, 36, 0)" />
+        </radialGradient>
       </defs>
-      <path 
-        d="M12 2 L14.5 8.5 L21 9.5 L16 14 L17.5 21 L12 17.5 L6.5 21 L8 14 L3 9.5 L9.5 8.5 Z" 
-        fill="url(#starGold)"
-        stroke="#b45309"
-        strokeWidth="0.5"
+      
+      {/* Outer glow circle */}
+      <circle cx="32" cy="32" r="30" fill={`url(#luxGlow${rank})`} />
+      
+      {/* Main circular frame */}
+      <circle 
+        cx="32" 
+        cy="32" 
+        r="28" 
+        fill="none" 
+        stroke={`url(#luxGold${rank})`}
+        strokeWidth="3"
       />
-      {/* Center gem */}
-      <circle cx="12" cy="11" r="2" fill="#dc143c" opacity="0.9">
-        <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
-      </circle>
+      
+      {/* Inner decorative ring */}
+      <circle 
+        cx="32" 
+        cy="32" 
+        r="25" 
+        fill="none" 
+        stroke={`url(#luxHighlight${rank})`}
+        strokeWidth="1"
+        opacity="0.6"
+      />
+      
+      {/* Left laurel branch - detailed leaves */}
+      <g transform="translate(6, 32)">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <ellipse
+            key={`left-${i}`}
+            cx={3 + i * 0.5}
+            cy={-6 - i * 4}
+            rx={4}
+            ry={7}
+            fill={`url(#luxGold${rank})`}
+            transform={`rotate(${25 + i * 6})`}
+            opacity={1 - i * 0.08}
+          />
+        ))}
+        {/* Stem */}
+        <path 
+          d="M2,0 Q4,-15 8,-28" 
+          stroke="#b45309" 
+          strokeWidth="1.5" 
+          fill="none"
+          opacity="0.7"
+        />
+      </g>
+      
+      {/* Right laurel branch - detailed leaves */}
+      <g transform="translate(58, 32)">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <ellipse
+            key={`right-${i}`}
+            cx={-3 - i * 0.5}
+            cy={-6 - i * 4}
+            rx={4}
+            ry={7}
+            fill={`url(#luxGold${rank})`}
+            transform={`rotate(${-25 - i * 6})`}
+            opacity={1 - i * 0.08}
+          />
+        ))}
+        {/* Stem */}
+        <path 
+          d="M-2,0 Q-4,-15 -8,-28" 
+          stroke="#b45309" 
+          strokeWidth="1.5" 
+          fill="none"
+          opacity="0.7"
+        />
+      </g>
+      
+      {/* Bottom ribbon/bow */}
+      <g transform="translate(32, 58)">
+        <path 
+          d="M-10,0 Q-5,-3 0,-2 Q5,-3 10,0 Q5,2 0,1 Q-5,2 -10,0" 
+          fill={`url(#luxGold${rank})`}
+          stroke="#b45309"
+          strokeWidth="0.5"
+        />
+        {/* Ribbon tails */}
+        <path d="M-8,0 L-12,4" stroke={`url(#luxGold${rank})`} strokeWidth="2" />
+        <path d="M8,0 L12,4" stroke={`url(#luxGold${rank})`} strokeWidth="2" />
+      </g>
+      
+      {/* Crown for Top 1-3 */}
+      {isTop3 && (
+        <g transform="translate(32, 4)">
+          {/* Crown base */}
+          <path 
+            d={rank === 1 
+              ? "M-12,8 L-10,0 L-5,5 L0,-2 L5,5 L10,0 L12,8 Z"  // 5 peaks for Top 1
+              : rank === 2 
+                ? "M-10,6 L-8,0 L0,4 L8,0 L10,6 Z"  // 3 peaks for Top 2
+                : "M-8,5 L-5,0 L0,3 L5,0 L8,5 Z"  // smaller for Top 3
+            }
+            fill={`url(#luxGold${rank})`}
+            stroke="#b45309"
+            strokeWidth="0.5"
+          />
+          {/* Crown gem */}
+          <circle 
+            cx="0" 
+            cy={rank === 1 ? 1 : rank === 2 ? 2 : 2}
+            r={rank === 1 ? 3 : rank === 2 ? 2.5 : 2}
+            fill={gemColor}
+            style={{ filter: `drop-shadow(0 0 4px ${gemGlow})` }}
+          >
+            {rank === 1 && (
+              <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+            )}
+          </circle>
+          {/* Side gems for Top 1 */}
+          {rank === 1 && (
+            <>
+              <circle cx="-6" cy="3" r="1.5" fill="#4169e1" opacity="0.9" />
+              <circle cx="6" cy="3" r="1.5" fill="#32cd32" opacity="0.9" />
+            </>
+          )}
+        </g>
+      )}
+      
+      {/* Decorative dots around frame */}
+      {[0, 60, 120, 180, 240, 300].map((angle) => (
+        <circle
+          key={angle}
+          cx={32 + 26 * Math.cos((angle - 90) * Math.PI / 180)}
+          cy={32 + 26 * Math.sin((angle - 90) * Math.PI / 180)}
+          r="1.5"
+          fill={`url(#luxGold${rank})`}
+          opacity="0.8"
+        />
+      ))}
     </svg>
   );
 };
@@ -148,13 +215,13 @@ const RankBadge = ({ rank }: { rank: number }) => {
   
   return (
     <div 
-      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold z-20"
+      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-20"
       style={{
         background: style.bg,
-        border: `1.5px solid ${style.border}`,
+        border: `2px solid ${style.border}`,
         color: style.text,
-        boxShadow: `0 2px 6px rgba(0,0,0,0.3)`,
-        fontSize: '10px',
+        boxShadow: `0 2px 8px rgba(0,0,0,0.4)`,
+        fontSize: '11px',
       }}
     >
       {rank}
@@ -201,13 +268,8 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Hiển thị số đầy đủ, không rút gọn
   const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(0) + 'K';
-    }
     return num.toLocaleString("vi-VN");
   };
 
@@ -237,23 +299,50 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
 
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
-        {/* Title - giống style HonorBoard */}
-        <h2 
-          className="uppercase relative text-center whitespace-nowrap mb-4"
-          style={{ 
-            fontFamily: "system-ui, -apple-system, sans-serif",
-            fontWeight: 900,
-            fontSize: compact ? '1.2rem' : '1.4rem',
-            color: '#ffe135',
-            textShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 12px rgba(255,225,53,0.5)',
-            letterSpacing: '0.12em',
-          }}
-        >
-          ⭐ TOP RANKING ⭐
-        </h2>
+        {/* Title - 2 ngôi sao cố định 2 góc, chữ chia 2 hàng căn giữa */}
+        <div className="relative mb-5">
+          {/* Ngôi sao trái - cố định */}
+          <span 
+            className="absolute left-2 top-0 text-2xl"
+            style={{ 
+              filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))',
+            }}
+          >
+            ⭐
+          </span>
+          
+          {/* Ngôi sao phải - cố định */}
+          <span 
+            className="absolute right-2 top-0 text-2xl"
+            style={{ 
+              filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))',
+            }}
+          >
+            ⭐
+          </span>
+          
+          {/* Chữ TOP RANKING - 2 hàng, căn giữa */}
+          <div 
+            className="text-center"
+            style={{ 
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              fontWeight: 900,
+              color: '#ffe135',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5), 0 0 15px rgba(255,225,53,0.6)',
+              letterSpacing: '0.15em',
+            }}
+          >
+            <div style={{ fontSize: compact ? '1.5rem' : '1.8rem', lineHeight: 1.1 }}>
+              TOP
+            </div>
+            <div style={{ fontSize: compact ? '1.8rem' : '2.2rem', lineHeight: 1.1 }}>
+              RANKING
+            </div>
+          </div>
+        </div>
 
         {/* User List - Compact Rows */}
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {isLoading ? (
             <div className={`text-center py-4 text-sm font-medium ${goldTextStyle}`}>
               Đang tải...
@@ -271,30 +360,37 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="flex items-center gap-3 p-2 rounded-lg transition-all duration-200 cursor-pointer hover:bg-white/10 bg-black/20 border border-amber-300/30 backdrop-blur-[2px]"
+                  className="flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:bg-white/15 bg-black/25 border border-amber-300/40 backdrop-blur-[2px]"
                   style={{
                     boxShadow: isTop3 
-                      ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(251,191,36,0.2)'
+                      ? 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 12px rgba(251,191,36,0.25)'
                       : 'inset 0 1px 0 rgba(255,255,255,0.1)',
                   }}
                 >
-                  {/* Avatar with Laurel Frame */}
-                  <div className="relative flex-shrink-0" style={{ width: 56, height: 56 }}>
-                    {rank === 1 && <StarCrown />}
+                  {/* Avatar with Luxurious Laurel Frame */}
+                  <div 
+                    className={`relative flex-shrink-0 ${rank === 1 ? 'animate-pulse' : ''}`} 
+                    style={{ 
+                      width: 64, 
+                      height: 64,
+                      animationDuration: rank === 1 ? '3s' : undefined,
+                    }}
+                  >
                     <LaurelFrame rank={rank} />
                     <Avatar 
                       className="absolute"
                       style={{ 
-                        width: 40, 
-                        height: 40, 
-                        top: 8, 
-                        left: 8,
+                        width: 42, 
+                        height: 42, 
+                        top: 11, 
+                        left: 11,
                         border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
+                        boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
                       }}
                     >
                       <AvatarImage src={user.avatar_url || ""} alt={user.display_name} />
                       <AvatarFallback 
-                        className="text-xs font-bold"
+                        className="text-sm font-bold"
                         style={{ 
                           background: 'linear-gradient(135deg, #059669, #047857)',
                           color: '#fbbf24',
@@ -306,23 +402,25 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                     <RankBadge rank={rank} />
                   </div>
 
-                  {/* User Info - 2 rows */}
-                  <div className="flex-1 min-w-0">
+                  {/* User Info - căn phải */}
+                  <div className="flex-1 min-w-0 text-right">
                     <div 
-                      className={`font-semibold text-sm truncate ${isTop3 ? titleGoldStyle : 'text-white'}`}
+                      className={`font-bold truncate ${isTop3 ? titleGoldStyle : 'text-white'}`}
                       style={{ 
-                        textShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
+                        fontSize: '1rem',
+                        textShadow: isTop3 ? '0 0 10px rgba(251, 191, 36, 0.6)' : '0 1px 2px rgba(0,0,0,0.5)',
                       }}
                     >
                       {user.display_name}
                     </div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <img src={camlyCoin} alt="CAMLY" className="w-4 h-4" />
+                    <div className="flex items-center justify-end gap-1.5 mt-1">
+                      <img src={camlyCoin} alt="CAMLY" className="w-5 h-5" />
                       <span 
-                        className="font-bold text-sm"
+                        className="font-extrabold"
                         style={{ 
-                          color: '#4ade80',
-                          textShadow: '0 0 6px rgba(74, 222, 128, 0.5)',
+                          fontSize: '1rem',
+                          color: '#fbbf24',
+                          textShadow: '0 0 8px rgba(251, 191, 36, 0.6), 0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >
                         {formatNumber(user.total_reward)}
@@ -335,27 +433,34 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           )}
         </div>
 
+        {/* Divider */}
+        <div className="mt-4 mb-3 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+
         {/* View More / View Less Button */}
         {topUsers.length > 5 && (
-          <div className="mt-3 flex justify-center">
+          <div className="flex justify-center mb-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowAll(!showAll)}
-              className={`${goldTextStyle} hover:bg-amber-400/10 text-xs px-4`}
+              className={`${goldTextStyle} hover:bg-amber-400/15 text-sm px-5 font-semibold`}
             >
               {showAll ? 'Thu gọn ↑' : 'Xem thêm ↓'}
             </Button>
           </div>
         )}
 
-        {/* Full Leaderboard Link */}
-        <div className="mt-2 flex justify-center">
+        {/* Full Leaderboard Link - nổi bật */}
+        <div className="flex justify-center">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => navigate("/leaderboard")}
-            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 text-xs"
+            className="text-white border-emerald-400/70 bg-emerald-800/50 hover:bg-emerald-700/60 hover:text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-all"
+            style={{
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+            }}
           >
             Bảng xếp hạng đầy đủ →
           </Button>
