@@ -222,10 +222,10 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                   className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:brightness-110 border border-white/35"
                   style={{
                     background: isTop3 
-                      ? 'rgba(80, 160, 200, 0.35)'
-                      : 'rgba(100, 180, 220, 0.25)',
+                      ? 'rgba(5, 150, 105, 0.35)'
+                      : 'rgba(16, 185, 129, 0.25)',
                     boxShadow: isTop3 
-                      ? 'inset 0 1px 0 rgba(255,255,255,0.25), 0 0 12px rgba(251,191,36,0.2)'
+                      ? 'inset 0 1px 0 rgba(255,255,255,0.25), 0 0 12px rgba(16,185,129,0.3)'
                       : 'inset 0 1px 0 rgba(255,255,255,0.2)',
                   }}
                 >

@@ -57,7 +57,7 @@ const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yello
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
 // Viền kim loại sáng sang trọng
 const metallicFrameStyle = "border border-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] rounded-lg";
-const goldenFrameStyle = "border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_10px_rgba(100,180,220,0.2)] rounded-lg";
+const goldenFrameStyle = "border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_10px_rgba(16,185,129,0.2)] rounded-lg";
 
 // Stat row component
 const StatRow = ({ 
@@ -71,7 +71,7 @@ const StatRow = ({
   value: number;
   compact?: boolean;
 }) => (
-  <div className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`} style={{ background: 'rgba(100, 180, 220, 0.25)' }}>
+  <div className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`} style={{ background: 'rgba(16, 185, 129, 0.25)' }}>
     <div className="flex items-center gap-2">
       <Icon 
         className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-amber-300`} 
@@ -95,7 +95,7 @@ const TotalRewardRow = ({
   value: number;
   compact?: boolean;
 }) => (
-  <div className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`} style={{ background: 'rgba(80, 160, 200, 0.35)' }}>
+  <div className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`} style={{ background: 'rgba(5, 150, 105, 0.35)' }}>
     <div className="flex items-center gap-2">
       <img 
         src={camlyCoin} 
