@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import camlyCoin from "@/assets/camly_coin.png";
 import honorBoardBg from "@/assets/honor-board-bg.jpeg";
 import angelFrame from "@/assets/angel-frame.png";
+import top1Frame from "@/assets/top1-frame.png";
 
 interface TopUser {
   id: string;
@@ -26,19 +27,21 @@ interface TopRankingProps {
 const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
 const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
 
-// Angel Frame - Khung cánh thiên thần từ hình PNG
+// Frame Component - Khung phượng hoàng cho Top 1, khung thiên thần cho Top 2-5
 const LaurelFrame = ({ rank }: { rank: number }) => {
+  const isTop1 = rank === 1;
   const isTop3 = rank <= 3;
+  const frameImage = isTop1 ? top1Frame : angelFrame;
   
   return (
     <div 
       className="absolute inset-0 flex items-center justify-center"
       style={{
-        filter: `drop-shadow(0 0 ${isTop3 ? 12 : 6}px rgba(251, 191, 36, ${isTop3 ? 0.8 : 0.5}))`,
+        filter: `drop-shadow(0 0 ${isTop1 ? 18 : isTop3 ? 12 : 6}px rgba(251, 191, 36, ${isTop1 ? 1 : isTop3 ? 0.8 : 0.5}))`,
       }}
     >
       <img 
-        src={angelFrame} 
+        src={frameImage} 
         alt="frame" 
         className="w-full h-full object-contain"
         draggable={false}
@@ -210,12 +213,12 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                       : 'inset 0 1px 0 rgba(255,255,255,0.1)',
                   }}
                 >
-                  {/* Avatar with Angel Frame */}
+                  {/* Avatar with Frame - Top 1 dùng khung phượng hoàng lớn hơn */}
                   <div 
                     className={`relative flex-shrink-0 ${rank === 1 ? 'animate-pulse' : ''}`} 
                     style={{ 
-                      width: 90, 
-                      height: 64,
+                      width: rank === 1 ? 120 : 90, 
+                      height: rank === 1 ? 85 : 64,
                       animationDuration: rank === 1 ? '3s' : undefined,
                     }}
                   >
@@ -223,9 +226,9 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                     <Avatar 
                       className="absolute rounded-full"
                       style={{ 
-                        width: 36, 
-                        height: 36, 
-                        top: '50%',
+                        width: rank === 1 ? 40 : 36, 
+                        height: rank === 1 ? 40 : 36, 
+                        top: rank === 1 ? '42%' : '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
                         border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
@@ -243,7 +246,8 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                         {user.display_name?.charAt(0)?.toUpperCase() || "F"}
                       </AvatarFallback>
                     </Avatar>
-                    <RankBadge rank={rank} />
+                    {/* Ẩn RankBadge cho Top 1 vì khung đã có badge TOP1 */}
+                    {rank !== 1 && <RankBadge rank={rank} />}
                   </div>
 
                   {/* User Info - căn phải */}
