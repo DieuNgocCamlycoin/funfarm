@@ -241,40 +241,32 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
         {/* Header - Logo trên cùng, to hơn với viền tròn đẹp */}
         <div className="flex flex-col items-center mb-4">
-          {/* Logo FUN FARM - To, viền tròn kim loại sáng */}
-          <div 
-            className="relative mb-3"
-            style={{
-              background: 'linear-gradient(145deg, rgba(251,191,36,0.8), rgba(180,140,30,0.9))',
-              borderRadius: '50%',
-              padding: '4px',
-              boxShadow: '0 0 20px rgba(251,191,36,0.6), inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 8px rgba(0,0,0,0.3)',
-            }}
-          >
+          {/* Logo FUN FARM - Tỏa sáng, viền vàng kim loại phát sáng */}
+          <div className="relative">
             <img 
               src={logoFunFarm} 
               alt="FUN FARM" 
               className={`${compact ? 'w-16 h-16' : 'w-20 h-20'} rounded-full object-cover`}
               style={{ 
-                border: '3px solid rgba(255,255,255,0.3)',
-                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.2)',
+                border: '4px solid rgba(251,191,36,0.7)',
+                boxShadow: '0 0 25px rgba(251,191,36,0.7), 0 0 50px rgba(251,191,36,0.3)',
               }}
             />
-            {/* Glow ring */}
+            {/* Glow ring animation */}
             <div 
-              className="absolute inset-0 rounded-full animate-pulse"
+              className="absolute inset-[-4px] rounded-full animate-pulse pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, transparent 60%, rgba(251,191,36,0.4) 100%)',
+                border: '2px solid rgba(255,225,53,0.5)',
+                boxShadow: '0 0 20px rgba(251,191,36,0.5)',
                 animationDuration: '2s',
               }}
             />
           </div>
-          
         </div>
         
-        {/* Chữ HONOR BOARD - vàng kim loại sáng bóng, căn đều với stat boxes */}
+        {/* Chữ HONOR BOARD - căn đều giữa logo và stats */}
         <h2 
-          className="uppercase relative text-center whitespace-nowrap"
+          className="uppercase relative text-center whitespace-nowrap mt-3 mb-5"
           style={{ 
             fontFamily: "system-ui, -apple-system, sans-serif",
             fontWeight: 900,
