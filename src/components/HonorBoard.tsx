@@ -272,16 +272,16 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           
         </div>
         
-        {/* Chữ HONOR BOARD - vàng kim loại sáng bóng, căn full width */}
+        {/* Chữ HONOR BOARD - vàng kim loại sáng bóng, căn đều với stat boxes */}
         <h2 
-          className="uppercase relative tracking-wider text-center w-full"
+          className="uppercase relative text-center whitespace-nowrap"
           style={{ 
             fontFamily: "system-ui, -apple-system, sans-serif",
             fontWeight: 900,
-            fontSize: compact ? '1.5rem' : '1.75rem',
+            fontSize: compact ? '1.4rem' : '1.7rem',
             color: '#ffe135',
             textShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 12px rgba(255,225,53,0.5)',
-            letterSpacing: '0.3em',
+            letterSpacing: '0.12em',
           }}
         >
           HONOR BOARD
