@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.fetch-bscscan-history]
 verify_jwt = false
+
+[functions.angel-chat]
+verify_jwt = false
