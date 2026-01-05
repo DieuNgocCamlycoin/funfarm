@@ -272,11 +272,12 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           
           {/* Chữ HONOR BOARD - vàng kim loại sáng bóng, đơn giản */}
           <h2 
-            className={`${compact ? 'text-xl' : 'text-2xl md:text-3xl'} uppercase relative font-bold tracking-wide`}
+            className={`${compact ? 'text-2xl' : 'text-3xl md:text-4xl'} uppercase relative tracking-wide`}
             style={{ 
               fontFamily: "system-ui, -apple-system, sans-serif",
-              color: '#ffd700',
-              textShadow: '0 1px 2px rgba(0,0,0,0.3), 0 0 8px rgba(255,215,0,0.4)',
+              fontWeight: 900,
+              color: '#ffe135',
+              textShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 12px rgba(255,225,53,0.5)',
             }}
           >
             HONOR BOARD
