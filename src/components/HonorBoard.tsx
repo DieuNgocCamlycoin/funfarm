@@ -1,11 +1,12 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Honor Board - Bảng vinh danh thành tựu cộng đồng - Design theo thiết kế
+// Honor Board - Bảng vinh danh thành tựu cộng đồng - Design đồng bộ với ProfileHonorBoard
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, FileText, Image, Video } from "lucide-react";
+import { Users, FileText, Image, Video, Coins } from "lucide-react";
 import camlyCoin from "@/assets/camly_coin.png";
-import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
+import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
+import honorBoardBg from "@/assets/honor-board-bg.jpeg";
 
 interface HonorStats {
   totalUsers: number;
@@ -52,71 +53,73 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
   return <span>{displayValue.toLocaleString("vi-VN")}</span>;
 };
 
-// Sparkle particle component - hiệu ứng sao lấp lánh rơi
-const SparkleParticles = () => {
-  const particles = Array.from({ length: 25 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    delay: `${Math.random() * 6}s`,
-    duration: `${4 + Math.random() * 3}s`,
-    size: 1 + Math.random() * 2,
-    type: i % 4, // 0: white, 1: gold, 2: bright gold, 3: shimmer
-  }));
+// Styles - đồng bộ với ProfileHonorBoard
+const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
+const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
+const metallicFrameStyle = "bg-black/20 border border-emerald-400/40 backdrop-blur-[2px] rounded-md";
+const goldenFrameStyle = "bg-black/25 border-2 border-amber-400/50 shadow-[0_0_12px_rgba(251,191,36,0.25)] backdrop-blur-[2px] rounded-lg";
 
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute animate-sparkle-fall"
-          style={{
-            left: p.left,
-            top: '-10px',
-            animationDelay: p.delay,
-            animationDuration: p.duration,
-          }}
-        >
-          <div 
-            className="rounded-full"
-            style={{
-              width: p.size + 'px',
-              height: p.size + 'px',
-              background: p.type === 0 
-                ? '#ffffff'
-                : p.type === 1 
-                ? '#ffd700'
-                : p.type === 2
-                ? '#ffec8b'
-                : '#fff8dc',
-              boxShadow: `0 0 ${p.size * 3}px ${p.type === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,215,0,0.9)'}`,
-            }}
-          />
-        </div>
-      ))}
+// Stat row component
+const StatRow = ({ 
+  icon: Icon, 
+  label, 
+  value,
+  compact = false
+}: { 
+  icon: React.ElementType; 
+  label: string; 
+  value: number;
+  compact?: boolean;
+}) => (
+  <div className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`}>
+    <div className="flex items-center gap-2">
+      <Icon 
+        className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-amber-300`} 
+        style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.6))' }} 
+      />
+      <span className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide ${goldTextStyle}`}>
+        {label}
+      </span>
     </div>
-  );
-};
+    <span className={`${compact ? 'text-sm' : 'text-base'} font-extrabold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]`}>
+      <AnimatedCounter value={value} />
+    </span>
+  </div>
+);
 
-// Corner ornament decorative
-const CornerOrnament = ({ position }: { position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }) => {
-  const styles: Record<string, React.CSSProperties> = {
-    'top-left': { top: 8, left: 8, borderTop: '3px solid', borderLeft: '3px solid', borderRadius: '8px 0 0 0' },
-    'top-right': { top: 8, right: 8, borderTop: '3px solid', borderRight: '3px solid', borderRadius: '0 8px 0 0' },
-    'bottom-left': { bottom: 8, left: 8, borderBottom: '3px solid', borderLeft: '3px solid', borderRadius: '0 0 0 8px' },
-    'bottom-right': { bottom: 8, right: 8, borderBottom: '3px solid', borderRight: '3px solid', borderRadius: '0 0 8px 0' },
-  };
-
-  return (
-    <div 
-      className="absolute w-6 h-6 z-30"
-      style={{
-        ...styles[position],
-        borderColor: '#ffd700',
-        filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.8))',
+// Total reward row with CAMLY coin
+const TotalRewardRow = ({ 
+  value,
+  compact = false
+}: { 
+  value: number;
+  compact?: boolean;
+}) => (
+  <div className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`}>
+    <div className="flex items-center gap-2">
+      <img 
+        src={camlyCoin} 
+        alt="CAMLY" 
+        className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} animate-spin`}
+        style={{ 
+          animationDuration: '4s',
+          filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.7))',
+        }}
+      />
+      <span className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide ${goldTextStyle}`}>
+        TOTAL REWARD
+      </span>
+    </div>
+    <span 
+      className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums ${titleGoldStyle}`}
+      style={{ 
+        filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(251,191,36,0.4))',
       }}
-    />
-  );
-};
+    >
+      <AnimatedCounter value={value} />
+    </span>
+  </div>
+);
 
 const HonorBoard = ({ compact = false }: HonorBoardProps) => {
   const [stats, setStats] = useState<HonorStats>({
@@ -180,7 +183,6 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
       }, 0) || 0;
 
       // TOTAL REWARD = Đã claim trên BSC (28,986,000) + Pending reward
-      // Số liệu claimed được chốt theo blockchain thực tế
       const CLAIMED_ON_BSC = 28986000;
       const totalReward = CLAIMED_ON_BSC + totalPendingReward;
 
@@ -213,211 +215,79 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-[20px] p-1 main-board-glow cursor-pointer"
-      style={{
-        background: 'linear-gradient(135deg, #ffd700 0%, #b8860b 25%, #ffd700 50%, #daa520 75%, #ffd700 100%)',
-        boxShadow: '0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.3)',
-      }}
+      className="relative overflow-hidden rounded-xl border-2 border-amber-400/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_20px_rgba(0,0,0,0.3),0_0_30px_rgba(251,191,36,0.25)]"
     >
-      {/* Inner container with cosmos background */}
+      {/* Background image - giống ProfileHonorBoard */}
       <div 
-        className="relative overflow-hidden rounded-[16px]"
-        style={{
-          background: 'linear-gradient(160deg, #1a472a 0%, #0d3320 20%, #0a2818 40%, #071f14 60%, #0a2818 80%, #0d3320 100%)',
-        }}
-      >
-        {/* Cosmic gradient overlay */}
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse at 20% 20%, rgba(0, 100, 180, 0.3) 0%, transparent 50%),
-              radial-gradient(ellipse at 80% 80%, rgba(184, 134, 11, 0.25) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 50%, rgba(34, 139, 34, 0.2) 0%, transparent 70%)
-            `,
-          }}
-        />
-        
-        {/* Starfield effect */}
-        <div 
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.8), transparent),
-              radial-gradient(2px 2px at 40px 70px, rgba(255,215,0,0.7), transparent),
-              radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.6), transparent),
-              radial-gradient(2px 2px at 130px 80px, rgba(255,215,0,0.5), transparent),
-              radial-gradient(1px 1px at 160px 30px, rgba(255,255,255,0.7), transparent),
-              radial-gradient(1px 1px at 50px 120px, rgba(255,215,0,0.6), transparent),
-              radial-gradient(2px 2px at 180px 120px, rgba(255,255,255,0.5), transparent)
-            `,
-            backgroundSize: '200px 150px',
-            animation: 'twinkle 3s ease-in-out infinite',
-          }}
-        />
-
-        <SparkleParticles />
-        
-        {/* Golden glow from corners */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-radial from-yellow-500/30 to-transparent blur-xl" />
-        <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-radial from-yellow-500/30 to-transparent blur-xl" />
-        
-        {/* Corner ornaments */}
-        <CornerOrnament position="top-left" />
-        <CornerOrnament position="top-right" />
-        <CornerOrnament position="bottom-left" />
-        <CornerOrnament position="bottom-right" />
-
-        <div className={`relative z-10 ${compact ? 'p-4' : 'p-6'}`}>
-          {/* Logo at top */}
-          <div className="flex justify-center mb-3">
-            <div 
-              className="relative"
-              style={{
-                filter: 'drop-shadow(0 0 15px rgba(255,215,0,0.5))',
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${honorBoardBg})` }}
+      />
+      <div className="absolute inset-0 bg-black/10" />
+      
+      {/* Sparkle effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-3 left-6 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
+        <div className="absolute top-8 right-10 w-1 h-1 bg-yellow-200 rounded-full animate-ping opacity-50" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
+        <div className="absolute bottom-10 left-1/4 w-1 h-1 bg-white rounded-full animate-ping opacity-40" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
+        <div className="absolute top-1/2 right-6 w-1 h-1 bg-amber-300 rounded-full animate-ping opacity-40" style={{ animationDuration: '3.5s', animationDelay: '2s' }} />
+        <div className="absolute bottom-6 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '2.8s', animationDelay: '0.5s' }} />
+      </div>
+      
+      {/* Top highlight */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
+      
+      {/* Content */}
+      <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
+        {/* Header */}
+        <div className="flex flex-col items-center mb-3">
+          <div className="flex items-center gap-2 justify-center">
+            <img 
+              src={logoFunFarm} 
+              alt="FUN FARM" 
+              className={`${compact ? 'w-10 h-10' : 'w-12 h-12'} rounded-full border-2 border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.6)]`}
+              style={{ filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.5))' }}
+            />
+            <h2 
+              className={`${compact ? 'text-lg' : 'text-xl md:text-2xl'} font-black tracking-[0.08em] ${titleGoldStyle}`}
+              style={{ 
+                fontFamily: "'Orbitron', 'Space Grotesk', sans-serif",
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8)) drop-shadow(0 0 15px rgba(251,191,36,0.5))',
               }}
             >
-              <img 
-                src={funFarmLogo} 
-                alt="FUN FARM Web3" 
-                className={`${compact ? 'w-16 h-16' : 'w-20 h-20'} object-contain`}
-              />
-            </div>
+              ✦ HONOR BOARD ✦
+            </h2>
           </div>
-
-          {/* Title */}
-          <h2 
-            className={`text-center font-extrabold ${compact ? 'text-xl' : 'text-2xl md:text-3xl'} tracking-[0.15em] mb-5`}
-            style={{
-              color: '#ffd700',
-              textShadow: `
-                0 0 10px rgba(255, 215, 0, 1),
-                0 0 20px rgba(255, 215, 0, 0.8),
-                0 0 40px rgba(255, 215, 0, 0.6),
-                0 2px 4px rgba(0, 0, 0, 0.8)
-              `,
-              fontFamily: "'Space Grotesk', sans-serif",
-            }}
+          
+          <p 
+            className={`${compact ? 'text-[10px]' : 'text-xs'} text-amber-200/80 mt-1 font-medium tracking-wide`}
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
           >
-            HONOR BOARD
-          </h2>
+            Community Achievements
+          </p>
+        </div>
 
-          {/* Stats */}
-          <div className="space-y-3">
-            {statItems.map((item, index) => (
-              <div
-                key={item.label}
-                className="relative overflow-hidden rounded-xl transition-all duration-300 honor-card-hover honor-card-3d golden-border-shimmer"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(10, 40, 24, 0.9) 0%, rgba(7, 31, 20, 0.95) 100%)',
-                  border: '2px solid rgba(255, 215, 0, 0.6)',
-                  boxShadow: '0 0 15px rgba(255, 215, 0, 0.3), inset 0 0 10px rgba(255, 215, 0, 0.1)',
-                }}
-              >
-                <div className={`flex items-center gap-3 ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
-                  {/* Icon */}
-                  <div 
-                    className={`${compact ? 'p-2' : 'p-2.5'} rounded-lg`}
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(184, 134, 11, 0.15))',
-                      border: '1px solid rgba(255, 215, 0, 0.5)',
-                    }}
-                  >
-                    <item.icon 
-                      className={`${compact ? 'w-4 h-4' : 'w-5 h-5'}`}
-                      style={{
-                        color: '#ffd700',
-                        filter: 'drop-shadow(0 0 6px rgba(255, 215, 0, 0.8))',
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Label */}
-                  <span 
-                    className={`flex-1 font-bold ${compact ? 'text-sm' : 'text-base'} tracking-wide`}
-                    style={{
-                      color: '#ffd700',
-                      textShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)',
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                  
-                  {/* Value */}
-                  <span 
-                    className={`font-extrabold ${compact ? 'text-lg' : 'text-xl'}`}
-                    style={{
-                      color: '#ffd700',
-                      textShadow: `
-                        0 0 10px rgba(255, 215, 0, 1),
-                        0 0 20px rgba(255, 215, 0, 0.7),
-                        0 2px 4px rgba(0, 0, 0, 0.8)
-                      `,
-                    }}
-                  >
-                    {isLoading ? "..." : <AnimatedCounter value={item.value} />}
-                  </span>
-                </div>
-              </div>
-            ))}
-
-            {/* TOTAL REWARD with CAMLY coin */}
-            <div
-              className="relative overflow-hidden rounded-xl transition-all duration-300 honor-card-hover honor-card-3d golden-border-shimmer"
-              style={{
-                background: 'linear-gradient(135deg, rgba(10, 40, 24, 0.9) 0%, rgba(7, 31, 20, 0.95) 100%)',
-                border: '2px solid rgba(255, 215, 0, 0.8)',
-                boxShadow: '0 0 20px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 215, 0, 0.15)',
-              }}
-            >
-              <div className={`flex items-center gap-3 ${compact ? 'px-3 py-3' : 'px-4 py-4'}`}>
-                {/* CAMLY Coin */}
-                <div 
-                  className={`${compact ? 'p-1.5' : 'p-2'} rounded-lg`}
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(184, 134, 11, 0.2))',
-                  }}
-                >
-                  <img 
-                    src={camlyCoin} 
-                    alt="CAMLY" 
-                    className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} animate-coin-spin`}
-                    style={{ 
-                      filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.9))',
-                    }}
-                  />
-                </div>
-                
-                {/* Label */}
-                <span 
-                  className={`flex-1 font-bold ${compact ? 'text-sm' : 'text-base'} tracking-wide`}
-                  style={{
-                    color: '#ffd700',
-                    textShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8)',
-                  }}
-                >
-                  TOTAL REWARD
-                </span>
-                
-                {/* Value */}
-                <span 
-                  className={`font-extrabold ${compact ? 'text-xl' : 'text-2xl'}`}
-                  style={{
-                    color: '#ffd700',
-                    textShadow: `
-                      0 0 15px rgba(255, 215, 0, 1),
-                      0 0 30px rgba(255, 215, 0, 0.7),
-                      0 2px 4px rgba(0, 0, 0, 0.8)
-                    `,
-                  }}
-                >
-                  {isLoading ? "..." : <AnimatedCounter value={stats.totalReward} />}
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* Stats */}
+        <div className={`space-y-${compact ? '1.5' : '2'}`}>
+          {statItems.map((item) => (
+            <StatRow 
+              key={item.label}
+              icon={item.icon} 
+              label={item.label} 
+              value={isLoading ? 0 : item.value}
+              compact={compact}
+            />
+          ))}
+          
+          {/* Total Reward */}
+          <TotalRewardRow 
+            value={isLoading ? 0 : stats.totalReward}
+            compact={compact}
+          />
         </div>
       </div>
+
+      {/* Bottom edge - giống ProfileHonorBoard */}
+      <div className="relative z-10 h-1.5 bg-gradient-to-r from-emerald-600/30 via-amber-400/60 to-emerald-600/30" />
     </div>
   );
 };
