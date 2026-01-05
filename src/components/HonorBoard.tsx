@@ -170,13 +170,19 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
         }
       });
 
+      // Lấy pending_reward từ tất cả profiles
       const { data: rewardsData } = await supabase
         .from("profiles")
-        .select("pending_reward, camly_balance");
+        .select("pending_reward");
 
-      const totalReward = rewardsData?.reduce((sum, profile) => {
-        return sum + (profile.pending_reward || 0) + (profile.camly_balance || 0);
+      const totalPendingReward = rewardsData?.reduce((sum, profile) => {
+        return sum + (profile.pending_reward || 0);
       }, 0) || 0;
+
+      // TOTAL REWARD = Đã claim trên BSC (28,986,000) + Pending reward
+      // Số liệu claimed được chốt theo blockchain thực tế
+      const CLAIMED_ON_BSC = 28986000;
+      const totalReward = CLAIMED_ON_BSC + totalPendingReward;
 
       setStats({
         totalUsers: usersCount || 0,
