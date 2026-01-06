@@ -26,6 +26,7 @@ import CreateGiftPostModal from '@/components/wallet/CreateGiftPostModal';
 import WalletPriceChart from '@/components/wallet/WalletPriceChart';
 import MetaMaskConnect from '@/components/wallet/MetaMaskConnect';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
+import TopSponsor from '@/components/wallet/TopSponsor';
 import camlyCoinImg from '@/assets/camly_coin.png';
 
 interface GiftSuccessData {
@@ -250,6 +251,9 @@ const Wallet_Page = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Top Sponsor */}
+        <TopSponsor />
 
         {/* Price Chart */}
         <WalletPriceChart />
