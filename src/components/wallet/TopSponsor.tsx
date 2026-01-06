@@ -30,33 +30,40 @@ const glowColors: Record<number, string> = {
 };
 
 const userRowStyle: React.CSSProperties = {
-  background: 'linear-gradient(180deg, #4ade80 0%, #15803d 100%)',
+  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
   border: '2px solid #fbbf24',
-  borderRadius: '12px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.2)',
+  borderRadius: '20px',
+  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
 };
 
 const userRowTop3Style: React.CSSProperties = {
-  ...userRowStyle,
-  border: '3px solid #ffd700',
-  boxShadow: '0 6px 20px rgba(255, 215, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)',
+  background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 40%, #15803d 70%, #166534 100%)',
+  border: '2.5px solid #fbbf24',
+  borderRadius: '20px',
+  boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
 };
 
-// Laurel Frame component for Top 5 - Only renders the frame image
+// Laurel Frame component for Top 5 - renders frame in lower z-layer
 const LaurelFrame = ({ rank }: { rank: number }) => {
   if (rank > 5) return null;
   
   const frameImage = frameImages[rank - 1];
+  const glowSize = rank === 1 ? 18 : 12;
   
   return (
-    <img 
-      src={frameImage} 
-      alt={`Top ${rank} frame`}
-      className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
-      style={{ 
-        filter: `drop-shadow(${glowColors[rank] || 'none'})`,
+    <div 
+      className="absolute inset-0 flex items-center justify-center z-0"
+      style={{
+        filter: `drop-shadow(0 0 ${glowSize}px ${glowColors[rank] || 'rgba(251,191,36,0.5)'})`,
       }}
-    />
+    >
+      <img 
+        src={frameImage} 
+        alt={`Top ${rank} frame`}
+        className="w-full h-full object-contain"
+        draggable={false}
+      />
+    </div>
   );
 };
 
@@ -226,81 +233,85 @@ const TopSponsor = () => {
               style={isTop3 ? userRowTop3Style : userRowStyle}
               onClick={() => navigate(`/user/${sponsor.id}`)}
             >
-              <div className="flex items-center gap-3 p-3">
-                {/* Rank/Frame */}
-                {isTop5 ? (
-                  <div 
-                    className="relative flex-shrink-0"
-                    style={{ 
-                      width: rank === 1 ? 140 : 130, 
-                      height: rank === 1 ? 100 : 92,
+              <div className="flex items-center gap-2 p-2.5">
+                {/* Avatar with Frame */}
+                <div 
+                  className="relative flex-shrink-0"
+                  style={{ 
+                    width: isTop5 ? (rank === 1 ? 140 : 130) : 40, 
+                    height: isTop5 ? (rank === 1 ? 100 : 92) : 40,
+                  }}
+                >
+                  {isTop5 && <LaurelFrame rank={rank} />}
+                  <Avatar 
+                    className={isTop5 ? "absolute rounded-full z-10" : "w-10 h-10"}
+                    style={isTop5 ? { 
+                      width: rank === 1 ? 48 : 44, 
+                      height: rank === 1 ? 48 : 44, 
+                      top: '42%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
+                      boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
+                    } : {
+                      border: '2px solid rgba(255,255,255,0.5)',
                     }}
                   >
-                    {/* Frame layer */}
-                    <LaurelFrame rank={rank} />
-                    
-                    {/* Avatar layer - positioned at center of frame */}
-                    <Avatar 
-                      className="absolute rounded-full"
+                    <AvatarImage src={sponsor.avatar_url || undefined} alt={sponsor.display_name || ''} />
+                    <AvatarFallback 
+                      className="text-sm font-bold"
                       style={{ 
-                        width: rank === 1 ? 48 : 44, 
-                        height: rank === 1 ? 48 : 44, 
-                        top: '42%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        border: isTop3 ? '2px solid #fbbf24' : '2px solid rgba(251, 191, 36, 0.5)',
-                        boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
+                        background: 'linear-gradient(135deg, #059669, #047857)',
+                        color: '#fbbf24',
                       }}
                     >
-                      <AvatarImage src={sponsor.avatar_url || undefined} alt={sponsor.display_name || ''} />
-                      <AvatarFallback 
-                        className="text-sm font-bold"
-                        style={{ 
-                          background: 'linear-gradient(135deg, #059669, #047857)',
-                          color: '#fbbf24',
-                        }}
-                      >
-                        {sponsor.display_name?.charAt(0)?.toUpperCase() || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <RankBadge rank={rank} />
-                    <Avatar className="w-10 h-10 border-2 border-white/50">
-                      <AvatarImage src={sponsor.avatar_url || undefined} />
-                      <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                        {sponsor.display_name?.[0] || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                )}
+                      {sponsor.display_name?.charAt(0)?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* RankBadge for ranks > 5 */}
+                  {!isTop5 && (
+                    <div 
+                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-20"
+                      style={{
+                        background: 'linear-gradient(135deg, #059669, #34d399)',
+                        border: '2px solid #047857',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                        fontSize: '11px',
+                      }}
+                    >
+                      {rank}
+                    </div>
+                  )}
+                </div>
 
-                {/* Name */}
-                <div className="flex-1 min-w-0">
-                  <p 
-                    className="font-semibold truncate"
+                {/* User Info - căn phải giống TopRanking */}
+                <div className="flex-1 min-w-0 text-right">
+                  <div 
+                    className="font-bold truncate"
                     style={{ 
-                      color: '#ffd700',
-                      textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                      fontSize: '1rem',
+                      color: isTop3 ? '#ffd700' : '#ffffff',
+                      textShadow: isTop3 
+                        ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(251, 191, 36, 0.7)' 
+                        : '0 2px 4px rgba(0,0,0,0.9)',
                     }}
                   >
                     {sponsor.display_name || 'Người dùng'}
-                  </p>
-                </div>
-
-                {/* Amount */}
-                <div className="flex items-center gap-1.5">
-                  <img src={camlyCoinImg} alt="CLC" className="w-5 h-5" />
-                  <span 
-                    className="font-bold"
-                    style={{ 
-                      color: '#ffffff',
-                      textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    {formatNumber(sponsor.total_sent)}
-                  </span>
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 mt-1">
+                    <img src={camlyCoinImg} alt="CLC" className="w-5 h-5" />
+                    <span 
+                      className="font-extrabold"
+                      style={{ 
+                        fontSize: '1rem',
+                        color: '#fbbf24',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251, 191, 36, 0.8)',
+                      }}
+                    >
+                      {formatNumber(sponsor.total_sent)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
