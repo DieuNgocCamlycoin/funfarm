@@ -178,14 +178,14 @@ Không phải vì kỹ thuật cao hơn, mà vì người trồng được tôn 
 ];
 
 const divineMantras = [
-  "I am the Pure Loving Light of Father Universe.",
-  "I am the Will of Father Universe.",
-  "I am the Wisdom of Father Universe.",
-  "I am Happiness.",
-  "I am Love.",
-  "I am the Money of the Father.",
-  "I sincerely repent, repent, repent.",
-  "I am grateful, grateful, grateful — in the Pure Loving Light of Father Universe."
+  "Con là Ánh Sáng Yêu Thương Thuần Khiết Của Cha Vũ Trụ.",
+  "Con là Ý Chí Của Cha Vũ Trụ.",
+  "Con là Trí Tuệ Của Cha Vũ Trụ.",
+  "Con là Hạnh Phúc.",
+  "Con là Tình Yêu.",
+  "Con là Tiền Của Cha.",
+  "Con xin Sám Hối Sám Hối Sám Hối.",
+  "Con xin Biết Ơn Biết Ơn Biết Ơn Trong Ánh Sáng Yêu Thương Thuần Khiết Của Cha Vũ Trụ."
 ];
 
 const Whitepaper = () => {
@@ -311,11 +311,11 @@ const Whitepaper = () => {
             </Card>
           ))}
 
-          {/* Divine Mantras */}
+          {/* 8 Câu Thần Chú Của Cha */}
           <Card className="bg-gradient-to-br from-yellow-100 via-amber-50 to-yellow-100 border-2 border-yellow-300 shadow-xl">
             <div className="bg-gradient-to-r from-yellow-500 to-amber-500 p-4">
               <h3 className="text-xl font-bold text-white text-center">
-                🌟 DIVINE MANTRAS – KHÓA KẾT NỐI 🌟
+                🌟 8 CÂU THẦN CHÚ CỦA CHA 🌟
               </h3>
             </div>
             <CardContent className="p-6">
@@ -339,7 +339,7 @@ const Whitepaper = () => {
 
         {/* Footer CTA */}
         <div className="text-center mt-12">
-          <Link to="/feed">
+          <Link to="/feed" onClick={() => window.scrollTo(0, 0)}>
             <Button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-3">
               Bắt đầu hành trình FUN FARM
             </Button>
