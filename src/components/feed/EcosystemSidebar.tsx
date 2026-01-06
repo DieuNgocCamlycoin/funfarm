@@ -110,12 +110,19 @@ const EcosystemSidebar = () => {
               borderRadius: '16px',
             }}
           >
-            <img
-              src={funFarmLogo}
-              alt="FUN FARM"
-              className="w-10 h-10 rounded-full object-cover border-2 border-amber-400/60"
-              style={{ boxShadow: "0 0 8px rgba(251,191,36,0.4)" }}
-            />
+            <div 
+              className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden"
+              style={{
+                border: "2px solid #fbbf24",
+                boxShadow: "0 0 8px rgba(251,191,36,0.4)"
+              }}
+            >
+              <img
+                src={funFarmLogo}
+                alt="FUN FARM"
+                className="w-full h-full object-cover"
+              />
+            </div>
             <span 
               className="flex-1 text-left font-bold"
               style={{
@@ -196,14 +203,19 @@ const EcosystemSidebar = () => {
                   borderRadius: '16px',
                 }}
               >
-                <img
-                  src={platform.logo}
-                  alt={platform.name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-amber-400/60"
+                <div 
+                  className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden"
                   style={{
+                    border: "2px solid #fbbf24",
                     boxShadow: "0 0 8px rgba(251,191,36,0.4)"
                   }}
-                />
+                >
+                  <img
+                    src={platform.logo}
+                    alt={platform.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <span 
                   className="flex-1 text-base font-semibold"
                   style={{
