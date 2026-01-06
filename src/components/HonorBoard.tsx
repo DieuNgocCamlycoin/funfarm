@@ -52,10 +52,20 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
   return <span>{displayValue.toLocaleString("vi-VN")}</span>;
 };
 
-// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
-// Viền xanh emerald sắc nét - không mờ
-const metallicFrameStyle = "border-[1.5px] border-emerald-400/75 rounded-lg";
-const goldenFrameStyle = "border-2 border-emerald-400/85 rounded-lg";
+// Styles - Stat rows với hiệu ứng bóng gương + viền vàng kim loại
+const statRowStyle = {
+  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+  border: '2px solid #fbbf24',
+  borderRadius: '25px',
+  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+};
+
+const totalRowStyle = {
+  background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 40%, #15803d 70%, #166534 100%)',
+  border: '2.5px solid #fbbf24',
+  borderRadius: '25px',
+  boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
+};
 
 // Stat row component
 const StatRow = ({ 
@@ -70,11 +80,8 @@ const StatRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`} 
-    style={{ 
-      background: 'rgba(16, 185, 129, 0.5)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-    }}
+    className={`flex items-center justify-between ${compact ? 'px-3 py-2' : 'px-4 py-2.5'}`} 
+    style={statRowStyle}
   >
     <div className="flex items-center gap-2">
       <Icon 
@@ -109,11 +116,8 @@ const TotalRewardRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`} 
-    style={{ 
-      background: 'rgba(5, 150, 105, 0.6)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.3)',
-    }}
+    className={`flex items-center justify-between ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`} 
+    style={totalRowStyle}
   >
     <div className="flex items-center gap-2">
       <img 
@@ -246,8 +250,9 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
       style={{
         background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
         backdropFilter: 'saturate(120%)',
-        border: '2px solid rgba(16, 185, 129, 0.7)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
+        border: '4px solid rgba(255, 255, 255, 0.9)',
+        borderRadius: '20px',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.25)',
       }}
     >
       {/* Sparkle effects */}

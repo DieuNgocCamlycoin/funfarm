@@ -25,7 +25,20 @@ interface TopRankingProps {
   compact?: boolean;
 }
 
-// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
+// Styles - Stat rows với hiệu ứng bóng gương + viền vàng kim loại
+const userRowStyle = {
+  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+  border: '2px solid #fbbf24',
+  borderRadius: '20px',
+  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+};
+
+const userRowTop3Style = {
+  background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 40%, #15803d 70%, #166534 100%)',
+  border: '2.5px solid #fbbf24',
+  borderRadius: '20px',
+  boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
+};
 
 // Frame Component - 5 khung riêng cho Top 5
 const LaurelFrame = ({ rank }: { rank: number }) => {
@@ -147,8 +160,9 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
       style={{
         background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
         backdropFilter: 'saturate(120%)',
-        border: '2px solid rgba(16, 185, 129, 0.7)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
+        border: '4px solid rgba(255, 255, 255, 0.9)',
+        borderRadius: '20px',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.25)',
       }}
     >
       {/* Top highlight - Liquid Glass edge */}
@@ -219,18 +233,8 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:brightness-110"
-                  style={{
-                    background: isTop3 
-                      ? 'rgba(5, 150, 105, 0.6)'
-                      : 'rgba(16, 185, 129, 0.5)',
-                    border: isTop3 
-                      ? '2px solid rgba(16, 185, 129, 0.85)'
-                      : '1.5px solid rgba(16, 185, 129, 0.75)',
-                    boxShadow: isTop3 
-                      ? 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.4)'
-                      : 'inset 0 1px 0 rgba(255,255,255,0.15)',
-                  }}
+                  className="flex items-center gap-2 p-2.5 transition-all duration-200 cursor-pointer hover:brightness-110"
+                  style={isTop3 ? userRowTop3Style : userRowStyle}
                 >
                   {/* Avatar with Frame - khung lớn hơn, sát mép trái */}
                   <div 

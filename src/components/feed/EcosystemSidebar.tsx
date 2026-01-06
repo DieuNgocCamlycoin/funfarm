@@ -57,12 +57,13 @@ const EcosystemSidebar = () => {
     >
       {/* Header */}
       <div
-        className="rounded-2xl p-4"
+        className="p-4"
         style={{
-          background: "rgba(255, 255, 255, 0.15)",
-          backdropFilter: "blur(10px) saturate(120%)",
-          border: "2px solid rgba(16, 185, 129, 0.7)",
-          boxShadow: "0 0 20px rgba(16, 185, 129, 0.25)",
+          background: "linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)",
+          backdropFilter: "saturate(120%)",
+          border: "4px solid rgba(255, 255, 255, 0.9)",
+          borderRadius: "20px",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.25)",
         }}
       >
         <h2
