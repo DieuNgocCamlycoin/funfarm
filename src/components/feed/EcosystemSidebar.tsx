@@ -204,18 +204,11 @@ const EcosystemSidebar = () => {
                   borderRadius: '16px',
                 }}
               >
-                <div 
-                  className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden relative"
-                  style={{
-                    outline: "2px solid #fbbf24",
-                    outlineOffset: "0px",
-                    boxShadow: "0 0 8px rgba(251,191,36,0.4)"
-                  }}
-                >
+                <div className="w-14 h-14 rounded-full flex-shrink-0 overflow-hidden">
                   <img
                     src={platform.logo}
                     alt={platform.name}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <span 
