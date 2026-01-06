@@ -29,7 +29,7 @@ const platforms: Platform[] = [
   { name: "FUN Charity", logo: funCharityLogo, link: "https://angelaivan.fun.rich/" },
   { name: "FUN Wallet", logo: funWalletLogo, link: "https://funwallet-rich.lovable.app/dashboard" },
   { name: "Angel AI", logo: angelAiLogo, link: "https://angel-light-nexus.lovable.app/" },
-  { name: "Green Earth", logo: greenEarthLogo, link: null },
+  { name: "Green Earth", logo: greenEarthLogo, link: "https://greenearth-fun.lovable.app" },
   { name: "Camly Coin", logo: camlyCoinLogo, link: "https://camly.co/" },
   { name: "FUN Money", logo: funMoneyLogo, link: null },
   { name: "FUN Life", logo: funLifeLogo, link: null },
