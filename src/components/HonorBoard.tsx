@@ -52,9 +52,7 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
   return <span>{displayValue.toLocaleString("vi-VN")}</span>;
 };
 
-// Styles - Liquid Glass + Xanh Emerald sắc nét
-const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400";
-const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-100 to-yellow-300";
+// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
 // Viền xanh emerald sắc nét - không mờ
 const metallicFrameStyle = "border-[1.5px] border-emerald-400/75 rounded-lg";
 const goldenFrameStyle = "border-2 border-emerald-400/85 rounded-lg";
@@ -84,8 +82,11 @@ const StatRow = ({
         style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} 
       />
       <span 
-        className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide ${goldTextStyle}`}
-        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' }}
+        className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide`}
+        style={{ 
+          color: '#fbbf24',
+          textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' 
+        }}
       >
         {label}
       </span>
@@ -125,15 +126,21 @@ const TotalRewardRow = ({
         }}
       />
       <span 
-        className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide ${goldTextStyle}`}
-        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251,191,36,0.6)' }}
+        className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide`}
+        style={{ 
+          color: '#fbbf24',
+          textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251,191,36,0.6)' 
+        }}
       >
         TOTAL REWARD
       </span>
     </div>
     <span 
-      className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums ${titleGoldStyle}`}
-      style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)' }}
+      className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums`}
+      style={{ 
+        color: '#ffd700',
+        textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)' 
+      }}
     >
       <AnimatedCounter value={value} />
     </span>

@@ -68,9 +68,7 @@ const AnimatedNumber = ({ value }: { value: number }) => {
   return <span>{displayValue.toLocaleString('vi-VN')}</span>;
 };
 
-// Styles - Liquid Glass + Xanh Emerald sắc nét
-const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400";
-const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-100 to-yellow-300";
+// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
 const metallicFrameStyle = "border-[1.5px] border-emerald-400/75 rounded-md";
 const goldenFrameStyle = "border-2 border-emerald-400/85 rounded-lg";
 
@@ -96,8 +94,8 @@ const StatRowDouble = ({
     <div className="flex items-center gap-1">
       <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} />
       <span 
-        className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}
-        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(251,191,36,0.5)' }}
+        className="text-[10px] font-bold uppercase tracking-wide"
+        style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(251,191,36,0.5)' }}
       >
         {label}
       </span>
@@ -139,8 +137,8 @@ const StatRow = ({
     <div className="flex items-center gap-1">
       <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} />
       <span 
-        className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}
-        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(251,191,36,0.5)' }}
+        className="text-[10px] font-bold uppercase tracking-wide"
+        style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(251,191,36,0.5)' }}
       >
         {label}
       </span>
@@ -181,8 +179,8 @@ const TotalRow = ({
           style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} 
         />
         <span 
-          className={`text-sm font-extrabold uppercase tracking-wide ${goldTextStyle}`}
-          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' }}
+          className="text-sm font-extrabold uppercase tracking-wide"
+          style={{ color: '#fbbf24', textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' }}
         >
           {label}
         </span>
@@ -194,8 +192,11 @@ const TotalRow = ({
       )}
     </div>
     <span 
-      className={`text-lg font-black tabular-nums ${isGold ? titleGoldStyle : 'text-emerald-300'}`}
-      style={{ textShadow: isGold ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(255,215,0,0.6)' : '0 2px 4px rgba(0,0,0,0.9)' }}
+      className="text-lg font-black tabular-nums"
+      style={{ 
+        color: isGold ? '#ffd700' : '#6ee7b7',
+        textShadow: isGold ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(255,215,0,0.6)' : '0 2px 4px rgba(0,0,0,0.9)' 
+      }}
     >
       <AnimatedNumber value={value} />
     </span>
@@ -398,9 +399,10 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
               className="w-8 h-8 rounded-full border-2 border-amber-400/60 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
             />
             <h2 
-              className={`text-lg md:text-xl font-black tracking-[0.08em] ${titleGoldStyle}`}
+              className="text-lg md:text-xl font-black tracking-[0.08em]"
               style={{ 
                 fontFamily: "'Orbitron', 'Segoe UI', sans-serif",
+                color: '#ffd700',
                 textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)',
               }}
             >
@@ -415,7 +417,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
                 {(displayName || 'U')[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className={`text-sm font-bold ${goldTextStyle}`} style={{ textShadow: '0 0 6px rgba(251,191,36,0.3)' }}>
+            <span className="text-sm font-bold" style={{ color: '#fbbf24', textShadow: '0 0 6px rgba(251,191,36,0.3)' }}>
               {displayName || 'FUN Farmer'}
             </span>
           </div>
