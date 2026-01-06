@@ -41,6 +41,8 @@ interface SendGiftModalProps {
     avatar_url: string | null;
     profile_type?: string;
   };
+  treasuryWallet?: string;
+  treasuryLogo?: string;
 }
 
 interface GiftSuccessData {
@@ -74,8 +76,11 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   isOpen, 
   onClose, 
   onSuccess,
-  preselectedUser 
+  preselectedUser,
+  treasuryWallet,
+  treasuryLogo,
 }) => {
+  const isTreasuryMode = !!treasuryWallet;
   const { user, profile, refreshProfile } = useAuth();
   const metamask = useMetaMask();
   const [step, setStep] = useState(1);
@@ -115,6 +120,12 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   // Fetch receiver wallet when user selected and on-chain currency
   useEffect(() => {
     const fetchReceiverWallet = async () => {
+      // If treasury mode, always use treasury wallet
+      if (isTreasuryMode && treasuryWallet) {
+        setReceiverWallet(treasuryWallet);
+        return;
+      }
+      
       if (selectedUser && selectedCurrency !== 'CLC') {
         const { data } = await supabase
           .from('profiles')
@@ -128,7 +139,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
       }
     };
     fetchReceiverWallet();
-  }, [selectedUser, selectedCurrency]);
+  }, [selectedUser, selectedCurrency, isTreasuryMode, treasuryWallet]);
 
   const isOnChainCurrency = currencies.find(c => c.id === selectedCurrency)?.isOnChain || false;
 
@@ -373,27 +384,48 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         {step === 2 && selectedUser && (
           <div className="space-y-4">
             {/* Selected User */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Avatar>
-                <AvatarImage src={selectedUser.avatar_url || ''} />
+            <div 
+              className="flex items-center gap-3 p-3 rounded-lg"
+              style={isTreasuryMode ? {
+                background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(251,191,36,0.1) 100%)',
+                border: '2px solid #ffd700',
+              } : { background: 'hsl(var(--muted) / 0.5)' }}
+            >
+              <Avatar className="w-12 h-12">
+                {isTreasuryMode && treasuryLogo ? (
+                  <AvatarImage src={treasuryLogo} />
+                ) : (
+                  <AvatarImage src={selectedUser.avatar_url || ''} />
+                )}
                 <AvatarFallback>
                   {selectedUser.display_name?.charAt(0) || '?'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <div className="font-medium">{selectedUser.display_name}</div>
-                <div className="text-sm text-muted-foreground">Người nhận</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{selectedUser.display_name}</span>
+                  {isTreasuryMode && (
+                    <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-amber-900 text-xs">
+                      OFFICIAL TREASURY
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {isTreasuryMode ? 'Tài trợ cho FUN FARM' : 'Người nhận'}
+                </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setSelectedUser(null);
-                  setStep(1);
-                }}
-              >
-                Đổi
-              </Button>
+              {!isTreasuryMode && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setStep(1);
+                  }}
+                >
+                  Đổi
+                </Button>
+              )}
             </div>
 
             {/* Currency Selection */}
@@ -451,9 +483,10 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 <Label className="mb-2 block">Ví người nhận (BSC)</Label>
                 <Input
                   value={receiverWallet}
-                  onChange={(e) => setReceiverWallet(e.target.value)}
+                  onChange={(e) => !isTreasuryMode && setReceiverWallet(e.target.value)}
                   placeholder="0x..."
                   className="font-mono text-sm"
+                  disabled={isTreasuryMode}
                 />
                 {receiverWallet && (
                   <a
