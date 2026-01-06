@@ -79,7 +79,7 @@ const EcosystemSidebar = () => {
         {/* Law of Light Button */}
         <Link
           to="/love-rules"
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-4 transition-all hover:scale-[1.02]"
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-3 transition-all hover:scale-[1.02]"
           style={{
             background: "linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 165, 0, 0.4))",
             border: "2px solid #ffd700",
@@ -179,7 +179,7 @@ const EcosystemSidebar = () => {
         </div>
 
         {/* Platforms List */}
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {platforms.map((platform) => {
             const content = (
               <div

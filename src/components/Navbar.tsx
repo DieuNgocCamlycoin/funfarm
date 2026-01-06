@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift, Sprout } from "lucide-react";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,8 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import { NotificationBell } from "./notifications/NotificationBell";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FriendSearch } from "./FriendSearch";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import EcosystemSidebar from "./feed/EcosystemSidebar";
 
 const profileTypeEmojis: Record<string, string> = {
   farmer: '🧑‍🌾',
@@ -133,12 +135,6 @@ const Navbar = () => {
             >
               <Home className="w-4 h-4" />
               Trang Chủ
-            </Link>
-            <Link 
-              to="/welcome" 
-              className="text-muted-foreground hover:text-primary transition-colors font-medium"
-            >
-              Giới thiệu
             </Link>
           </div>
 
@@ -321,9 +317,29 @@ const Navbar = () => {
                   Admin Dashboard
                 </Link>
               )}
-              <Link to="/welcome" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                Giới thiệu
-              </Link>
+              {/* FUN Ecosystem Drawer */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button 
+                    className="flex items-center gap-2 w-full text-left font-bold py-2 px-3 rounded-xl transition-all hover:scale-[1.02]"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.2))',
+                      border: '2px solid #fbbf24',
+                      color: '#fbbf24',
+                    }}
+                  >
+                    <Sprout className="w-5 h-5" />
+                    🌱 FUN Ecosystem
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[85%] max-w-[360px] p-0 border-r-2 border-amber-400/50 bg-gradient-to-b from-emerald-900/95 to-emerald-950/95 backdrop-blur-xl">
+                  <SheetTitle className="sr-only">FUN Ecosystem Menu</SheetTitle>
+                  <div className="h-full overflow-y-auto py-4 px-3">
+                    <EcosystemSidebar />
+                  </div>
+                </SheetContent>
+              </Sheet>
+
               <Link to="/love-rules" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 transition-colors font-medium" onClick={() => setIsOpen(false)}>
                 ⚡ Luật Ánh Sáng
               </Link>
