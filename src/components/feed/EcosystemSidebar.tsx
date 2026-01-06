@@ -187,7 +187,7 @@ const EcosystemSidebar = () => {
         </div>
 
         {/* Platforms List */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {platforms.map((platform) => {
             const content = (
               <div
