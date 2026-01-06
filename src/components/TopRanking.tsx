@@ -25,9 +25,9 @@ interface TopRankingProps {
   compact?: boolean;
 }
 
-// Styles - đồng bộ với HonorBoard
-const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
-const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
+// Styles - Liquid Glass + Xanh Emerald sắc nét
+const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400";
+const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-100 to-yellow-300";
 
 // Frame Component - 5 khung riêng cho Top 5
 const LaurelFrame = ({ rank }: { rank: number }) => {
@@ -144,12 +144,13 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-xl border border-white/40"
+      className="relative overflow-hidden rounded-xl"
       data-angel-perch="ranking"
       style={{
         background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
         backdropFilter: 'saturate(120%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(0,0,0,0.15), 0 0 1px rgba(255,255,255,0.8)',
+        border: '2px solid rgba(16, 185, 129, 0.7)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
       }}
     >
       {/* Top highlight - Liquid Glass edge */}
@@ -187,8 +188,8 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
             style={{ 
               fontFamily: "system-ui, -apple-system, sans-serif",
               fontWeight: 900,
-              color: '#ffe135',
-              textShadow: '0 2px 4px rgba(0,0,0,0.5), 0 0 15px rgba(255,225,53,0.6)',
+              color: '#ffd700',
+              textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 25px rgba(255,215,0,0.7)',
               letterSpacing: '0.15em',
             }}
           >
@@ -220,14 +221,17 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:brightness-110 border border-white/35"
+                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:brightness-110"
                   style={{
                     background: isTop3 
-                      ? 'rgba(5, 150, 105, 0.35)'
-                      : 'rgba(16, 185, 129, 0.25)',
+                      ? 'rgba(5, 150, 105, 0.6)'
+                      : 'rgba(16, 185, 129, 0.5)',
+                    border: isTop3 
+                      ? '2px solid rgba(16, 185, 129, 0.85)'
+                      : '1.5px solid rgba(16, 185, 129, 0.75)',
                     boxShadow: isTop3 
-                      ? 'inset 0 1px 0 rgba(255,255,255,0.25), 0 0 12px rgba(16,185,129,0.3)'
-                      : 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                      ? 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.4)'
+                      : 'inset 0 1px 0 rgba(255,255,255,0.15)',
                   }}
                 >
                   {/* Avatar with Frame - khung lớn hơn, sát mép trái */}
@@ -272,7 +276,9 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                       className={`font-bold truncate ${isTop3 ? titleGoldStyle : 'text-white'}`}
                       style={{ 
                         fontSize: '1rem',
-                        textShadow: isTop3 ? '0 0 10px rgba(251, 191, 36, 0.6)' : '0 1px 2px rgba(0,0,0,0.5)',
+                        textShadow: isTop3 
+                          ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(251, 191, 36, 0.7)' 
+                          : '0 2px 4px rgba(0,0,0,0.9)',
                       }}
                     >
                       {user.display_name}
@@ -284,7 +290,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                         style={{ 
                           fontSize: '1rem',
                           color: '#fbbf24',
-                          textShadow: '0 0 8px rgba(251, 191, 36, 0.6), 0 1px 2px rgba(0,0,0,0.5)',
+                          textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251, 191, 36, 0.8)',
                         }}
                       >
                         {formatNumber(user.total_reward)}

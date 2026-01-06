@@ -68,11 +68,11 @@ const AnimatedNumber = ({ value }: { value: number }) => {
   return <span>{displayValue.toLocaleString('vi-VN')}</span>;
 };
 
-// Styles
-const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
-const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
-const metallicFrameStyle = "border border-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] rounded-md";
-const goldenFrameStyle = "border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_10px_rgba(16,185,129,0.2)] rounded-lg";
+// Styles - Liquid Glass + Xanh Emerald sắc nét
+const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400";
+const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-100 to-yellow-300";
+const metallicFrameStyle = "border-[1.5px] border-emerald-400/75 rounded-md";
+const goldenFrameStyle = "border-2 border-emerald-400/85 rounded-lg";
 
 // Stat row with given/received - compact
 const StatRowDouble = ({ 
@@ -86,23 +86,32 @@ const StatRowDouble = ({
   given: number;
   received: number;
 }) => (
-  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`} style={{ background: 'rgba(16, 185, 129, 0.25)' }}>
+  <div 
+    className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`} 
+    style={{ 
+      background: 'rgba(16, 185, 129, 0.5)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+    }}
+  >
     <div className="flex items-center gap-1">
-      <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
-      <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
+      <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} />
+      <span 
+        className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}
+        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(251,191,36,0.5)' }}
+      >
         {label}
       </span>
     </div>
     <div className="flex items-center gap-1.5">
       <div className="flex items-center gap-0.5">
-        <ArrowUp className="w-2.5 h-2.5 text-emerald-300" />
-        <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+        <ArrowUp className="w-2.5 h-2.5 text-emerald-300" style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
+        <span className="text-xs font-bold text-white tabular-nums" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>
           <AnimatedNumber value={given} />
         </span>
       </div>
       <div className="flex items-center gap-0.5">
-        <ArrowDown className="w-2.5 h-2.5 text-amber-300" />
-        <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+        <ArrowDown className="w-2.5 h-2.5 text-amber-300" style={{ filter: 'drop-shadow(0 0 4px rgba(251,191,36,0.8))' }} />
+        <span className="text-xs font-bold text-white tabular-nums" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>
           <AnimatedNumber value={received} />
         </span>
       </div>
@@ -120,14 +129,23 @@ const StatRow = ({
   label: string; 
   value: number;
 }) => (
-  <div className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`} style={{ background: 'rgba(16, 185, 129, 0.25)' }}>
+  <div 
+    className={`flex items-center justify-between px-1.5 py-1 ${metallicFrameStyle}`} 
+    style={{ 
+      background: 'rgba(16, 185, 129, 0.5)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+    }}
+  >
     <div className="flex items-center gap-1">
-      <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.5))' }} />
-      <span className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}>
+      <Icon className="w-3 h-3 text-amber-300" style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} />
+      <span 
+        className={`text-[10px] font-bold uppercase tracking-wide ${goldTextStyle}`}
+        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(251,191,36,0.5)' }}
+      >
         {label}
       </span>
     </div>
-    <span className="text-xs font-bold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+    <span className="text-xs font-bold text-white tabular-nums" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>
       <AnimatedNumber value={value} />
     </span>
   </div>
@@ -147,21 +165,38 @@ const TotalRow = ({
   subLabel?: string;
   isGold?: boolean;
 }) => (
-  <div className={`flex items-center justify-between px-2 py-1.5 ${isGold ? goldenFrameStyle : metallicFrameStyle}`} style={{ background: isGold ? 'rgba(5, 150, 105, 0.35)' : 'rgba(16, 185, 129, 0.25)' }}>
+  <div 
+    className={`flex items-center justify-between px-2 py-1.5 ${isGold ? goldenFrameStyle : metallicFrameStyle}`} 
+    style={{ 
+      background: isGold ? 'rgba(5, 150, 105, 0.6)' : 'rgba(16, 185, 129, 0.5)',
+      boxShadow: isGold 
+        ? 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.3)' 
+        : 'inset 0 1px 0 rgba(255,255,255,0.15)',
+    }}
+  >
     <div className="flex flex-col">
       <div className="flex items-center gap-1.5">
-        <Icon className={`w-4 h-4 ${isGold ? 'text-amber-300' : 'text-emerald-300'}`} style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.4))' }} />
-        <span className={`text-sm font-extrabold uppercase tracking-wide ${goldTextStyle}`}>
+        <Icon 
+          className={`w-4 h-4 ${isGold ? 'text-amber-300' : 'text-emerald-300'}`} 
+          style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} 
+        />
+        <span 
+          className={`text-sm font-extrabold uppercase tracking-wide ${goldTextStyle}`}
+          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' }}
+        >
           {label}
         </span>
       </div>
       {subLabel && (
-        <span className="text-[9px] text-amber-200/70 ml-5">
+        <span className="text-[9px] text-amber-200/90 ml-5" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
           {subLabel}
         </span>
       )}
     </div>
-    <span className={`text-lg font-black tabular-nums ${isGold ? titleGoldStyle : 'text-emerald-300'} drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]`}>
+    <span 
+      className={`text-lg font-black tabular-nums ${isGold ? titleGoldStyle : 'text-emerald-300'}`}
+      style={{ textShadow: isGold ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(255,215,0,0.6)' : '0 2px 4px rgba(0,0,0,0.9)' }}
+    >
       <AnimatedNumber value={value} />
     </span>
   </div>
@@ -332,13 +367,14 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
   return (
     <div 
       className={`
-        relative overflow-hidden rounded-xl border border-white/40
+        relative overflow-hidden rounded-xl
         ${variant === 'cover' ? 'w-full max-w-[460px]' : 'w-full'}
       `}
       style={{
         background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
         backdropFilter: 'saturate(120%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(0,0,0,0.15), 0 0 1px rgba(255,255,255,0.8)',
+        border: '2px solid rgba(16, 185, 129, 0.7)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
       }}
     >
       {/* Sparkles */}
@@ -362,10 +398,10 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
               className="w-8 h-8 rounded-full border-2 border-amber-400/60 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
             />
             <h2 
-              className={`text-lg md:text-xl font-black tracking-[0.06em] ${titleGoldStyle}`}
+              className={`text-lg md:text-xl font-black tracking-[0.08em] ${titleGoldStyle}`}
               style={{ 
                 fontFamily: "'Orbitron', 'Segoe UI', sans-serif",
-                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.7)) drop-shadow(0 0 12px rgba(251,191,36,0.4))',
+                textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)',
               }}
             >
               ✦ HONOR BOARD ✦
