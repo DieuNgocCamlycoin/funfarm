@@ -626,10 +626,10 @@ const Feed = () => {
       <Navbar />
       
       <main className="pt-20 pb-16">
-        <div className="container max-w-7xl mx-auto px-4">
-          <div className="rounded-2xl p-4 lg:p-6">
+        <div className="container max-w-[1600px] mx-auto px-2 lg:px-4">
+          <div className="rounded-2xl p-2 lg:p-4">
             {/* 3-Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Left Sidebar - Ecosystem */}
               <div className="hidden lg:block lg:col-span-3">
                 <EcosystemSidebar />
