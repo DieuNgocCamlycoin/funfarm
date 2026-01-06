@@ -123,7 +123,7 @@ const Navbar = () => {
           {/* Mobile quick actions: Search only - other icons moved to bottom nav */}
           {/* Removed to avoid duplication with MobileBottomNav */}
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Simplified */}
           <div className="hidden md:flex items-center gap-8">
             <Link 
               to="/" 
@@ -134,31 +134,12 @@ const Navbar = () => {
               <Home className="w-4 h-4" />
               Trang Chủ
             </Link>
-            {isWelcomePage ? (
-              <>
-                <a href="#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  {t('nav.features')}
-                </a>
-                <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  {t('nav.howItWorks')}
-                </a>
-                <a href="#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  {t('nav.earn')}
-                </a>
-                <a href="#community" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  {t('nav.community')}
-                </a>
-              </>
-            ) : (
-              <>
-                <Link to="/welcome#features" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  {t('nav.features')}
-                </Link>
-                <Link to="/welcome#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                  {t('nav.earn')}
-                </Link>
-              </>
-            )}
+            <Link 
+              to="/welcome" 
+              className="text-muted-foreground hover:text-primary transition-colors font-medium"
+            >
+              Giới thiệu
+            </Link>
           </div>
 
           {/* Auth Buttons / User Menu */}
@@ -340,26 +321,12 @@ const Navbar = () => {
                   Admin Dashboard
                 </Link>
               )}
-              {isWelcomePage ? (
-                <>
-                  <a href="#features" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    {t('nav.features')}
-                  </a>
-                  <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    {t('nav.howItWorks')}
-                  </a>
-                  <a href="#earn" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    {t('nav.earn')}
-                  </a>
-                  <a href="#community" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                    {t('nav.community')}
-                  </a>
-                </>
-              ) : (
-                <Link to="/welcome" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
-                  Giới thiệu
-                </Link>
-              )}
+              <Link to="/welcome" className="text-muted-foreground hover:text-primary transition-colors font-medium" onClick={() => setIsOpen(false)}>
+                Giới thiệu
+              </Link>
+              <Link to="/love-rules" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 transition-colors font-medium" onClick={() => setIsOpen(false)}>
+                ⚡ Luật Ánh Sáng
+              </Link>
               <div className="flex gap-3 pt-4 relative z-[99999]">
                 {user ? (
                   <Button variant="outline" className="flex-1 gap-2 relative z-[99999]" onClick={handleSignOut}>
