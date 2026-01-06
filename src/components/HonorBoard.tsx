@@ -52,12 +52,12 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
   return <span>{displayValue.toLocaleString("vi-VN")}</span>;
 };
 
-// Styles - đồng bộ với ProfileHonorBoard
-const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 via-amber-300 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]";
-const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
-// Viền kim loại sáng sang trọng
-const metallicFrameStyle = "border border-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] rounded-lg";
-const goldenFrameStyle = "border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_10px_rgba(16,185,129,0.2)] rounded-lg";
+// Styles - Liquid Glass + Xanh Emerald sắc nét
+const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400";
+const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-100 to-yellow-300";
+// Viền xanh emerald sắc nét - không mờ
+const metallicFrameStyle = "border-[1.5px] border-emerald-400/75 rounded-lg";
+const goldenFrameStyle = "border-2 border-emerald-400/85 rounded-lg";
 
 // Stat row component
 const StatRow = ({ 
@@ -71,17 +71,29 @@ const StatRow = ({
   value: number;
   compact?: boolean;
 }) => (
-  <div className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`} style={{ background: 'rgba(16, 185, 129, 0.25)' }}>
+  <div 
+    className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`} 
+    style={{ 
+      background: 'rgba(16, 185, 129, 0.5)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+    }}
+  >
     <div className="flex items-center gap-2">
       <Icon 
         className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-amber-300`} 
-        style={{ filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.6))' }} 
+        style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} 
       />
-      <span className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide ${goldTextStyle}`}>
+      <span 
+        className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide ${goldTextStyle}`}
+        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' }}
+      >
         {label}
       </span>
     </div>
-    <span className={`${compact ? 'text-sm' : 'text-base'} font-extrabold text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]`}>
+    <span 
+      className={`${compact ? 'text-sm' : 'text-base'} font-extrabold text-white tabular-nums`}
+      style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
+    >
       <AnimatedCounter value={value} />
     </span>
   </div>
@@ -95,7 +107,13 @@ const TotalRewardRow = ({
   value: number;
   compact?: boolean;
 }) => (
-  <div className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`} style={{ background: 'rgba(5, 150, 105, 0.35)' }}>
+  <div 
+    className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`} 
+    style={{ 
+      background: 'rgba(5, 150, 105, 0.6)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.3)',
+    }}
+  >
     <div className="flex items-center gap-2">
       <img 
         src={camlyCoin} 
@@ -103,18 +121,19 @@ const TotalRewardRow = ({
         className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} animate-spin`}
         style={{ 
           animationDuration: '4s',
-          filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.7))',
+          filter: 'drop-shadow(0 0 10px rgba(251,191,36,0.9))',
         }}
       />
-      <span className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide ${goldTextStyle}`}>
+      <span 
+        className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide ${goldTextStyle}`}
+        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251,191,36,0.6)' }}
+      >
         TOTAL REWARD
       </span>
     </div>
     <span 
       className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums ${titleGoldStyle}`}
-      style={{ 
-        filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(251,191,36,0.4))',
-      }}
+      style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)' }}
     >
       <AnimatedCounter value={value} />
     </span>
@@ -215,12 +234,13 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-xl border border-white/40"
+      className="relative overflow-hidden rounded-xl"
       data-angel-perch="honor"
       style={{
         background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
         backdropFilter: 'saturate(120%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(0,0,0,0.15), 0 0 1px rgba(255,255,255,0.8)',
+        border: '2px solid rgba(16, 185, 129, 0.7)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
       }}
     >
       {/* Sparkle effects */}
@@ -269,9 +289,9 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
             fontFamily: "system-ui, -apple-system, sans-serif",
             fontWeight: 900,
             fontSize: compact ? '1.4rem' : '1.7rem',
-            color: '#ffe135',
-            textShadow: '0 1px 3px rgba(0,0,0,0.4), 0 0 12px rgba(255,225,53,0.5)',
-            letterSpacing: '0.12em',
+            color: '#ffd700',
+            textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 25px rgba(255,215,0,0.7)',
+            letterSpacing: '0.15em',
           }}
         >
           HONOR BOARD
