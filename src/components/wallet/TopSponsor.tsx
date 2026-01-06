@@ -42,38 +42,21 @@ const userRowTop3Style: React.CSSProperties = {
   boxShadow: '0 6px 20px rgba(255, 215, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)',
 };
 
-// Laurel Frame component for Top 5
-const LaurelFrame = ({ rank, children }: { rank: number; children: React.ReactNode }) => {
-  if (rank > 5) return <>{children}</>;
+// Laurel Frame component for Top 5 - Only renders the frame image
+const LaurelFrame = ({ rank }: { rank: number }) => {
+  if (rank > 5) return null;
   
   const frameImage = frameImages[rank - 1];
-  const isTop1 = rank === 1;
-  const frameSize = isTop1 ? { width: 140, height: 100 } : { width: 130, height: 92 };
-  const avatarSize = isTop1 ? 48 : 44;
   
   return (
-    <div className="relative flex items-center justify-center" style={{ width: frameSize.width, height: frameSize.height }}>
-      <img 
-        src={frameImage} 
-        alt={`Top ${rank} frame`}
-        className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
-        style={{ 
-          filter: `drop-shadow(${glowColors[rank] || 'none'})`,
-        }}
-      />
-      <div 
-        className="absolute z-0"
-        style={{ 
-          top: '42%', 
-          left: '50%', 
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        <div style={{ width: avatarSize, height: avatarSize }}>
-          {children}
-        </div>
-      </div>
-    </div>
+    <img 
+      src={frameImage} 
+      alt={`Top ${rank} frame`}
+      className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
+      style={{ 
+        filter: `drop-shadow(${glowColors[rank] || 'none'})`,
+      }}
+    />
   );
 };
 
@@ -246,14 +229,41 @@ const TopSponsor = () => {
               <div className="flex items-center gap-3 p-3">
                 {/* Rank/Frame */}
                 {isTop5 ? (
-                  <LaurelFrame rank={rank}>
-                    <Avatar className="w-full h-full border-2 border-white/50">
-                      <AvatarImage src={sponsor.avatar_url || undefined} />
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                        {sponsor.display_name?.[0] || '?'}
+                  <div 
+                    className="relative flex-shrink-0"
+                    style={{ 
+                      width: rank === 1 ? 140 : 130, 
+                      height: rank === 1 ? 100 : 92,
+                    }}
+                  >
+                    {/* Frame layer */}
+                    <LaurelFrame rank={rank} />
+                    
+                    {/* Avatar layer - positioned at center of frame */}
+                    <Avatar 
+                      className="absolute rounded-full"
+                      style={{ 
+                        width: rank === 1 ? 48 : 44, 
+                        height: rank === 1 ? 48 : 44, 
+                        top: '42%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        border: isTop3 ? '2px solid #fbbf24' : '2px solid rgba(251, 191, 36, 0.5)',
+                        boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
+                      }}
+                    >
+                      <AvatarImage src={sponsor.avatar_url || undefined} alt={sponsor.display_name || ''} />
+                      <AvatarFallback 
+                        className="text-sm font-bold"
+                        style={{ 
+                          background: 'linear-gradient(135deg, #059669, #047857)',
+                          color: '#fbbf24',
+                        }}
+                      >
+                        {sponsor.display_name?.charAt(0)?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
-                  </LaurelFrame>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-3">
                     <RankBadge rank={rank} />
