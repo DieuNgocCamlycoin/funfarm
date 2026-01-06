@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
 import CreatePostModal from "@/components/feed/CreatePostModal";
 import StoryBar from "@/components/feed/StoryBar";
-import FloatingCreateButton from "@/components/feed/FloatingCreateButton";
+import { useAngel } from "@/components/angel/AngelContext";
 import FeedPost from "@/components/feed/FeedPost";
 import FeedSidebar from "@/components/feed/FeedSidebar";
 import FeedFilters from "@/components/feed/FeedFilters";
@@ -37,6 +37,7 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
 };
 const Feed = () => {
   const { profile } = useAuth();
+  const { setOnCreatePost } = useAngel();
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -45,6 +46,14 @@ const Feed = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const POSTS_PER_PAGE = 10;
+
+  // Register create post callback for Angel Speed Dial
+  useEffect(() => {
+    if (!profile?.banned) {
+      setOnCreatePost(() => () => setIsCreateModalOpen(true));
+    }
+    return () => setOnCreatePost(null);
+  }, [setOnCreatePost, profile?.banned]);
 
   const extractGiftReceiverName = (content: string | null | undefined) => {
     if (!content) return undefined;
@@ -705,12 +714,6 @@ const Feed = () => {
 
       <Footer />
 
-      {/* Floating Create Button (Mobile only) - Hide if banned */}
-      {!profile?.banned && (
-        <div className="lg:hidden pb-16">
-          <FloatingCreateButton onClick={() => setIsCreateModalOpen(true)} />
-        </div>
-      )}
 
       {/* Create Post Modal - Hide if banned */}
       {!profile?.banned && (
