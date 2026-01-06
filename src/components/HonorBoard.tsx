@@ -58,6 +58,9 @@ const statRowStyle = {
   border: '2px solid #fbbf24',
   borderRadius: '25px',
   boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+  position: 'relative' as const,
+  overflow: 'hidden' as const,
+  transition: 'transform 0.2s ease-out',
 };
 
 const totalRowStyle = {
@@ -65,6 +68,9 @@ const totalRowStyle = {
   border: '2.5px solid #fbbf24',
   borderRadius: '25px',
   boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
+  position: 'relative' as const,
+  overflow: 'hidden' as const,
+  transition: 'transform 0.2s ease-out',
 };
 
 // Stat row component
@@ -80,7 +86,7 @@ const StatRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`flex items-center justify-between ${compact ? 'px-3 py-2' : 'px-4 py-2.5'}`} 
+    className={`stat-row-shine flex items-center justify-between ${compact ? 'px-3 py-2' : 'px-4 py-2.5'}`} 
     style={statRowStyle}
   >
     <div className="flex items-center gap-2">
@@ -116,7 +122,7 @@ const TotalRewardRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`flex items-center justify-between ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`} 
+    className={`stat-row-shine flex items-center justify-between ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`} 
     style={totalRowStyle}
   >
     <div className="flex items-center gap-2">

@@ -233,7 +233,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="flex items-center gap-2 p-2.5 transition-all duration-200 cursor-pointer hover:brightness-110"
+                  className="stat-row-shine flex items-center gap-2 p-2.5 cursor-pointer hover:brightness-110"
                   style={isTop3 ? userRowTop3Style : userRowStyle}
                 >
                   {/* Avatar with Frame - khung lớn hơn, sát mép trái */}

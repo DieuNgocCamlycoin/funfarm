@@ -18,10 +18,11 @@ import { trendingHashtags, suggestedFarms } from "@/data/mockFeed";
 import { Post } from "@/types/feed";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import HonorBoard from "@/components/HonorBoard";
 import TopRanking from "@/components/TopRanking";
 import { useAuth } from "@/hooks/useAuth";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 // Map profile_type to UserType - defined outside component to avoid hook issues
 const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer' => {
@@ -624,6 +625,28 @@ const Feed = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
+      
+      {/* Mobile Ecosystem Drawer Button */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <button 
+            className="fixed left-3 bottom-24 lg:hidden z-50 w-12 h-12 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+              border: '2px solid #ffd700',
+              boxShadow: '0 0 20px rgba(251,191,36,0.6), 0 4px 12px rgba(0,0,0,0.3)',
+            }}
+          >
+            <Menu className="w-6 h-6 text-white" style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }} />
+          </button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[85%] max-w-[360px] p-0 border-r-2 border-amber-400/50 bg-gradient-to-b from-emerald-900/95 to-emerald-950/95 backdrop-blur-xl">
+          <SheetTitle className="sr-only">FUN Ecosystem Menu</SheetTitle>
+          <div className="h-full overflow-y-auto py-4 px-3">
+            <EcosystemSidebar />
+          </div>
+        </SheetContent>
+      </Sheet>
       
       <main className="pt-20 pb-16">
         <div className="container max-w-[1600px] mx-auto px-2 lg:px-4">

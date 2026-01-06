@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ExternalLink, Sparkles, BookOpen, Gift, Users, Zap, FileText } from "lucide-react";
+import { ChevronDown, ExternalLink, Sparkles, BookOpen, Gift, Users, Zap, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Platform logos
@@ -102,28 +102,40 @@ const EcosystemSidebar = () => {
         <div className="mb-3">
           <button
             onClick={() => setIsAboutOpen(!isAboutOpen)}
-            className="flex items-center gap-3 w-full p-3 rounded-xl transition-all hover:bg-emerald-500/20"
+            className="stat-row-shine flex items-center gap-3 w-full p-3 rounded-xl"
             style={{
-              background: "rgba(16, 185, 129, 0.15)",
-              border: "1px solid rgba(16, 185, 129, 0.4)",
+              background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+              border: '2px solid #fbbf24',
+              boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+              borderRadius: '16px',
             }}
           >
             <img
               src={funFarmLogo}
               alt="FUN FARM"
-              className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/50"
+              className="w-10 h-10 rounded-full object-cover border-2 border-amber-400/60"
+              style={{ boxShadow: "0 0 8px rgba(251,191,36,0.4)" }}
             />
-            <span className="flex-1 text-left font-medium text-white">About FUN FARM</span>
+            <span 
+              className="flex-1 text-left font-bold"
+              style={{
+                color: "#ffd700",
+                textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
+              }}
+            >
+              About FUN FARM
+            </span>
             <ChevronDown
               className={cn(
-                "w-4 h-4 text-emerald-400 transition-transform duration-200",
+                "w-5 h-5 transition-transform duration-200",
                 isAboutOpen && "rotate-180"
               )}
+              style={{ color: "#fbbf24", filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }}
             />
           </button>
 
           {isAboutOpen && (
-            <div className="mt-2 ml-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-2 ml-4 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
               {aboutItems.map((item) => (
                 item.external ? (
                   <a
@@ -131,20 +143,34 @@ const EcosystemSidebar = () => {
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white/80 hover:text-white hover:bg-emerald-500/20 transition-colors"
+                    className="stat-row-shine flex items-center gap-2 px-3 py-2 rounded-xl"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(74,222,128,0.6) 0%, rgba(22,163,74,0.6) 100%)',
+                      border: '1.5px solid rgba(251,191,36,0.6)',
+                      boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.3), 0 0 6px rgba(251,191,36,0.3)',
+                    }}
                   >
-                    <item.icon className="w-4 h-4 text-emerald-400" />
-                    {item.label}
-                    <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+                    <item.icon className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
+                    <span className="text-sm font-medium" style={{ color: "#ffd700", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>
+                      {item.label}
+                    </span>
+                    <ExternalLink className="w-3 h-3 ml-auto text-amber-300/60" />
                   </a>
                 ) : (
                   <Link
                     key={item.label}
                     to={item.href}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white/80 hover:text-white hover:bg-emerald-500/20 transition-colors"
+                    className="stat-row-shine flex items-center gap-2 px-3 py-2 rounded-xl"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(74,222,128,0.6) 0%, rgba(22,163,74,0.6) 100%)',
+                      border: '1.5px solid rgba(251,191,36,0.6)',
+                      boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.3), 0 0 6px rgba(251,191,36,0.3)',
+                    }}
                   >
-                    <item.icon className="w-4 h-4 text-emerald-400" />
-                    {item.label}
+                    <item.icon className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
+                    <span className="text-sm font-medium" style={{ color: "#ffd700", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>
+                      {item.label}
+                    </span>
                   </Link>
                 )
               ))}
@@ -158,15 +184,16 @@ const EcosystemSidebar = () => {
             const content = (
               <div
                 className={cn(
-                  "flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200",
+                  "stat-row-shine flex items-center gap-3 p-2.5 rounded-xl",
                   platform.link
-                    ? "hover:brightness-110 hover:scale-[1.02] cursor-pointer"
+                    ? "hover:brightness-110 cursor-pointer"
                     : "opacity-70 cursor-default"
                 )}
                 style={{
                   background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
                   border: '2px solid #fbbf24',
                   boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+                  borderRadius: '16px',
                 }}
               >
                 <img
