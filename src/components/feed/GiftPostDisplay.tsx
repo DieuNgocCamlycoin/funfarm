@@ -19,28 +19,63 @@ export const giftSoundOptions = [
   { id: 'sparkle', name: 'Lấp Lánh', url: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', emoji: '🌟' },
 ];
 
-// Gift templates matching CreateGiftPostModal
+// 46 Gift templates matching CreateGiftPostModal - Clean & Positive
 const giftTemplates = [
+  // LOVE & ROMANCE
   { id: 'love', gradient: 'from-pink-500 via-rose-500 to-red-500', emoji: '💝', effect: 'hearts' },
   { id: 'romance', gradient: 'from-rose-400 via-pink-500 to-fuchsia-500', emoji: '💕', effect: 'hearts' },
   { id: 'kiss', gradient: 'from-red-400 via-rose-500 to-pink-400', emoji: '💋', effect: 'hearts' },
+  { id: 'heart-fire', gradient: 'from-red-500 via-orange-500 to-yellow-400', emoji: '❤️‍🔥', effect: 'hearts' },
+  { id: 'couple', gradient: 'from-pink-400 via-purple-400 to-indigo-400', emoji: '💑', effect: 'hearts' },
+  // THANKS
   { id: 'thanks', gradient: 'from-amber-400 via-orange-500 to-yellow-500', emoji: '🙏', effect: 'stars' },
   { id: 'appreciate', gradient: 'from-yellow-400 via-amber-500 to-orange-400', emoji: '🌟', effect: 'stars' },
+  { id: 'blessing', gradient: 'from-sky-400 via-blue-500 to-indigo-500', emoji: '🤲', effect: 'stars' },
+  // CELEBRATION
   { id: 'congrats', gradient: 'from-green-400 via-emerald-500 to-teal-500', emoji: '🎉', effect: 'confetti' },
   { id: 'party', gradient: 'from-violet-500 via-purple-500 to-fuchsia-500', emoji: '🎊', effect: 'confetti' },
   { id: 'fireworks', gradient: 'from-indigo-500 via-purple-600 to-pink-500', emoji: '🎆', effect: 'sparkle' },
-  { id: 'support', gradient: 'from-blue-400 via-indigo-500 to-purple-500', emoji: '💪', effect: 'sparkle' },
-  { id: 'cheer', gradient: 'from-cyan-400 via-blue-500 to-indigo-500', emoji: '📣', effect: 'sparkle' },
+  { id: 'trophy', gradient: 'from-yellow-500 via-amber-400 to-orange-400', emoji: '🏆', effect: 'confetti' },
+  // NATURE & FARM
   { id: 'farm', gradient: 'from-green-500 via-lime-500 to-emerald-400', emoji: '🌾', effect: 'leaves' },
   { id: 'flower', gradient: 'from-pink-400 via-rose-400 to-red-300', emoji: '🌸', effect: 'petals' },
   { id: 'garden', gradient: 'from-emerald-400 via-green-500 to-teal-400', emoji: '🌻', effect: 'leaves' },
   { id: 'rainbow', gradient: 'from-red-400 via-yellow-400 to-green-400', emoji: '🌈', effect: 'rainbow' },
-  { id: 'wealth', gradient: 'from-yellow-500 via-amber-500 to-orange-500', emoji: '💰', effect: 'coins' },
-  { id: 'lucky', gradient: 'from-red-500 via-orange-500 to-yellow-500', emoji: '🧧', effect: 'coins' },
-  { id: 'diamond', gradient: 'from-cyan-300 via-blue-400 to-indigo-400', emoji: '💎', effect: 'sparkle' },
-  { id: 'birthday', gradient: 'from-fuchsia-500 via-pink-500 to-rose-400', emoji: '🎂', effect: 'confetti' },
-  { id: 'gift', gradient: 'from-purple-500 via-violet-500 to-indigo-500', emoji: '🎁', effect: 'sparkle' },
-  { id: 'star', gradient: 'from-amber-300 via-yellow-400 to-orange-400', emoji: '⭐', effect: 'stars' },
+  // TẾT
+  { id: 'tet-lucky', gradient: 'from-red-600 via-red-500 to-orange-500', emoji: '🧧', effect: 'coins' },
+  { id: 'tet-lantern', gradient: 'from-red-500 via-orange-400 to-yellow-400', emoji: '🏮', effect: 'sparkle' },
+  { id: 'tet-dragon', gradient: 'from-red-600 via-orange-500 to-yellow-500', emoji: '🐉', effect: 'coins' },
+  { id: 'tet-banhchung', gradient: 'from-green-600 via-green-500 to-lime-400', emoji: '🍀', effect: 'leaves' },
+  { id: 'tet-peach', gradient: 'from-pink-500 via-rose-400 to-red-400', emoji: '🌺', effect: 'petals' },
+  { id: 'tet-fireworks', gradient: 'from-red-500 via-yellow-500 to-orange-400', emoji: '🎇', effect: 'fireworks' },
+  // BIRTHDAY
+  { id: 'birthday-cake', gradient: 'from-fuchsia-500 via-pink-500 to-rose-400', emoji: '🎂', effect: 'confetti' },
+  { id: 'birthday-balloon', gradient: 'from-sky-400 via-blue-400 to-purple-500', emoji: '🎈', effect: 'confetti' },
+  { id: 'birthday-party', gradient: 'from-purple-500 via-pink-500 to-red-400', emoji: '🥳', effect: 'confetti' },
+  { id: 'birthday-candle', gradient: 'from-orange-400 via-yellow-400 to-amber-300', emoji: '🕯️', effect: 'sparkle' },
+  { id: 'birthday-gift', gradient: 'from-purple-500 via-violet-500 to-indigo-500', emoji: '🎁', effect: 'sparkle' },
+  { id: 'birthday-star', gradient: 'from-pink-400 via-fuchsia-400 to-purple-500', emoji: '🌟', effect: 'stars' },
+  // VALENTINE
+  { id: 'valentine-heart', gradient: 'from-red-500 via-rose-500 to-pink-400', emoji: '❤️', effect: 'hearts' },
+  { id: 'valentine-rose', gradient: 'from-red-600 via-rose-500 to-red-400', emoji: '🌹', effect: 'petals' },
+  { id: 'valentine-cupid', gradient: 'from-pink-400 via-rose-400 to-red-300', emoji: '💘', effect: 'hearts' },
+  { id: 'valentine-letter', gradient: 'from-red-400 via-pink-500 to-rose-400', emoji: '💌', effect: 'hearts' },
+  { id: 'valentine-chocolate', gradient: 'from-amber-700 via-amber-600 to-orange-500', emoji: '🍫', effect: 'sparkle' },
+  // CRYPTO MEME
+  { id: 'crypto-doge', gradient: 'from-yellow-500 via-amber-400 to-orange-400', emoji: '🐕', effect: 'coins' },
+  { id: 'crypto-pepe', gradient: 'from-green-500 via-lime-500 to-emerald-400', emoji: '🐸', effect: 'coins' },
+  { id: 'crypto-moon', gradient: 'from-indigo-600 via-purple-600 to-violet-500', emoji: '🌙', effect: 'sparkle' },
+  { id: 'crypto-rocket', gradient: 'from-orange-500 via-red-500 to-purple-600', emoji: '🚀', effect: 'fireworks' },
+  { id: 'crypto-diamond-hands', gradient: 'from-cyan-400 via-blue-500 to-purple-500', emoji: '💎', effect: 'sparkle' },
+  { id: 'crypto-whale', gradient: 'from-blue-600 via-cyan-500 to-teal-400', emoji: '🐋', effect: 'coins' },
+  { id: 'crypto-bull', gradient: 'from-green-600 via-emerald-500 to-lime-400', emoji: '🐂', effect: 'coins' },
+  { id: 'crypto-money', gradient: 'from-green-500 via-emerald-500 to-teal-400', emoji: '🤑', effect: 'coins' },
+  // FUN & CUTE
+  { id: 'fun-cool', gradient: 'from-blue-500 via-cyan-500 to-teal-400', emoji: '😎', effect: 'sparkle' },
+  { id: 'fun-star', gradient: 'from-amber-300 via-yellow-400 to-orange-400', emoji: '⭐', effect: 'stars' },
+  { id: 'fun-fire', gradient: 'from-red-500 via-orange-500 to-yellow-400', emoji: '🔥', effect: 'sparkle' },
+  { id: 'fun-rainbow', gradient: 'from-red-400 via-yellow-400 to-blue-400', emoji: '🦄', effect: 'rainbow' },
+  { id: 'fun-angel', gradient: 'from-sky-300 via-blue-300 to-purple-300', emoji: '😇', effect: 'sparkle' },
 ];
 
 interface GiftPostDisplayProps {
@@ -78,8 +113,9 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
 
   // Parse gift info from content
   // Support formats like: "10000 CLC", "10.000 CLC", "10,000 CLC" (and crypto)
-  const amountMatch = content.match(/(\d[\d\.,\s]*)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
-  const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐)/);
+  // Improved regex to capture full number with thousands separators
+  const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*|\d+)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
+  const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🎊|🎆|💪|📣|🌾|🌸|🌻|🌈|💰|🧧|💎|🎂|🎁|⭐|❤️|🌹|🐕|🐸|🚀|🐋|🐂|🤑|😎|🔥|🦄|😇|🏮|🐉|🌺|🎇|🎈|🥳|💘|💌)/);
 
   // Parse custom message - use prop first, then content
   let customMessage = giftMessage || '';
@@ -101,12 +137,13 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   const soundIdMatch = content.match(/\[sound:(\w+)\]/);
   const parsedSoundId = soundIdMatch ? soundIdMatch[1] : customSoundId || 'rich1';
 
-  const parsedAmount = (amountMatch?.[1] || '0').trim();
+  // Parse and normalize amount - convert "10.000" or "10,000" to 10000
+  const rawAmount = (amountMatch?.[1] || '0').trim();
   const currency = amountMatch ? amountMatch[2].toUpperCase() : 'CAMLY';
   const emoji = emojiMatch ? emojiMatch[1] : '🎁';
 
-  // Get gift level based on amount
-  const numericAmount = (giftAmount ?? parseAmountFromString(parsedAmount)) || 0;
+  // Get gift level based on amount - use prop first, then parse from content
+  const numericAmount = giftAmount ?? parseAmountFromString(rawAmount);
   const displayAmount = numericAmount.toLocaleString('vi-VN');
   const giftLevel = getGiftLevel(numericAmount);
   
@@ -125,25 +162,36 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   // Find matching template
   const template = giftTemplates.find(t => t.emoji === emoji) || giftTemplates[giftTemplates.length - 1];
 
-  // Play sound when component becomes visible
+  // Play sound when component becomes visible, pause when scrolls out
   useEffect(() => {
-    if (!autoPlaySound || hasPlayed) return;
+    if (!autoPlaySound) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasPlayed) {
-            playSound();
-            setHasPlayed(true);
-            
-            // Trigger screen shake for Diamond level
-            if (giftLevel.effects.hasScreenShake) {
-              triggerScreenShake();
+          if (entry.isIntersecting) {
+            // Component is visible - play sound if not muted and not played yet
+            if (!hasPlayed && !isMuted) {
+              playSound();
+              setHasPlayed(true);
+              
+              // Trigger screen shake for Diamond level
+              if (giftLevel.effects.hasScreenShake) {
+                triggerScreenShake();
+              }
+            } else if (hasPlayed && !isMuted && audioRef.current?.paused) {
+              // Resume if was playing before
+              audioRef.current?.play().catch(() => {});
+            }
+          } else {
+            // Component scrolled out of view - pause audio (like Facebook/TikTok)
+            if (audioRef.current && !audioRef.current.paused) {
+              audioRef.current.pause();
             }
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.3 } // Trigger a bit earlier
     );
 
     if (containerRef.current) {
@@ -151,7 +199,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
 
     return () => observer.disconnect();
-  }, [autoPlaySound, hasPlayed, giftLevel]);
+  }, [autoPlaySound, hasPlayed, giftLevel, isMuted]);
 
   const triggerScreenShake = () => {
     setIsShaking(true);
