@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Zap, BookOpen, FileText } from "lucide-react";
+import { ExternalLink, Zap, BookOpen, FileText, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Platform logos
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
@@ -35,6 +37,7 @@ const platforms: Platform[] = [
 ];
 
 const EcosystemSidebar = () => {
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <div
@@ -88,76 +91,101 @@ const EcosystemSidebar = () => {
           </span>
         </Link>
 
-        {/* About FUN FARM - Thông tin chung */}
-        <Link
-          to="/about-fun-farm"
-          className="stat-row-shine flex items-center gap-3 w-full p-3 rounded-xl mb-3 hover:brightness-110 transition-all"
-          style={{
-            background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-            border: '2px solid #fbbf24',
-            boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-            borderRadius: '16px',
-          }}
-        >
-          <div 
-            className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden relative"
-            style={{
-              outline: "2px solid #fbbf24",
-              outlineOffset: "0px",
-              boxShadow: "0 0 8px rgba(251,191,36,0.4)"
-            }}
-          >
-            <img
-              src={funFarmLogo}
-              alt="FUN FARM"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
-          <span 
-            className="flex-1 text-left font-bold"
-            style={{
-              color: "#ffd700",
-              textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
-            }}
-          >
-            Thông tin chung
-          </span>
-          <BookOpen className="w-5 h-5 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-        </Link>
+        {/* About FUN FARM Dropdown */}
+        <Collapsible open={aboutOpen} onOpenChange={setAboutOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              className="stat-row-shine flex items-center gap-3 w-full p-3 rounded-xl mb-3 hover:brightness-110 transition-all"
+              style={{
+                background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+                border: '2px solid #fbbf24',
+                boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+                borderRadius: '16px',
+              }}
+            >
+              <div 
+                className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden relative"
+                style={{
+                  outline: "2px solid #fbbf24",
+                  outlineOffset: "0px",
+                  boxShadow: "0 0 8px rgba(251,191,36,0.4)"
+                }}
+              >
+                <img
+                  src={funFarmLogo}
+                  alt="FUN FARM"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <span 
+                className="flex-1 text-left font-bold"
+                style={{
+                  color: "#ffd700",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
+                }}
+              >
+                ABOUT FUN FARM
+              </span>
+              <ChevronDown 
+                className={cn(
+                  "w-5 h-5 text-amber-300 transition-transform duration-200",
+                  aboutOpen && "rotate-180"
+                )} 
+                style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} 
+              />
+            </button>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent className="pl-4 space-y-2 mb-3">
+            {/* Thông tin chung */}
+            <Link
+              to="/about-fun-farm"
+              onClick={() => window.scrollTo(0, 0)}
+              className="stat-row-shine flex items-center gap-3 w-full p-2.5 rounded-xl hover:brightness-110 transition-all"
+              style={{
+                background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+                border: '2px solid #fbbf24',
+                boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+                borderRadius: '14px',
+              }}
+            >
+              <BookOpen className="w-5 h-5 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
+              <span 
+                className="flex-1 text-left font-semibold text-sm"
+                style={{
+                  color: "#ffd700",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
+                }}
+              >
+                Thông tin chung
+              </span>
+            </Link>
 
-        {/* Whitepaper */}
-        <Link
-          to="/whitepaper"
-          className="stat-row-shine flex items-center gap-3 w-full p-3 rounded-xl mb-3 hover:brightness-110 transition-all"
-          style={{
-            background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-            border: '2px solid #fbbf24',
-            boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-            borderRadius: '16px',
-          }}
-        >
-          <div 
-            className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-              outline: "2px solid #fbbf24",
-              outlineOffset: "0px",
-              boxShadow: "0 0 8px rgba(251,191,36,0.4)"
-            }}
-          >
-            <FileText className="w-5 h-5 text-amber-900" />
-          </div>
-          <span 
-            className="flex-1 text-left font-bold"
-            style={{
-              color: "#ffd700",
-              textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
-            }}
-          >
-            Whitepaper
-          </span>
-          <FileText className="w-5 h-5 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-        </Link>
+            {/* Whitepaper */}
+            <Link
+              to="/whitepaper"
+              onClick={() => window.scrollTo(0, 0)}
+              className="stat-row-shine flex items-center gap-3 w-full p-2.5 rounded-xl hover:brightness-110 transition-all"
+              style={{
+                background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+                border: '2px solid #fbbf24',
+                boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+                borderRadius: '14px',
+              }}
+            >
+              <FileText className="w-5 h-5 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
+              <span 
+                className="flex-1 text-left font-semibold text-sm"
+                style={{
+                  color: "#ffd700",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
+                }}
+              >
+                Whitepaper
+              </span>
+            </Link>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Platforms List */}
         <div className="space-y-3">
