@@ -61,16 +61,16 @@ const EcosystemSidebar = () => {
         style={{
           background: "linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)",
           backdropFilter: "saturate(120%)",
-          border: "4px solid rgba(255, 255, 255, 0.9)",
+          border: "3px solid #fbbf24",
           borderRadius: "20px",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,255,255,0.3), 0 8px 32px rgba(0,0,0,0.25)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(200,150,0,0.4), 0 0 20px rgba(251,191,36,0.4), 0 8px 32px rgba(0,0,0,0.25)",
         }}
       >
         <h2
-          className="text-lg font-bold flex items-center gap-2 mb-4"
+          className="text-xl font-bold flex items-center gap-2 mb-4"
           style={{
             color: "#ffd700",
-            textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(255,215,0,0.7)",
+            textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(255,215,0,0.7)",
           }}
         >
           🌱 FUN ECOSYSTEM
@@ -79,19 +79,19 @@ const EcosystemSidebar = () => {
         {/* Law of Light Button */}
         <Link
           to="/love-rules"
-          className="flex items-center gap-2 w-full px-4 py-3 rounded-xl mb-4 transition-all hover:scale-[1.02]"
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-4 transition-all hover:scale-[1.02]"
           style={{
-            background: "linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.3))",
-            border: "1.5px solid rgba(255, 215, 0, 0.6)",
-            boxShadow: "0 0 15px rgba(255, 215, 0, 0.3)",
+            background: "linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 165, 0, 0.4))",
+            border: "2px solid #ffd700",
+            boxShadow: "0 0 20px rgba(255, 215, 0, 0.5), inset 0 2px 4px rgba(255,255,255,0.4)",
           }}
         >
-          <Zap className="w-5 h-5 text-yellow-400" />
+          <Zap className="w-6 h-6 text-yellow-400" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.8))" }} />
           <span
-            className="font-semibold"
+            className="text-base font-bold"
             style={{
               color: "#ffd700",
-              textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+              textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(255,215,0,0.5)",
             }}
           >
             Law of Light
@@ -153,25 +153,41 @@ const EcosystemSidebar = () => {
         </div>
 
         {/* Platforms List */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           {platforms.map((platform) => {
             const content = (
               <div
                 className={cn(
                   "flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200",
                   platform.link
-                    ? "hover:bg-emerald-500/20 hover:scale-[1.02] cursor-pointer"
-                    : "opacity-60 cursor-default"
+                    ? "hover:brightness-110 hover:scale-[1.02] cursor-pointer"
+                    : "opacity-70 cursor-default"
                 )}
+                style={{
+                  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
+                  border: '2px solid #fbbf24',
+                  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
+                }}
               >
                 <img
                   src={platform.logo}
                   alt={platform.name}
-                  className="w-9 h-9 rounded-full object-cover border border-white/20"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-amber-400/60"
+                  style={{
+                    boxShadow: "0 0 8px rgba(251,191,36,0.4)"
+                  }}
                 />
-                <span className="flex-1 text-sm font-medium text-white/90">{platform.name}</span>
+                <span 
+                  className="flex-1 text-base font-semibold"
+                  style={{
+                    color: "#ffd700",
+                    textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
+                  }}
+                >
+                  {platform.name}
+                </span>
                 {platform.link && (
-                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400/70" />
+                  <ExternalLink className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
                 )}
               </div>
             );
