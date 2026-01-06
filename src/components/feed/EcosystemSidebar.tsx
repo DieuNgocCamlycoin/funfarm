@@ -35,13 +35,21 @@ const platforms: Platform[] = [
   { name: "FUN Life", logo: funLifeLogo, link: null },
 ];
 
-const aboutItems = [
-  { icon: Sparkles, label: "Tính năng", href: "/welcome#features" },
-  { icon: Gift, label: "Nhận thưởng", href: "/welcome#earn" },
-  { icon: Users, label: "Cộng đồng", href: "/welcome#community" },
-  { icon: Zap, label: "Luật Ánh Sáng", href: "/love-rules" },
-  { icon: FileText, label: "Whitepaper", href: "https://docs.google.com/document/d/your-whitepaper-id", external: true },
-];
+const aboutContent = {
+  title: "FUN FARM Web3",
+  slogan: "Nông dân giàu – Người ăn vui",
+  description: "FUN FARM là nền tảng Web3 kết nối trực tiếp nông dân với người tiêu dùng, loại bỏ trung gian, mang lại giá trị công bằng cho cả hai bên.",
+  features: [
+    "🌱 Kết nối trực tiếp nông dân - người tiêu dùng",
+    "💰 Thanh toán bằng CAMLY Token",
+    "🎁 Nhận thưởng cho mọi hoạt động",
+    "🛡️ Minh bạch với công nghệ Blockchain",
+    "💝 Tặng quà yêu thương cho nhau",
+    "🌍 Xây dựng cộng đồng tỉnh thức",
+  ],
+  lightLaw: "Luật Ánh Sáng: Sống chân thật, yêu thương, tử tế và có trách nhiệm với năng lượng mình phát ra.",
+  whitepaper: "https://docs.google.com/document/d/your-whitepaper-id",
+};
 
 const EcosystemSidebar = () => {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -143,45 +151,96 @@ const EcosystemSidebar = () => {
           </button>
 
           {isAboutOpen && (
-            <div className="mt-2 ml-4 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-              {aboutItems.map((item) => (
-                item.external ? (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="stat-row-shine flex items-center gap-2 px-3 py-2 rounded-xl"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(74,222,128,0.6) 0%, rgba(22,163,74,0.6) 100%)',
-                      border: '1.5px solid rgba(251,191,36,0.6)',
-                      boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.3), 0 0 6px rgba(251,191,36,0.3)',
+            <div 
+              className="relative mt-2 p-4 rounded-xl animate-in slide-in-from-top-2 duration-200"
+              style={{
+                background: 'linear-gradient(180deg, rgba(74,222,128,0.9) 0%, rgba(22,163,74,0.9) 100%)',
+                border: '2px solid #fbbf24',
+                boxShadow: 'inset 0 4px 12px rgba(255,255,255,0.3), 0 0 10px rgba(251,191,36,0.4)',
+              }}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setIsAboutOpen(false)}
+                className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                style={{ color: "#ffd700" }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Title */}
+              <h3 
+                className="text-lg font-bold mb-2"
+                style={{ color: "#ffd700", textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+              >
+                {aboutContent.title}
+              </h3>
+              
+              {/* Slogan */}
+              <p 
+                className="text-sm font-medium mb-3"
+                style={{ color: "#fef3c7", textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}
+              >
+                {aboutContent.slogan}
+              </p>
+
+              {/* Description */}
+              <p 
+                className="text-xs mb-4 leading-relaxed"
+                style={{ color: "#ecfccb" }}
+              >
+                {aboutContent.description}
+              </p>
+
+              {/* Features */}
+              <div className="space-y-1.5 mb-4">
+                {aboutContent.features.map((feature, index) => (
+                  <div 
+                    key={index}
+                    className="text-xs px-2 py-1 rounded-lg"
+                    style={{ 
+                      background: 'rgba(255,255,255,0.15)',
+                      color: "#fef9c3"
                     }}
                   >
-                    <item.icon className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-                    <span className="text-sm font-medium" style={{ color: "#ffd700", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>
-                      {item.label}
-                    </span>
-                    <ExternalLink className="w-3 h-3 ml-auto text-amber-300/60" />
-                  </a>
-                ) : (
-                  <Link
-                    key={item.label}
-                    to={item.href}
-                    className="stat-row-shine flex items-center gap-2 px-3 py-2 rounded-xl"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(74,222,128,0.6) 0%, rgba(22,163,74,0.6) 100%)',
-                      border: '1.5px solid rgba(251,191,36,0.6)',
-                      boxShadow: 'inset 0 4px 8px rgba(255,255,255,0.3), 0 0 6px rgba(251,191,36,0.3)',
-                    }}
-                  >
-                    <item.icon className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-                    <span className="text-sm font-medium" style={{ color: "#ffd700", textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>
-                      {item.label}
-                    </span>
-                  </Link>
-                )
-              ))}
+                    {feature}
+                  </div>
+                ))}
+              </div>
+
+              {/* Light Law */}
+              <div 
+                className="p-3 rounded-xl mb-3"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(251,191,36,0.3) 0%, rgba(245,158,11,0.3) 100%)',
+                  border: '1px solid rgba(251,191,36,0.5)',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span className="text-sm font-bold" style={{ color: "#ffd700" }}>Luật Ánh Sáng</span>
+                </div>
+                <p className="text-xs" style={{ color: "#fef3c7" }}>
+                  {aboutContent.lightLaw}
+                </p>
+              </div>
+
+              {/* Whitepaper Link */}
+              <a
+                href={aboutContent.whitepaper}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl hover:brightness-110 transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                  border: '1px solid #ffd700',
+                  color: '#422006',
+                }}
+              >
+                <FileText className="w-4 h-4" />
+                <span className="text-sm font-bold">Xem Whitepaper</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           )}
         </div>
