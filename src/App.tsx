@@ -21,7 +21,7 @@ import Leaderboard from "./pages/Leaderboard";
 import ShipperDashboard from "./pages/ShipperDashboard";
 import ShipperRegister from "./pages/ShipperRegister";
 import Admin from "./pages/Admin";
-import LoveRules from "./pages/LoveRules";
+import LawOfLight from "./pages/LawOfLight";
 import AboutFunFarm from "./pages/AboutFunFarm";
 import Whitepaper from "./pages/Whitepaper";
 import Wallet from "./pages/Wallet";
@@ -54,7 +54,7 @@ const App = () => (
                   <Route path="/shipper" element={<ShipperDashboard />} />
                   <Route path="/shipper/register" element={<ShipperRegister />} />
                 <Route path="/admin" element={<Admin />} />
-                  <Route path="/love-rules" element={<LoveRules />} />
+                  <Route path="/law-of-light" element={<LawOfLight />} />
                   <Route path="/about-fun-farm" element={<AboutFunFarm />} />
                   <Route path="/whitepaper" element={<Whitepaper />} />
                   <Route path="/wallet" element={<Wallet />} />
