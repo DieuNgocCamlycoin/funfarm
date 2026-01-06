@@ -98,6 +98,14 @@ export default {
           "50%": { opacity: "1" },
           "100%": { left: "100%", opacity: "0" },
         },
+        "golden-pulse": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(251,191,36,0.4)" },
+          "50%": { boxShadow: "0 0 30px rgba(251,191,36,0.7)" },
+        },
+        "sparkle": {
+          "0%, 100%": { opacity: "0", transform: "scale(0)" },
+          "50%": { opacity: "1", transform: "scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -107,6 +115,8 @@ export default {
         "slide-in-left": "slide-in-left 0.6s ease-out forwards",
         "slide-in-right": "slide-in-right 0.6s ease-out forwards",
         "shine": "shine 0.6s ease-out",
+        "golden-pulse": "golden-pulse 2s ease-in-out infinite",
+        "sparkle": "sparkle 1.5s ease-in-out infinite",
       },
     },
   },

@@ -324,19 +324,22 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           </div>
         )}
 
-        {/* Full Leaderboard Link - nổi bật */}
+        {/* Full Leaderboard Link - Premium Golden Button */}
         <div className="flex justify-center">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => navigate("/leaderboard")}
-            className="text-white border-emerald-400/70 bg-emerald-800/50 hover:bg-emerald-700/60 hover:text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-all"
+            className="stat-row-shine flex items-center gap-2 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all hover:scale-[1.02]"
             style={{
+              background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+              border: '2px solid #ffd700',
+              boxShadow: '0 0 15px rgba(255,215,0,0.5), inset 0 2px 4px rgba(255,255,255,0.4)',
               textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
             }}
           >
-            Bảng xếp hạng đầy đủ →
+            <span>🏆</span>
+            <span>Bảng xếp hạng đầy đủ</span>
           </Button>
         </div>
       </div>
