@@ -111,16 +111,17 @@ const EcosystemSidebar = () => {
             }}
           >
             <div 
-              className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden"
+              className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden relative"
               style={{
-                border: "2px solid #fbbf24",
+                outline: "2px solid #fbbf24",
+                outlineOffset: "0px",
                 boxShadow: "0 0 8px rgba(251,191,36,0.4)"
               }}
             >
               <img
                 src={funFarmLogo}
                 alt="FUN FARM"
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
             <span 
@@ -204,16 +205,17 @@ const EcosystemSidebar = () => {
                 }}
               >
                 <div 
-                  className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden"
+                  className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden relative"
                   style={{
-                    border: "2px solid #fbbf24",
+                    outline: "2px solid #fbbf24",
+                    outlineOffset: "0px",
                     boxShadow: "0 0 8px rgba(251,191,36,0.4)"
                   }}
                 >
                   <img
                     src={platform.logo}
                     alt={platform.name}
-                    className="w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                 </div>
                 <span 
