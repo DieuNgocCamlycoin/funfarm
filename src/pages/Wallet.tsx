@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
+import TopRanking from '@/components/TopRanking';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -251,6 +252,9 @@ const Wallet_Page = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Top Ranking */}
+        <TopRanking />
 
         {/* Top Sponsor */}
         <TopSponsor />
