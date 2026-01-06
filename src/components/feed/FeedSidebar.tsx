@@ -14,6 +14,7 @@ import { FriendSearch } from "@/components/FriendSearch";
 import { useState } from "react";
 import HonorBoard from "@/components/HonorBoard";
 import TopRanking from "@/components/TopRanking";
+import TopSponsor from "@/components/wallet/TopSponsor";
 
 interface FeedSidebarProps {
   trendingHashtags: { tag: string; count: number }[];
@@ -44,6 +45,9 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
 
       {/* Top Ranking - Bảng xếp hạng */}
       <TopRanking />
+
+      {/* Top Sponsor - Vinh danh nhà tài trợ thiên thần */}
+      <TopSponsor />
 
       {/* Find Friends Section */}
       <div className="bg-card rounded-2xl shadow-card border border-border p-5">

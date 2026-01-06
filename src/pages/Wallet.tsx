@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
-import TopRanking from '@/components/TopRanking';
+
 import MobileBottomNav from '@/components/MobileBottomNav';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,8 @@ import {
   ArrowDownLeft, 
   ArrowUpRight, 
   Gift,
-  Bitcoin
+  Bitcoin,
+  Heart
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -29,6 +30,16 @@ import MetaMaskConnect from '@/components/wallet/MetaMaskConnect';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import TopSponsor from '@/components/wallet/TopSponsor';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import funFarmLogo from '@/assets/logo_fun_farm_web3.png';
+
+// FUN FARM TREASURY wallet info
+const TREASURY_USER = {
+  id: 'fun-farm-treasury',
+  display_name: 'FUN FARM TREASURY',
+  avatar_url: null, // Will use logo
+  profile_type: 'treasury',
+};
+const TREASURY_WALLET = '0xda5fc8234e76d22cc2d90e93e8e3550712524a08';
 
 interface GiftSuccessData {
   amount: number;
@@ -73,6 +84,7 @@ const Wallet_Page = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showTreasuryModal, setShowTreasuryModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [celebrationData, setCelebrationData] = useState<GiftSuccessData | null>(null);
@@ -162,13 +174,30 @@ const Wallet_Page = () => {
               <p className="text-sm text-muted-foreground">Quản lý & tặng tiền yêu thương</p>
             </div>
           </div>
-          <Button 
-            onClick={() => setShowSendModal(true)}
-            className="gap-2 bg-gradient-to-r from-primary to-green-500 hover:from-primary/90 hover:to-green-500/90"
-          >
-            <Gift className="w-4 h-4" />
-            Tặng quà
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => setShowSendModal(true)}
+              className="gap-2 bg-gradient-to-r from-primary to-green-500 hover:from-primary/90 hover:to-green-500/90"
+            >
+              <Gift className="w-4 h-4" />
+              Tặng quà
+            </Button>
+            
+            {/* FUN FARM Treasury Button - Golden prominent styling */}
+            <Button 
+              onClick={() => setShowTreasuryModal(true)}
+              className="gap-2 font-bold"
+              style={{
+                background: 'linear-gradient(135deg, #ffd700 0%, #f59e0b 50%, #fbbf24 100%)',
+                border: '2px solid #ffd700',
+                color: '#7c2d12',
+                boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)',
+              }}
+            >
+              <Heart className="w-4 h-4" />
+              FUN FARM Treasury
+            </Button>
+          </div>
         </div>
 
         {/* MetaMask Connect */}
@@ -253,9 +282,6 @@ const Wallet_Page = () => {
           </Card>
         </div>
 
-        {/* Top Ranking */}
-        <TopRanking />
-
         {/* Top Sponsor */}
         <TopSponsor />
 
@@ -282,6 +308,21 @@ const Wallet_Page = () => {
           setCelebrationData(data);
           setShowCelebration(true);
         }}
+      />
+
+      {/* Treasury Sponsor Modal */}
+      <SendGiftModal
+        isOpen={showTreasuryModal}
+        onClose={() => setShowTreasuryModal(false)}
+        onSuccess={(data) => {
+          fetchTransactions();
+          setShowTreasuryModal(false);
+          setCelebrationData(data);
+          setShowCelebration(true);
+        }}
+        preselectedUser={TREASURY_USER}
+        treasuryWallet={TREASURY_WALLET}
+        treasuryLogo={funFarmLogo}
       />
 
       {/* Celebration Modal */}

@@ -209,10 +209,10 @@ const TopSponsor = () => {
     >
       {/* Header */}
       <div className="p-4 border-b border-primary/20">
-        <div className="flex items-center justify-center gap-2">
-          <Star className="w-5 h-5 text-yellow-400 animate-pulse" />
+        <div className="flex items-center justify-center gap-3">
+          <Star className="w-6 h-6 text-yellow-400 animate-pulse" />
           <h2 
-            className="text-xl font-bold"
+            className="text-2xl md:text-3xl font-bold tracking-wider"
             style={{
               background: 'linear-gradient(135deg, #ffd700, #fbbf24)',
               WebkitBackgroundClip: 'text',
@@ -220,11 +220,11 @@ const TopSponsor = () => {
               textShadow: '0 2px 10px rgba(255, 215, 0, 0.3)',
             }}
           >
-            TOP SPONSOR
+            ⭐ TOP SPONSOR ⭐
           </h2>
-          <Star className="w-5 h-5 text-yellow-400 animate-pulse" />
+          <Star className="w-6 h-6 text-yellow-400 animate-pulse" />
         </div>
-        <p className="text-center text-sm text-muted-foreground mt-1">
+        <p className="text-center text-sm text-muted-foreground mt-2">
           Vinh danh Nhà Tài Trợ Thiên Thần
         </p>
       </div>
