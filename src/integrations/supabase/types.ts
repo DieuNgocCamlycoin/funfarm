@@ -606,6 +606,8 @@ export type Database = {
           is_good_heart: boolean
           is_verified: boolean
           last_violation_at: string | null
+          law_of_light_accepted: boolean | null
+          law_of_light_accepted_at: string | null
           location: string | null
           location_address: string | null
           location_lat: number | null
@@ -646,6 +648,8 @@ export type Database = {
           is_good_heart?: boolean
           is_verified?: boolean
           last_violation_at?: string | null
+          law_of_light_accepted?: boolean | null
+          law_of_light_accepted_at?: string | null
           location?: string | null
           location_address?: string | null
           location_lat?: number | null
@@ -686,6 +690,8 @@ export type Database = {
           is_good_heart?: boolean
           is_verified?: boolean
           last_violation_at?: string | null
+          law_of_light_accepted?: boolean | null
+          law_of_light_accepted_at?: string | null
           location?: string | null
           location_address?: string | null
           location_lat?: number | null
