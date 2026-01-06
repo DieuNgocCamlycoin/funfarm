@@ -539,6 +539,55 @@
   animation: sparkle-delayed 2.5s ease-in-out infinite;
 }
 
+/* ========== STAT ROW SHINE EFFECT ========== */
+@keyframes shine-sweep {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.stat-row-shine {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease-out;
+}
+
+.stat-row-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.stat-row-shine:hover {
+  transform: scale(1.02);
+}
+
+.stat-row-shine:hover::before {
+  animation: shine-sweep 0.6s ease-out forwards;
+}
+
+/* ========== END STAT ROW SHINE ========== */
+
 /* Celebration Modal Animations */
 @keyframes fly-coin {
   0% {
