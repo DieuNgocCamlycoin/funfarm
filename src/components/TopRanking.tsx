@@ -1,5 +1,5 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Top Ranking - Bảng xếp hạng sang trọng đẳng cấp vũ trụ - Design đồng bộ với Honor Board
+// Top Ranking - Bảng xếp hạng sang trọng đẳng cấp vũ trụ
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,8 +12,6 @@ import top2Frame from "@/assets/top2-frame.png";
 import top3Frame from "@/assets/top3-frame.png";
 import top4Frame from "@/assets/top4-frame.png";
 import top5Frame from "@/assets/top5-frame.png";
-import glassFrame from "@/assets/honor-board/glass-frame.png";
-import statRowBg from "@/assets/honor-board/stat-row-bg.png";
 
 interface TopUser {
   id: string;
@@ -27,24 +25,28 @@ interface TopRankingProps {
   compact?: boolean;
 }
 
+// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
+
 // Frame Component - 5 khung riêng cho Top 5
 const LaurelFrame = ({ rank }: { rank: number }) => {
+  // Chọn khung theo từng hạng
   const frameImages: Record<number, string> = {
-    1: top1Frame,
-    2: top2Frame,
-    3: top3Frame,
-    4: top4Frame,
-    5: top5Frame,
+    1: top1Frame,  // Khung vàng phượng hoàng
+    2: top2Frame,  // Khung bạc
+    3: top3Frame,  // Khung đồng
+    4: top4Frame,  // Khung xanh lá
+    5: top5Frame,  // Khung tím
   };
   
   const frameImage = frameImages[rank] || top5Frame;
   
+  // Drop-shadow phù hợp với màu sắc từng khung
   const glowColors: Record<number, string> = {
-    1: 'rgba(251, 191, 36, 1)',
-    2: 'rgba(156, 163, 175, 0.9)',
-    3: 'rgba(217, 119, 6, 0.9)',
-    4: 'rgba(34, 197, 94, 0.9)',
-    5: 'rgba(168, 85, 247, 0.9)',
+    1: 'rgba(251, 191, 36, 1)',     // Vàng sáng
+    2: 'rgba(156, 163, 175, 0.9)',  // Bạc
+    3: 'rgba(217, 119, 6, 0.9)',    // Đồng
+    4: 'rgba(34, 197, 94, 0.9)',    // Xanh lá
+    5: 'rgba(168, 85, 247, 0.9)',   // Tím
   };
   
   const glowSize = rank === 1 ? 18 : 12;
@@ -67,7 +69,7 @@ const LaurelFrame = ({ rank }: { rank: number }) => {
   );
 };
 
-// Rank Badge
+// Rank Badge - Huy hiệu thứ hạng nhỏ gọn
 const RankBadge = ({ rank }: { rank: number }) => {
   const colors = {
     1: { bg: 'linear-gradient(135deg, #fbbf24, #fef3c7)', border: '#b45309', text: '#78350f' },
@@ -131,6 +133,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Hiển thị số đầy đủ, không rút gọn
   const formatNumber = (num: number): string => {
     return num.toLocaleString("vi-VN");
   };
@@ -139,37 +142,22 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-2xl"
+      className="relative overflow-hidden rounded-xl"
       data-angel-perch="ranking"
+      style={{
+        background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
+        backdropFilter: 'saturate(120%)',
+        border: '2px solid rgba(16, 185, 129, 0.7)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
+      }}
     >
-      {/* Glass Frame Background */}
-      <img 
-        src={glassFrame}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover rounded-2xl"
-        style={{
-          filter: 'brightness(1.05)',
-        }}
-      />
-      
-      {/* Dark overlay for better text contrast */}
-      <div 
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.35) 100%)',
-        }}
-      />
+      {/* Top highlight - Liquid Glass edge */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
 
-      {/* Sparkle effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
-        <div className="absolute top-4 right-8 w-2 h-2 bg-white rounded-full animate-ping opacity-70" style={{ animationDuration: '3s' }} />
-        <div className="absolute top-20 left-6 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-ping opacity-60" style={{ animationDuration: '2.5s', animationDelay: '0.5s' }} />
-        <div className="absolute bottom-32 right-1/4 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '4s', animationDelay: '1s' }} />
-      </div>
-
-      <div className={`relative z-10 ${compact ? 'p-4' : 'p-5'}`}>
-        {/* Title - 2 ngôi sao với animation */}
+      <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
+        {/* Title - 2 vương miện cố định 2 góc với animation, chữ TOP = RANKING */}
         <div className="relative mb-5">
+          {/* Ngôi sao trái - animation glow pulse */}
           <span 
             className="absolute left-2 top-0 text-2xl"
             style={{ 
@@ -180,6 +168,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
             ⭐
           </span>
           
+          {/* Ngôi sao phải - animation glow pulse */}
           <span 
             className="absolute right-2 top-0 text-2xl"
             style={{ 
@@ -191,7 +180,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
             ⭐
           </span>
           
-          {/* Chữ TOP RANKING */}
+          {/* Chữ TOP RANKING - 2 hàng, căn giữa, cùng kích thước */}
           <div 
             className="text-center"
             style={{ 
@@ -211,7 +200,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           </div>
         </div>
 
-        {/* User List */}
+        {/* User List - Compact Rows */}
         <div className="space-y-2.5">
           {isLoading ? (
             <div className="text-center py-4 text-sm font-medium" style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
@@ -230,83 +219,81 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="relative flex items-center gap-2 cursor-pointer transition-all duration-200 hover:brightness-110"
-                  style={{ height: rank === 1 ? '100px' : '92px' }}
+                  className="flex items-center gap-2 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:brightness-110"
+                  style={{
+                    background: isTop3 
+                      ? 'rgba(5, 150, 105, 0.6)'
+                      : 'rgba(16, 185, 129, 0.5)',
+                    border: isTop3 
+                      ? '2px solid rgba(16, 185, 129, 0.85)'
+                      : '1.5px solid rgba(16, 185, 129, 0.75)',
+                    boxShadow: isTop3 
+                      ? 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.4)'
+                      : 'inset 0 1px 0 rgba(255,255,255,0.15)',
+                  }}
                 >
-                  {/* Green background from stat-row-bg */}
-                  <img 
-                    src={statRowBg}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-fill rounded-lg"
-                    style={{
-                      filter: isTop3 ? 'brightness(0.85)' : 'brightness(1)',
+                  {/* Avatar with Frame - khung lớn hơn, sát mép trái */}
+                  <div 
+                    className="relative flex-shrink-0"
+                    style={{ 
+                      width: rank === 1 ? 140 : 130, 
+                      height: rank === 1 ? 100 : 92,
                     }}
-                  />
-                  
-                  {/* Content overlay */}
-                  <div className="relative z-10 flex items-center gap-2 w-full p-2">
-                    {/* Avatar with Frame */}
-                    <div 
-                      className="relative flex-shrink-0"
+                  >
+                    <LaurelFrame rank={rank} />
+                    <Avatar 
+                      className="absolute rounded-full"
                       style={{ 
-                        width: rank === 1 ? 140 : 130, 
-                        height: rank === 1 ? 100 : 92,
+                        width: rank === 1 ? 48 : 44, 
+                        height: rank === 1 ? 48 : 44, 
+                        top: '42%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
+                        boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
                       }}
                     >
-                      <LaurelFrame rank={rank} />
-                      <Avatar 
-                        className="absolute rounded-full"
+                      <AvatarImage src={user.avatar_url || ""} alt={user.display_name} />
+                      <AvatarFallback 
+                        className="text-sm font-bold"
                         style={{ 
-                          width: rank === 1 ? 48 : 44, 
-                          height: rank === 1 ? 48 : 44, 
-                          top: '42%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
-                          boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
+                          background: 'linear-gradient(135deg, #059669, #047857)',
+                          color: '#fbbf24',
                         }}
                       >
-                        <AvatarImage src={user.avatar_url || ""} alt={user.display_name} />
-                        <AvatarFallback 
-                          className="text-sm font-bold"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #059669, #047857)',
-                            color: '#fbbf24',
-                          }}
-                        >
-                          {user.display_name?.charAt(0)?.toUpperCase() || "F"}
-                        </AvatarFallback>
-                      </Avatar>
-                      {rank > 5 && <RankBadge rank={rank} />}
-                    </div>
+                        {user.display_name?.charAt(0)?.toUpperCase() || "F"}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Ẩn RankBadge cho Top 1-5 vì khung đã có badge */}
+                    {rank > 5 && <RankBadge rank={rank} />}
+                  </div>
 
-                    {/* User Info */}
-                    <div className="flex-1 min-w-0 text-right">
-                      <div 
-                        className="font-bold truncate"
+                  {/* User Info - căn phải */}
+                  <div className="flex-1 min-w-0 text-right">
+                    <div 
+                      className="font-bold truncate"
+                      style={{ 
+                        fontSize: '1rem',
+                        color: isTop3 ? '#ffd700' : '#ffffff',
+                        textShadow: isTop3 
+                          ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(251, 191, 36, 0.7)' 
+                          : '0 2px 4px rgba(0,0,0,0.9)',
+                      }}
+                    >
+                      {user.display_name}
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5 mt-1">
+                      <img src={camlyCoin} alt="CAMLY" className="w-5 h-5" />
+                      <span 
+                        className="font-extrabold"
                         style={{ 
                           fontSize: '1rem',
-                          color: isTop3 ? '#ffd700' : '#ffffff',
-                          textShadow: isTop3 
-                            ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(251, 191, 36, 0.7)' 
-                            : '0 2px 4px rgba(0,0,0,0.9)',
+                          color: '#fbbf24',
+                          textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251, 191, 36, 0.8)',
                         }}
                       >
-                        {user.display_name}
-                      </div>
-                      <div className="flex items-center justify-end gap-1.5 mt-1">
-                        <img src={camlyCoin} alt="CAMLY" className="w-5 h-5" />
-                        <span 
-                          className="font-extrabold"
-                          style={{ 
-                            fontSize: '1rem',
-                            color: '#fbbf24',
-                            textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251, 191, 36, 0.8)',
-                          }}
-                        >
-                          {formatNumber(user.total_reward)}
-                        </span>
-                      </div>
+                        {formatNumber(user.total_reward)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -333,7 +320,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           </div>
         )}
 
-        {/* Full Leaderboard Link */}
+        {/* Full Leaderboard Link - nổi bật */}
         <div className="flex justify-center">
           <Button
             variant="outline"
@@ -349,6 +336,9 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           </Button>
         </div>
       </div>
+
+      {/* Bottom edge - Liquid Glass */}
+      <div className="relative z-10 h-1.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10" />
     </div>
   );
 };
