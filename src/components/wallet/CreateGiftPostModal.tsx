@@ -41,24 +41,19 @@ interface CreateGiftPostModalProps {
   };
 }
 
-// 46 Gift card templates - Clean & Positive only
+// 41 Gift card templates - Clean & Positive only
 const giftTemplates = [
-  // === LOVE & ROMANCE (5) ===
+  // === LOVE & ROMANCE (3) ===
   { id: 'love', gradient: 'from-pink-500 via-rose-500 to-red-500', emoji: '💝', title: 'Yêu thương', effect: 'hearts', category: 'love' },
   { id: 'romance', gradient: 'from-rose-400 via-pink-500 to-fuchsia-500', emoji: '💕', title: 'Lãng mạn', effect: 'hearts', category: 'love' },
   { id: 'kiss', gradient: 'from-red-400 via-rose-500 to-pink-400', emoji: '💋', title: 'Thương yêu', effect: 'hearts', category: 'love' },
-  { id: 'heart-fire', gradient: 'from-red-500 via-orange-500 to-yellow-400', emoji: '❤️‍🔥', title: 'Cháy bỏng', effect: 'hearts', category: 'love' },
-  { id: 'couple', gradient: 'from-pink-400 via-purple-400 to-indigo-400', emoji: '💑', title: 'Đôi lứa', effect: 'hearts', category: 'love' },
   
-  // === THANKS & APPRECIATION (3) ===
+  // === THANKS & APPRECIATION (2) ===
   { id: 'thanks', gradient: 'from-amber-400 via-orange-500 to-yellow-500', emoji: '🙏', title: 'Cảm ơn', effect: 'stars', category: 'thanks' },
   { id: 'appreciate', gradient: 'from-yellow-400 via-amber-500 to-orange-400', emoji: '🌟', title: 'Tri ân', effect: 'stars', category: 'thanks' },
-  { id: 'blessing', gradient: 'from-sky-400 via-blue-500 to-indigo-500', emoji: '🤲', title: 'Phúc lành', effect: 'stars', category: 'thanks' },
   
-  // === CELEBRATION (4) ===
+  // === CELEBRATION (2) ===
   { id: 'congrats', gradient: 'from-green-400 via-emerald-500 to-teal-500', emoji: '🎉', title: 'Chúc mừng', effect: 'confetti', category: 'celebration' },
-  { id: 'party', gradient: 'from-violet-500 via-purple-500 to-fuchsia-500', emoji: '🎊', title: 'Tiệc tùng', effect: 'confetti', category: 'celebration' },
-  { id: 'fireworks', gradient: 'from-indigo-500 via-purple-600 to-pink-500', emoji: '🎆', title: 'Pháo hoa', effect: 'sparkle', category: 'celebration' },
   { id: 'trophy', gradient: 'from-yellow-500 via-amber-400 to-orange-400', emoji: '🏆', title: 'Chiến thắng', effect: 'confetti', category: 'celebration' },
   
   // === NATURE & FARM (4) ===
@@ -75,35 +70,23 @@ const giftTemplates = [
   { id: 'tet-peach', gradient: 'from-pink-500 via-rose-400 to-red-400', emoji: '🌺', title: 'Hoa đào', effect: 'petals', category: 'tet' },
   { id: 'tet-fireworks', gradient: 'from-red-500 via-yellow-500 to-orange-400', emoji: '🎇', title: 'Pháo Tết', effect: 'fireworks', category: 'tet' },
 
-  // === BIRTHDAY (6) ===
+  // === BIRTHDAY (4) ===
   { id: 'birthday-cake', gradient: 'from-fuchsia-500 via-pink-500 to-rose-400', emoji: '🎂', title: 'Sinh nhật', effect: 'confetti', category: 'birthday' },
   { id: 'birthday-balloon', gradient: 'from-sky-400 via-blue-400 to-purple-500', emoji: '🎈', title: 'Bóng bay', effect: 'confetti', category: 'birthday' },
   { id: 'birthday-party', gradient: 'from-purple-500 via-pink-500 to-red-400', emoji: '🥳', title: 'Tiệc HBD', effect: 'confetti', category: 'birthday' },
-  { id: 'birthday-candle', gradient: 'from-orange-400 via-yellow-400 to-amber-300', emoji: '🕯️', title: 'Nến sinh nhật', effect: 'sparkle', category: 'birthday' },
   { id: 'birthday-gift', gradient: 'from-purple-500 via-violet-500 to-indigo-500', emoji: '🎁', title: 'Quà sinh nhật', effect: 'sparkle', category: 'birthday' },
-  { id: 'birthday-star', gradient: 'from-pink-400 via-fuchsia-400 to-purple-500', emoji: '🌟', title: 'Ngày đặc biệt', effect: 'stars', category: 'birthday' },
 
-  // === VALENTINE (5) ===
+  // === VALENTINE (1) ===
   { id: 'valentine-heart', gradient: 'from-red-500 via-rose-500 to-pink-400', emoji: '❤️', title: 'Valentine', effect: 'hearts', category: 'valentine' },
-  { id: 'valentine-rose', gradient: 'from-red-600 via-rose-500 to-red-400', emoji: '🌹', title: 'Hoa hồng', effect: 'petals', category: 'valentine' },
-  { id: 'valentine-cupid', gradient: 'from-pink-400 via-rose-400 to-red-300', emoji: '💘', title: 'Cupid', effect: 'hearts', category: 'valentine' },
-  { id: 'valentine-letter', gradient: 'from-red-400 via-pink-500 to-rose-400', emoji: '💌', title: 'Tình thư', effect: 'hearts', category: 'valentine' },
-  { id: 'valentine-chocolate', gradient: 'from-amber-700 via-amber-600 to-orange-500', emoji: '🍫', title: 'Socola', effect: 'sparkle', category: 'valentine' },
 
-  // === CRYPTO MEME (8) ===
-  { id: 'crypto-doge', gradient: 'from-yellow-500 via-amber-400 to-orange-400', emoji: '🐕', title: 'Doge', effect: 'coins', category: 'crypto' },
-  { id: 'crypto-pepe', gradient: 'from-green-500 via-lime-500 to-emerald-400', emoji: '🐸', title: 'Pepe', effect: 'coins', category: 'crypto' },
-  { id: 'crypto-moon', gradient: 'from-indigo-600 via-purple-600 to-violet-500', emoji: '🌙', title: 'To the Moon', effect: 'sparkle', category: 'crypto' },
+  // === CRYPTO MEME (3) ===
   { id: 'crypto-rocket', gradient: 'from-orange-500 via-red-500 to-purple-600', emoji: '🚀', title: 'Rocket', effect: 'fireworks', category: 'crypto' },
   { id: 'crypto-diamond-hands', gradient: 'from-cyan-400 via-blue-500 to-purple-500', emoji: '💎', title: 'Diamond Hands', effect: 'sparkle', category: 'crypto' },
-  { id: 'crypto-whale', gradient: 'from-blue-600 via-cyan-500 to-teal-400', emoji: '🐋', title: 'Whale', effect: 'coins', category: 'crypto' },
-  { id: 'crypto-bull', gradient: 'from-green-600 via-emerald-500 to-lime-400', emoji: '🐂', title: 'Bull Run', effect: 'coins', category: 'crypto' },
   { id: 'crypto-money', gradient: 'from-green-500 via-emerald-500 to-teal-400', emoji: '🤑', title: 'Rich Rich', effect: 'coins', category: 'crypto' },
 
-  // === FUN & CUTE (5) ===
+  // === FUN & CUTE (4) ===
   { id: 'fun-cool', gradient: 'from-blue-500 via-cyan-500 to-teal-400', emoji: '😎', title: 'Cool ngầu', effect: 'sparkle', category: 'fun' },
   { id: 'fun-star', gradient: 'from-amber-300 via-yellow-400 to-orange-400', emoji: '⭐', title: 'Ngôi sao', effect: 'stars', category: 'fun' },
-  { id: 'fun-fire', gradient: 'from-red-500 via-orange-500 to-yellow-400', emoji: '🔥', title: 'Hot hot', effect: 'sparkle', category: 'fun' },
   { id: 'fun-rainbow', gradient: 'from-red-400 via-yellow-400 to-blue-400', emoji: '🦄', title: 'Unicorn', effect: 'rainbow', category: 'fun' },
   { id: 'fun-angel', gradient: 'from-sky-300 via-blue-300 to-purple-300', emoji: '😇', title: 'Thiên thần', effect: 'sparkle', category: 'fun' },
 ];
