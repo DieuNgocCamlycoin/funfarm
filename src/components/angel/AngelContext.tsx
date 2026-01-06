@@ -11,6 +11,8 @@ interface AngelContextType {
   setBrightness: (level: number) => void;
   isChatOpen: boolean;
   setIsChatOpen: (open: boolean) => void;
+  onCreatePost: (() => void) | null;
+  setOnCreatePost: (fn: (() => void) | null) => void;
 }
 
 const AngelContext = createContext<AngelContextType | undefined>(undefined);
@@ -34,6 +36,7 @@ export const AngelProvider: React.FC<AngelProviderProps> = ({
 }) => {
   const [enabled, setEnabled] = useState(defaultEnabled);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [onCreatePost, setOnCreatePost] = useState<(() => void) | null>(null);
   
   const [brightness, setBrightness] = useState<number>(() => {
     return parseInt(localStorage.getItem('angel-brightness') || '3');
@@ -45,7 +48,7 @@ export const AngelProvider: React.FC<AngelProviderProps> = ({
   }, [brightness]);
 
   return (
-    <AngelContext.Provider value={{ enabled, setEnabled, brightness, setBrightness, isChatOpen, setIsChatOpen }}>
+    <AngelContext.Provider value={{ enabled, setEnabled, brightness, setBrightness, isChatOpen, setIsChatOpen, onCreatePost, setOnCreatePost }}>
       {children}
       <AngelCompanion enabled={enabled} brightness={brightness} />
       <AngelChatButton />
