@@ -25,9 +25,7 @@ interface TopRankingProps {
   compact?: boolean;
 }
 
-// Styles - Liquid Glass + Xanh Emerald sắc nét
-const goldTextStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-200 to-yellow-400";
-const titleGoldStyle = "text-transparent bg-clip-text bg-gradient-to-b from-yellow-50 via-amber-100 to-yellow-300";
+// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
 
 // Frame Component - 5 khung riêng cho Top 5
 const LaurelFrame = ({ rank }: { rank: number }) => {
@@ -205,11 +203,11 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
         {/* User List - Compact Rows */}
         <div className="space-y-2.5">
           {isLoading ? (
-            <div className={`text-center py-4 text-sm font-medium ${goldTextStyle}`}>
+            <div className="text-center py-4 text-sm font-medium" style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
               Đang tải...
             </div>
           ) : topUsers.length === 0 ? (
-            <div className={`text-center py-4 text-sm font-medium ${goldTextStyle}`}>
+            <div className="text-center py-4 text-sm font-medium" style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
               Chưa có dữ liệu
             </div>
           ) : (
@@ -273,9 +271,10 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                   {/* User Info - căn phải */}
                   <div className="flex-1 min-w-0 text-right">
                     <div 
-                      className={`font-bold truncate ${isTop3 ? titleGoldStyle : 'text-white'}`}
+                      className="font-bold truncate"
                       style={{ 
                         fontSize: '1rem',
+                        color: isTop3 ? '#ffd700' : '#ffffff',
                         textShadow: isTop3 
                           ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(251, 191, 36, 0.7)' 
                           : '0 2px 4px rgba(0,0,0,0.9)',
@@ -313,7 +312,8 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               variant="ghost"
               size="sm"
               onClick={() => setShowAll(!showAll)}
-              className={`${goldTextStyle} hover:bg-white/15 text-sm px-5 font-semibold`}
+              className="hover:bg-white/15 text-sm px-5 font-semibold"
+              style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
             >
               {showAll ? 'Thu gọn ↑' : 'Xem thêm ↓'}
             </Button>
