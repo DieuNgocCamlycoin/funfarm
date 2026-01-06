@@ -515,7 +515,7 @@ const AboutFunFarm = () => {
             <p className="text-yellow-100 mb-4">
               Khám phá chi tiết về tầm nhìn, cơ chế hoạt động và kinh tế học Ánh Sáng của FUN FARM Web3
             </p>
-            <Link to="/whitepaper">
+            <Link to="/whitepaper" onClick={() => window.scrollTo(0, 0)}>
               <Button className="bg-white text-yellow-600 hover:bg-yellow-50 font-semibold">
                 Đọc Whitepaper
                 <ArrowRight className="w-4 h-4 ml-2" />
