@@ -8,7 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/hooks/useAuth';
 import { RealtimeNotificationsProvider } from "@/components/RealtimeNotificationsProvider";
 import { ConfettiProvider } from "@/components/ConfettiProvider";
-import { AngelProvider, AngelSettings } from "@/components/angel";
+import { AngelProvider } from "@/components/angel";
 
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
@@ -60,7 +60,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
-              <AngelSettings />
+              
             </TooltipProvider>
           </AngelProvider>
         </ConfettiProvider>

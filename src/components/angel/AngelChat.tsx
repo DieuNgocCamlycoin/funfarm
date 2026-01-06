@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Send, Sparkles, Trash2 } from 'lucide-react';
+import { X, Send, Sparkles, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useAngel } from './AngelContext';
 import angelIdle from '@/assets/angel-gifs/angel-idle.gif';
 import angelExcited from '@/assets/angel-gifs/angel-excited.gif';
 
@@ -28,12 +31,15 @@ const WELCOME_MESSAGE: Message = {
 
 const AngelChat: React.FC<AngelChatProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+  const { enabled, setEnabled, brightness, setBrightness } = useAngel();
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const hasLoadedHistory = useRef(false);
 
   // Load chat history from database
@@ -229,7 +235,7 @@ const AngelChat: React.FC<AngelChatProps> = ({ isOpen, onClose }) => {
               <p className="text-xs text-muted-foreground">Fun Farm Ecosystem</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 relative">
             {user && messages.length > 1 && (
               <Button 
                 variant="ghost" 
@@ -244,11 +250,63 @@ const AngelChat: React.FC<AngelChatProps> = ({ isOpen, onClose }) => {
             <Button 
               variant="ghost" 
               size="icon" 
+              onClick={() => setShowSettings(!showSettings)}
+              className="h-8 w-8 rounded-full hover:bg-muted"
+              title="Cài đặt Angel"
+            >
+              <Settings className="w-4 h-4 text-muted-foreground" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
               onClick={onClose}
               className="h-8 w-8 rounded-full hover:bg-destructive/10"
             >
               <X className="w-4 h-4" />
             </Button>
+            
+            {/* Settings Popup */}
+            {showSettings && (
+              <div 
+                ref={settingsRef}
+                className="absolute top-full right-0 mt-2 bg-background/95 backdrop-blur-xl border border-border rounded-xl p-4 shadow-xl min-w-[220px] z-10"
+              >
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  🧚 Angel Settings
+                </h4>
+                
+                {/* Toggle Companion */}
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm">✨ Companion</span>
+                  <Switch checked={enabled} onCheckedChange={setEnabled} />
+                </div>
+                
+                {/* Brightness Slider */}
+                {enabled && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm">☀️ Độ sáng</span>
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{brightness}/6</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">🌑</span>
+                      <Slider 
+                        value={[brightness]} 
+                        onValueChange={(v) => setBrightness(v[0])} 
+                        min={1} 
+                        max={6} 
+                        step={1}
+                        className="flex-1"
+                      />
+                      <span className="text-xs">☀️</span>
+                    </div>
+                    <p className="text-xs text-center mt-1 text-muted-foreground">
+                      {brightness <= 2 ? 'Tối' : brightness <= 4 ? 'Bình thường' : 'Trắng sáng'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
