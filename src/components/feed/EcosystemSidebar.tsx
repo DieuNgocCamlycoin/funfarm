@@ -68,7 +68,7 @@ const EcosystemSidebar = () => {
 
         {/* Law of Light Button */}
         <Link
-          to="/love-rules"
+          to="/law-of-light"
           className="flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-3 transition-all hover:scale-[1.02]"
           style={{
             background: "linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 165, 0, 0.4))",

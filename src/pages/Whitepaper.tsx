@@ -195,9 +195,9 @@ const Whitepaper = () => {
       
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Back Button */}
-        <Link to="/about-fun-farm" className="inline-flex items-center text-green-600 hover:text-green-700 mb-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Quay lại Thông tin chung
+        <Link to="/" className="inline-flex items-center text-green-600 hover:text-green-700 mb-6 group">
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+          Quay lại Trang chủ
         </Link>
 
         {/* Header */}

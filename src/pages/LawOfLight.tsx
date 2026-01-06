@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Sparkles, Eye } from 'lucide-react';
+import { Sparkles, Eye, ArrowLeft, Home } from 'lucide-react';
 import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
 
-const LoveRules = () => {
+const LawOfLight = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [checklist, setChecklist] = useState([false, false, false, false, false]);
@@ -147,6 +147,19 @@ const LoveRules = () => {
       {/* Main Content */}
       <div className="relative z-10 min-h-screen py-8 px-4">
         <div className="max-w-3xl mx-auto">
+          {/* Back to Home Button */}
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full transition-all hover:scale-105"
+            style={{
+              background: 'rgba(212,175,55,0.2)',
+              border: '1px solid rgba(212,175,55,0.5)',
+              color: '#B8860B'
+            }}
+          >
+            <Home className="w-4 h-4" />
+            <span style={{ fontFamily: "'Lora', Georgia, serif" }}>Quay lại Trang chủ</span>
+          </Link>
 
           {/* Header with Logo */}
           <div className="text-center mb-8">
@@ -712,4 +725,4 @@ const LoveRules = () => {
   );
 };
 
-export default LoveRules;
+export default LawOfLight;
