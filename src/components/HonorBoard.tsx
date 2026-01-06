@@ -1,11 +1,14 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Honor Board - Bảng vinh danh thành tựu cộng đồng - Design đồng bộ với ProfileHonorBoard
+// Honor Board - Bảng vinh danh thành tựu cộng đồng - Design mới với assets từ user
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, FileText, Image, Video, Coins } from "lucide-react";
+import { Users, FileText, Image, Video } from "lucide-react";
 import camlyCoin from "@/assets/camly_coin.png";
 import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
+import glassFrame from "@/assets/honor-board/glass-frame.png";
+import honorBoardTitle from "@/assets/honor-board/honor-board-title.png";
+import statRowBg from "@/assets/honor-board/stat-row-bg.png";
 
 interface HonorStats {
   totalUsers: number;
@@ -52,12 +55,7 @@ const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?:
   return <span>{displayValue.toLocaleString("vi-VN")}</span>;
 };
 
-// Styles - Liquid Glass + Xanh Emerald sắc nét + Vàng kim loại tươi sáng
-// Viền xanh emerald sắc nét - không mờ
-const metallicFrameStyle = "border-[1.5px] border-emerald-400/75 rounded-lg";
-const goldenFrameStyle = "border-2 border-emerald-400/85 rounded-lg";
-
-// Stat row component
+// Stat row component with PNG background
 const StatRow = ({ 
   icon: Icon, 
   label, 
@@ -70,33 +68,42 @@ const StatRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`flex items-center justify-between ${compact ? 'px-2 py-1.5' : 'px-3 py-2'} ${metallicFrameStyle}`} 
-    style={{ 
-      background: 'rgba(16, 185, 129, 0.5)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-    }}
+    className={`relative flex items-center justify-between ${compact ? 'h-[42px]' : 'h-[50px]'}`}
   >
-    <div className="flex items-center gap-2">
-      <Icon 
-        className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-amber-300`} 
-        style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} 
-      />
+    {/* Green background image */}
+    <img 
+      src={statRowBg}
+      alt=""
+      className="absolute inset-0 w-full h-full object-fill rounded-lg"
+      style={{
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+      }}
+    />
+    
+    {/* Content overlay */}
+    <div className={`relative z-10 flex items-center justify-between w-full ${compact ? 'px-3' : 'px-4'}`}>
+      <div className="flex items-center gap-2">
+        <Icon 
+          className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-amber-300`} 
+          style={{ filter: 'drop-shadow(0 0 6px rgba(251,191,36,0.8))' }} 
+        />
+        <span 
+          className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide`}
+          style={{ 
+            color: '#fbbf24',
+            textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' 
+          }}
+        >
+          {label}
+        </span>
+      </div>
       <span 
-        className={`${compact ? 'text-xs' : 'text-sm'} font-bold uppercase tracking-wide`}
-        style={{ 
-          color: '#fbbf24',
-          textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)' 
-        }}
+        className={`${compact ? 'text-sm' : 'text-base'} font-extrabold text-white tabular-nums`}
+        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
       >
-        {label}
+        <AnimatedCounter value={value} />
       </span>
     </div>
-    <span 
-      className={`${compact ? 'text-sm' : 'text-base'} font-extrabold text-white tabular-nums`}
-      style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
-    >
-      <AnimatedCounter value={value} />
-    </span>
   </div>
 );
 
@@ -109,41 +116,50 @@ const TotalRewardRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`flex items-center justify-between ${compact ? 'px-2 py-2' : 'px-3 py-3'} ${goldenFrameStyle}`} 
-    style={{ 
-      background: 'rgba(5, 150, 105, 0.6)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 15px rgba(16,185,129,0.3)',
-    }}
+    className={`relative flex items-center justify-between ${compact ? 'h-[50px]' : 'h-[58px]'}`}
   >
-    <div className="flex items-center gap-2">
-      <img 
-        src={camlyCoin} 
-        alt="CAMLY" 
-        className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} animate-spin`}
-        style={{ 
-          animationDuration: '4s',
-          filter: 'drop-shadow(0 0 10px rgba(251,191,36,0.9))',
-        }}
-      />
+    {/* Green background image - slightly larger */}
+    <img 
+      src={statRowBg}
+      alt=""
+      className="absolute inset-0 w-full h-full object-fill rounded-lg"
+      style={{
+        filter: 'brightness(0.9) drop-shadow(0 3px 6px rgba(0,0,0,0.4))',
+      }}
+    />
+    
+    {/* Content overlay */}
+    <div className={`relative z-10 flex items-center justify-between w-full ${compact ? 'px-3' : 'px-4'}`}>
+      <div className="flex items-center gap-2">
+        <img 
+          src={camlyCoin} 
+          alt="CAMLY" 
+          className={`${compact ? 'w-6 h-6' : 'w-8 h-8'} animate-spin`}
+          style={{ 
+            animationDuration: '4s',
+            filter: 'drop-shadow(0 0 10px rgba(251,191,36,0.9))',
+          }}
+        />
+        <span 
+          className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide`}
+          style={{ 
+            color: '#fbbf24',
+            textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251,191,36,0.6)' 
+          }}
+        >
+          TOTAL REWARD
+        </span>
+      </div>
       <span 
-        className={`${compact ? 'text-sm' : 'text-base'} font-extrabold uppercase tracking-wide`}
+        className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums`}
         style={{ 
-          color: '#fbbf24',
-          textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251,191,36,0.6)' 
+          color: '#ffd700',
+          textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)' 
         }}
       >
-        TOTAL REWARD
+        <AnimatedCounter value={value} />
       </span>
     </div>
-    <span 
-      className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums`}
-      style={{ 
-        color: '#ffd700',
-        textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)' 
-      }}
-    >
-      <AnimatedCounter value={value} />
-    </span>
   </div>
 );
 
@@ -241,31 +257,40 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-xl"
+      className="relative overflow-hidden rounded-2xl"
       data-angel-perch="honor"
-      style={{
-        background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
-        backdropFilter: 'saturate(120%)',
-        border: '2px solid rgba(16, 185, 129, 0.7)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.2), 0 0 25px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.2)',
-      }}
     >
+      {/* Glass Frame Background */}
+      <img 
+        src={glassFrame}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+        style={{
+          filter: 'brightness(1.05)',
+        }}
+      />
+      
+      {/* Dark overlay for better text contrast */}
+      <div 
+        className="absolute inset-0 rounded-2xl"
+        style={{
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.35) 100%)',
+        }}
+      />
+      
       {/* Sparkle effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-3 left-6 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-60" style={{ animationDuration: '3s' }} />
-        <div className="absolute top-8 right-10 w-1 h-1 bg-yellow-200 rounded-full animate-ping opacity-50" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
-        <div className="absolute bottom-10 left-1/4 w-1 h-1 bg-white rounded-full animate-ping opacity-40" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
-        <div className="absolute top-1/2 right-6 w-1 h-1 bg-amber-300 rounded-full animate-ping opacity-40" style={{ animationDuration: '3.5s', animationDelay: '2s' }} />
-        <div className="absolute bottom-6 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '2.8s', animationDelay: '0.5s' }} />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
+        <div className="absolute top-4 left-8 w-2 h-2 bg-white rounded-full animate-ping opacity-70" style={{ animationDuration: '3s' }} />
+        <div className="absolute top-12 right-12 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-ping opacity-60" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
+        <div className="absolute bottom-20 left-1/4 w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-50" style={{ animationDuration: '4s', animationDelay: '1.2s' }} />
+        <div className="absolute top-1/2 right-8 w-1.5 h-1.5 bg-amber-300 rounded-full animate-ping opacity-50" style={{ animationDuration: '3.5s', animationDelay: '2s' }} />
+        <div className="absolute bottom-12 right-1/3 w-2 h-2 bg-white rounded-full animate-ping opacity-60" style={{ animationDuration: '2.8s', animationDelay: '0.5s' }} />
       </div>
       
-      {/* Top highlight - Liquid Glass edge */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-      
       {/* Content */}
-      <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
-        {/* Header - Logo trên cùng, to hơn với viền tròn đẹp */}
-        <div className="flex flex-col items-center mb-4">
+      <div className={`relative z-10 ${compact ? 'p-4' : 'p-5'}`}>
+        {/* Header - Logo trên cùng */}
+        <div className="flex flex-col items-center mb-3">
           {/* Logo FUN FARM - Tỏa sáng, viền vàng kim loại phát sáng */}
           <div className="relative">
             <img 
@@ -273,39 +298,36 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
               alt="FUN FARM" 
               className={`${compact ? 'w-16 h-16' : 'w-20 h-20'} rounded-full object-cover`}
               style={{ 
-                border: '4px solid rgba(251,191,36,0.7)',
-                boxShadow: '0 0 25px rgba(251,191,36,0.7), 0 0 50px rgba(251,191,36,0.3)',
+                border: '4px solid rgba(251,191,36,0.8)',
+                boxShadow: '0 0 30px rgba(251,191,36,0.8), 0 0 60px rgba(251,191,36,0.4)',
               }}
             />
             {/* Glow ring animation */}
             <div 
-              className="absolute inset-[-4px] rounded-full animate-pulse pointer-events-none"
+              className="absolute inset-[-6px] rounded-full animate-pulse pointer-events-none"
               style={{
-                border: '2px solid rgba(255,225,53,0.5)',
-                boxShadow: '0 0 20px rgba(251,191,36,0.5)',
+                border: '2px solid rgba(255,225,53,0.6)',
+                boxShadow: '0 0 25px rgba(251,191,36,0.6)',
                 animationDuration: '2s',
               }}
             />
           </div>
         </div>
         
-        {/* Chữ HONOR BOARD - căn đều giữa logo và stats */}
-        <h2 
-          className="uppercase relative text-center whitespace-nowrap mt-3 mb-5"
-          style={{ 
-            fontFamily: "system-ui, -apple-system, sans-serif",
-            fontWeight: 900,
-            fontSize: compact ? '1.4rem' : '1.7rem',
-            color: '#ffd700',
-            textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 25px rgba(255,215,0,0.7)',
-            letterSpacing: '0.15em',
-          }}
-        >
-          HONOR BOARD
-        </h2>
+        {/* HONOR BOARD Title Image */}
+        <div className="flex justify-center mb-5">
+          <img 
+            src={honorBoardTitle}
+            alt="HONOR BOARD"
+            className={`${compact ? 'w-[180px]' : 'w-[220px]'} h-auto`}
+            style={{
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 20px rgba(255,215,0,0.4))',
+            }}
+          />
+        </div>
 
         {/* Stats */}
-        <div className={`space-y-${compact ? '1.5' : '2'}`}>
+        <div className={`space-y-${compact ? '2' : '2.5'}`}>
           {statItems.map((item) => (
             <StatRow 
               key={item.label}
@@ -317,15 +339,14 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
           ))}
           
           {/* Total Reward */}
-          <TotalRewardRow 
-            value={isLoading ? 0 : stats.totalReward}
-            compact={compact}
-          />
+          <div className="pt-1">
+            <TotalRewardRow 
+              value={isLoading ? 0 : stats.totalReward}
+              compact={compact}
+            />
+          </div>
         </div>
       </div>
-
-      {/* Bottom edge - Liquid Glass */}
-      <div className="relative z-10 h-1.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10" />
     </div>
   );
 };
