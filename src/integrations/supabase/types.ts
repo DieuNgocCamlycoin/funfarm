@@ -320,6 +320,188 @@ export type Database = {
           },
         ]
       }
+      merge_conflicts: {
+        Row: {
+          conflict_details: Json | null
+          conflict_type: string
+          conflicting_user_email: string | null
+          conflicting_user_id: string | null
+          created_at: string | null
+          fun_id: string | null
+          fun_profile_id: string
+          id: string
+          resolution_action: string | null
+          resolution_notes: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          user_email: string
+          user_id: string | null
+        }
+        Insert: {
+          conflict_details?: Json | null
+          conflict_type: string
+          conflicting_user_email?: string | null
+          conflicting_user_id?: string | null
+          created_at?: string | null
+          fun_id?: string | null
+          fun_profile_id: string
+          id?: string
+          resolution_action?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_email: string
+          user_id?: string | null
+        }
+        Update: {
+          conflict_details?: Json | null
+          conflict_type?: string
+          conflicting_user_email?: string | null
+          conflicting_user_id?: string | null
+          created_at?: string | null
+          fun_id?: string | null
+          fun_profile_id?: string
+          id?: string
+          resolution_action?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_email?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merge_conflicts_conflicting_user_id_fkey"
+            columns: ["conflicting_user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_conflicting_user_id_fkey"
+            columns: ["conflicting_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_conflicting_user_id_fkey"
+            columns: ["conflicting_user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_conflicts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merge_request_logs: {
+        Row: {
+          created_at: string | null
+          email: string
+          error_message: string | null
+          fun_profile_id: string | null
+          id: string
+          profile_data: Json | null
+          request_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          webhook_received_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          error_message?: string | null
+          fun_profile_id?: string | null
+          id?: string
+          profile_data?: Json | null
+          request_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          webhook_received_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          error_message?: string | null
+          fun_profile_id?: string | null
+          id?: string
+          profile_data?: Json | null
+          request_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          webhook_received_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merge_request_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "merge_request_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_request_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           comment_id: string | null
@@ -628,11 +810,14 @@ export type Database = {
           cover_url: string | null
           created_at: string
           display_name: string | null
+          email: string | null
           email_verified: boolean
           fun_id: string | null
+          fun_profile_id: string | null
           good_heart_since: string | null
           id: string
           is_good_heart: boolean
+          is_merged: boolean | null
           is_verified: boolean
           last_synced_at: string | null
           last_violation_at: string | null
@@ -642,6 +827,8 @@ export type Database = {
           location_address: string | null
           location_lat: number | null
           location_lng: number | null
+          merge_request_id: string | null
+          merged_at: string | null
           pending_reward: number
           phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"]
@@ -673,11 +860,14 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
           email_verified?: boolean
           fun_id?: string | null
+          fun_profile_id?: string | null
           good_heart_since?: string | null
           id: string
           is_good_heart?: boolean
+          is_merged?: boolean | null
           is_verified?: boolean
           last_synced_at?: string | null
           last_violation_at?: string | null
@@ -687,6 +877,8 @@ export type Database = {
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          merge_request_id?: string | null
+          merged_at?: string | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -718,11 +910,14 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
           email_verified?: boolean
           fun_id?: string | null
+          fun_profile_id?: string | null
           good_heart_since?: string | null
           id?: string
           is_good_heart?: boolean
+          is_merged?: boolean | null
           is_verified?: boolean
           last_synced_at?: string | null
           last_violation_at?: string | null
@@ -732,6 +927,8 @@ export type Database = {
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          merge_request_id?: string | null
+          merged_at?: string | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]

@@ -20,3 +20,21 @@ verify_jwt = false
 
 [functions.angel-chat]
 verify_jwt = false
+
+[functions.check-avatar]
+verify_jwt = false
+
+[functions.reset-all-rewards]
+verify_jwt = true
+
+[functions.send-merge-request]
+verify_jwt = true
+
+[functions.fun-profile-webhook]
+verify_jwt = false
+
+[functions.admin-get-conflicts]
+verify_jwt = true
+
+[functions.admin-resolve-conflict]
+verify_jwt = true
