@@ -45,10 +45,11 @@ import DeletedUsersTab from "@/components/admin/DeletedUsersTab";
 import UserVerificationTab from "@/components/admin/UserVerificationTab";
 import GiftBackfillTab from "@/components/admin/GiftBackfillTab";
 import { MergeConflictsTab } from "@/components/admin/MergeConflictsTab";
+import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
-import { GitMerge } from "lucide-react";
+import { GitMerge, Send } from "lucide-react";
 
 interface PendingRewardUser {
   id: string;
@@ -698,9 +699,13 @@ const Admin = () => {
               <Users className="h-4 w-4 text-violet-500" />
               <span>Tất cả ({allUsers.length})</span>
             </TabsTrigger>
+            <TabsTrigger value="merge-requests" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Send className="h-4 w-4 text-blue-500" />
+              <span className="text-blue-500 font-medium">Gửi Merge</span>
+            </TabsTrigger>
             <TabsTrigger value="merge-conflicts" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <GitMerge className="h-4 w-4 text-purple-500" />
-              <span className="text-purple-500 font-medium">Merge</span>
+              <span className="text-purple-500 font-medium">Xung đột</span>
             </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
@@ -890,6 +895,11 @@ const Admin = () => {
                 fetchBannedUsers();
               }} 
             />
+          </TabsContent>
+
+          {/* Merge Requests Tab */}
+          <TabsContent value="merge-requests" className="mt-4">
+            <MergeRequestTab />
           </TabsContent>
 
           {/* Merge Conflicts Tab */}
