@@ -167,6 +167,13 @@ export type Database = {
             foreignKeyName: "comments_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -273,6 +280,13 @@ export type Database = {
             foreignKeyName: "followers_follower_id_fkey"
             columns: ["follower_id"]
             isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "followers_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -282,6 +296,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followers_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
           },
           {
             foreignKeyName: "followers_following_id_fkey"
@@ -566,6 +587,13 @@ export type Database = {
             foreignKeyName: "posts_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -601,10 +629,12 @@ export type Database = {
           created_at: string
           display_name: string | null
           email_verified: boolean
+          fun_id: string | null
           good_heart_since: string | null
           id: string
           is_good_heart: boolean
           is_verified: boolean
+          last_synced_at: string | null
           last_violation_at: string | null
           law_of_light_accepted: boolean | null
           law_of_light_accepted_at: string | null
@@ -617,6 +647,7 @@ export type Database = {
           profile_type: Database["public"]["Enums"]["profile_type"]
           referral_code: string | null
           reputation_score: number
+          synced_from_profile: boolean | null
           updated_at: string
           usdt_balance: number | null
           verification_bonus_claimed: boolean
@@ -643,10 +674,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email_verified?: boolean
+          fun_id?: string | null
           good_heart_since?: string | null
           id: string
           is_good_heart?: boolean
           is_verified?: boolean
+          last_synced_at?: string | null
           last_violation_at?: string | null
           law_of_light_accepted?: boolean | null
           law_of_light_accepted_at?: string | null
@@ -659,6 +692,7 @@ export type Database = {
           profile_type?: Database["public"]["Enums"]["profile_type"]
           referral_code?: string | null
           reputation_score?: number
+          synced_from_profile?: boolean | null
           updated_at?: string
           usdt_balance?: number | null
           verification_bonus_claimed?: boolean
@@ -685,10 +719,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email_verified?: boolean
+          fun_id?: string | null
           good_heart_since?: string | null
           id?: string
           is_good_heart?: boolean
           is_verified?: boolean
+          last_synced_at?: string | null
           last_violation_at?: string | null
           law_of_light_accepted?: boolean | null
           law_of_light_accepted_at?: string | null
@@ -701,6 +737,7 @@ export type Database = {
           profile_type?: Database["public"]["Enums"]["profile_type"]
           referral_code?: string | null
           reputation_score?: number
+          synced_from_profile?: boolean | null
           updated_at?: string
           usdt_balance?: number | null
           verification_bonus_claimed?: boolean
@@ -977,6 +1014,60 @@ export type Database = {
       }
     }
     Views: {
+      exportable_user_stats: {
+        Row: {
+          avatar_url: string | null
+          camly_balance: number | null
+          created_at: string | null
+          display_name: string | null
+          fun_id: string | null
+          is_verified: boolean | null
+          last_synced_at: string | null
+          local_id: string | null
+          profile_type: Database["public"]["Enums"]["profile_type"] | null
+          reputation_score: number | null
+          total_comments: number | null
+          total_gifted: number | null
+          total_posts: number | null
+          total_received: number | null
+          wallet_address: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          camly_balance?: number | null
+          created_at?: string | null
+          display_name?: string | null
+          fun_id?: string | null
+          is_verified?: boolean | null
+          last_synced_at?: string | null
+          local_id?: string | null
+          profile_type?: Database["public"]["Enums"]["profile_type"] | null
+          reputation_score?: number | null
+          total_comments?: never
+          total_gifted?: never
+          total_posts?: never
+          total_received?: never
+          wallet_address?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          camly_balance?: number | null
+          created_at?: string | null
+          display_name?: string | null
+          fun_id?: string | null
+          is_verified?: boolean | null
+          last_synced_at?: string | null
+          local_id?: string | null
+          profile_type?: Database["public"]["Enums"]["profile_type"] | null
+          reputation_score?: number | null
+          total_comments?: never
+          total_gifted?: never
+          total_posts?: never
+          total_received?: never
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
       public_profiles: {
         Row: {
           avatar_url: string | null

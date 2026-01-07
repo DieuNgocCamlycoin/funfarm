@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift, ArrowLeft, KeyRound, RefreshCw, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift, ArrowLeft, KeyRound, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { WELCOME_BONUS } from '@/lib/constants';
+import { getSSOLoginUrl } from '@/lib/sso';
+import funProfileLogo from '@/assets/platforms/fun-profile.png';
 
 const ConnectWallet = () => {
   const { signUp, signIn, user, profile, signOut, refreshProfile } = useAuth();
@@ -598,13 +600,41 @@ const ConnectWallet = () => {
           </button>
         </div>
 
-        {/* Divider */}
+        {/* SSO Login with Fun-ID */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-card px-2 text-muted-foreground">{t('auth.or')}</span>
+          </div>
+        </div>
+
+        {/* Fun-ID SSO Button */}
+        <Button
+          type="button"
+          onClick={() => {
+            const ssoUrl = getSSOLoginUrl();
+            window.location.href = ssoUrl;
+          }}
+          className="w-full gap-3 h-14 text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg"
+        >
+          <img src={funProfileLogo} alt="Fun Profile" className="w-6 h-6 rounded-full" />
+          Đăng nhập với Fun-ID
+          <ExternalLink className="w-4 h-4 ml-auto opacity-70" />
+        </Button>
+
+        <p className="text-xs text-center text-muted-foreground">
+          Một tài khoản cho toàn bộ hệ sinh thái FUN 🌍
+        </p>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">hoặc</span>
           </div>
         </div>
 
