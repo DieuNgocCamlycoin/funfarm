@@ -115,12 +115,17 @@ export const syncProfileFromSSO = async (ssoUser: SSOUser): Promise<SSOSyncResul
  * Link existing local account to Fun-ID
  * Called when user connects Fun-ID to existing account
  */
-export const linkFunIdToProfile = async (userId: string, funId: string): Promise<boolean> => {
+export const linkFunIdToProfile = async (
+  userId: string, 
+  funId: string, 
+  funProfileId?: string
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('profiles')
       .update({
         fun_id: funId,
+        fun_profile_id: funProfileId || null,
         synced_from_profile: true,
         last_synced_at: new Date().toISOString(),
       })

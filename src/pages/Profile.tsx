@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import { ViolationWarning } from "@/components/ViolationWarning";
+import { PendingMergeBanner } from "@/components/PendingMergeBanner";
+import { LinkFunIdButton } from "@/components/profile/LinkFunIdButton";
 
 import HonorBoard from "@/components/HonorBoard";
 import ProfileHonorBoard from "@/components/profile/ProfileHonorBoard";
@@ -478,6 +480,11 @@ const Profile = () => {
             />
           </div>
         )}
+
+        {/* Pending Merge Banner */}
+        <div className="container max-w-5xl mx-auto px-4 pt-4">
+          <PendingMergeBanner />
+        </div>
         {/* Cover Photo - Facebook Style với chiều cao lớn hơn */}
         <div className="relative h-64 md:h-80 lg:h-96 bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 overflow-hidden">
           {coverUrl ? (
@@ -569,13 +576,17 @@ const Profile = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pb-4">
+              <div className="flex gap-2 pb-4 flex-wrap">
                 <Link to="/profile-setup">
                   <Button className="gradient-hero border-0 gap-2">
                     <Edit className="w-4 h-4" />
                     Chỉnh sửa hồ sơ
                   </Button>
                 </Link>
+                {/* Link Fun-ID button for users without fun_id */}
+                {!(profile as any)?.fun_id && !(profile as any)?.merge_request_id && (
+                  <LinkFunIdButton compact />
+                )}
                 <Button variant="outline" size="icon">
                   <Settings className="w-4 h-4" />
                 </Button>
