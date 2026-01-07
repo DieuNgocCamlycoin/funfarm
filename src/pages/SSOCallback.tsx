@@ -3,12 +3,13 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Sparkles, Link as LinkIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   handleSSOCallback, 
   syncProfileFromSSO, 
+  linkFunIdToProfile,
   TokenExpiredError, 
   RateLimitError, 
   NetworkError 
@@ -17,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { SSOUser } from '@/lib/sso/types';
 
-type CallbackState = 'loading' | 'success' | 'error';
+type CallbackState = 'loading' | 'success' | 'error' | 'linked';
 
 const SSOCallback = () => {
   const navigate = useNavigate();
@@ -61,7 +62,39 @@ const SSOCallback = () => {
 
         setUserName(ssoUser.display_name || ssoUser.email);
 
-        // Sync profile to local database
+        // Check if this is a "link" action (linking Fun-ID to existing account)
+        const ssoAction = sessionStorage.getItem('sso_action');
+        sessionStorage.removeItem('sso_action');
+
+        if (ssoAction === 'link') {
+          // Link Fun-ID to current logged-in user
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          
+          if (currentUser) {
+            const linked = await linkFunIdToProfile(
+              currentUser.id, 
+              ssoUser.fun_id,
+              result.user.id // fun_profile_id from SDK
+            );
+            
+            if (linked) {
+              setState('linked');
+              toast.success('Đã liên kết Fun-ID thành công! 🎉');
+              setTimeout(() => navigate('/profile'), 2000);
+              return;
+            } else {
+              setState('error');
+              setErrorMessage('Không thể liên kết Fun-ID với tài khoản của bạn');
+              return;
+            }
+          } else {
+            setState('error');
+            setErrorMessage('Vui lòng đăng nhập trước khi liên kết Fun-ID');
+            return;
+          }
+        }
+
+        // Normal SSO login flow
         const syncResult = await syncProfileFromSSO(ssoUser);
         
         if (!syncResult.success) {
@@ -175,6 +208,20 @@ const SSOCallback = () => {
             </>
           )}
 
+          {state === 'linked' && (
+            <>
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                <LinkIcon className="w-10 h-10 text-primary" />
+              </div>
+              <CardTitle className="text-2xl font-display text-primary">
+                Liên kết thành công! 🔗
+              </CardTitle>
+              <CardDescription className="text-base">
+                Fun-ID của <span className="font-semibold text-foreground">{userName}</span> đã được liên kết
+              </CardDescription>
+            </>
+          )}
+
           {state === 'error' && (
             <>
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-destructive/20 flex items-center justify-center">
@@ -196,6 +243,15 @@ const SSOCallback = () => {
               <Sparkles className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
                 Đang chuyển hướng đến trang chính...
+              </p>
+            </div>
+          )}
+
+          {state === 'linked' && (
+            <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-4 text-center border border-primary/20">
+              <Sparkles className="w-6 h-6 text-primary mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Đang chuyển hướng đến hồ sơ của bạn...
               </p>
             </div>
           )}
