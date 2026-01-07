@@ -1,12 +1,21 @@
 // 🌱 SSO Callback Page for "Vạn Vật Quy Nhất" Integration
+// Handles OAuth 2.0 + PKCE code exchange via SDK
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { validateSSOToken, syncProfileFromSSO } from '@/lib/sso';
+import { 
+  handleSSOCallback, 
+  syncProfileFromSSO, 
+  TokenExpiredError, 
+  RateLimitError, 
+  NetworkError 
+} from '@/lib/sso';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { SSOUser } from '@/lib/sso/types';
 
 type CallbackState = 'loading' | 'success' | 'error';
 
@@ -18,34 +27,38 @@ const SSOCallback = () => {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const handleCallback = async () => {
-      // Get token from URL hash or query params
-      const hash = window.location.hash;
-      let token = searchParams.get('token');
-      
-      // Check hash for token (fragment-based OAuth)
-      if (hash && !token) {
-        const hashParams = new URLSearchParams(hash.substring(1));
-        token = hashParams.get('access_token') || hashParams.get('token');
-      }
+    const processCallback = async () => {
+      // Get code and state from URL params (OAuth 2.0 + PKCE flow)
+      const code = searchParams.get('code');
+      const stateParam = searchParams.get('state');
 
-      if (!token) {
+      if (!code || !stateParam) {
         setState('error');
-        setErrorMessage('Không tìm thấy token xác thực từ Fun Profile');
+        setErrorMessage('Không tìm thấy mã xác thực từ Fun Profile');
         return;
       }
 
       try {
-        // Validate SSO token
-        const validation = await validateSSOToken(token);
+        // Exchange code for tokens via SDK
+        const result = await handleSSOCallback(code, stateParam);
         
-        if (!validation.valid || !validation.user) {
+        if (!result.user) {
           setState('error');
-          setErrorMessage(validation.error || 'Token không hợp lệ');
+          setErrorMessage('Không thể lấy thông tin người dùng');
           return;
         }
 
-        const ssoUser = validation.user;
+        // Map SDK user to our SSOUser type
+        const ssoUser: SSOUser = {
+          fun_id: result.user.funId || result.user.id,
+          email: result.user.email || '',
+          display_name: result.user.username || result.user.fullName || null,
+          avatar_url: result.user.avatarUrl || null,
+          wallet_address: result.user.walletAddress || result.user.externalWalletAddress || '',
+          is_verified: true, // SSO users are verified by default
+          created_at: new Date().toISOString(),
+        };
+
         setUserName(ssoUser.display_name || ssoUser.email);
 
         // Sync profile to local database
@@ -58,8 +71,7 @@ const SSOCallback = () => {
         }
 
         if (syncResult.isNewUser) {
-          // New user - need to create Supabase Auth account
-          // Generate a secure random password (user won't need it with SSO)
+          // New user - create Supabase Auth account
           const tempPassword = crypto.randomUUID();
           
           const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -75,9 +87,7 @@ const SSOCallback = () => {
           });
 
           if (authError) {
-            // Check if user already exists
             if (authError.message.includes('already registered')) {
-              // Try to sign in and link Fun-ID
               toast.info('Tài khoản đã tồn tại. Đang liên kết với Fun-ID...');
               navigate('/auth');
               return;
@@ -89,7 +99,7 @@ const SSOCallback = () => {
           }
 
           if (authData.user) {
-            // Update the new profile with Fun-ID
+            // Update profile with Fun-ID
             await supabase.from('profiles').update({
               fun_id: ssoUser.fun_id,
               display_name: ssoUser.display_name,
@@ -113,12 +123,24 @@ const SSOCallback = () => {
 
       } catch (error) {
         console.error('SSO callback error:', error);
+        
+        // Handle SDK-specific errors
+        if (error instanceof TokenExpiredError) {
+          setErrorMessage('Phiên đăng nhập đã hết hạn. Vui lòng thử lại.');
+        } else if (error instanceof RateLimitError) {
+          const retryAfter = (error as any).retryAfter || 60;
+          setErrorMessage(`Quá nhiều yêu cầu. Vui lòng đợi ${retryAfter}s rồi thử lại.`);
+        } else if (error instanceof NetworkError) {
+          setErrorMessage('Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.');
+        } else {
+          setErrorMessage('Có lỗi xảy ra trong quá trình xác thực');
+        }
+        
         setState('error');
-        setErrorMessage('Có lỗi xảy ra trong quá trình xác thực');
       }
     };
 
-    handleCallback();
+    processCallback();
   }, [navigate, searchParams]);
 
   return (

@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { WELCOME_BONUS } from '@/lib/constants';
-import { getSSOLoginUrl } from '@/lib/sso';
+import { startSSOLogin } from '@/lib/sso';
 import funProfileLogo from '@/assets/platforms/fun-profile.png';
 
 const ConnectWallet = () => {
@@ -613,13 +613,25 @@ const ConnectWallet = () => {
         {/* Fun-ID SSO Button */}
         <Button
           type="button"
-          onClick={() => {
-            const ssoUrl = getSSOLoginUrl();
-            window.location.href = ssoUrl;
+          disabled={isLoading}
+          onClick={async () => {
+            setIsLoading(true);
+            try {
+              const ssoUrl = await startSSOLogin();
+              window.location.href = ssoUrl;
+            } catch (error) {
+              console.error('SSO login error:', error);
+              toast.error('Không thể kết nối Fun Profile');
+              setIsLoading(false);
+            }
           }}
           className="w-full gap-3 h-14 text-base bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg"
         >
-          <img src={funProfileLogo} alt="Fun Profile" className="w-6 h-6 rounded-full" />
+          {isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            <img src={funProfileLogo} alt="Fun Profile" className="w-6 h-6 rounded-full" />
+          )}
           Đăng nhập với Fun-ID
           <ExternalLink className="w-4 h-4 ml-auto opacity-70" />
         </Button>
