@@ -2,69 +2,52 @@
 // Connects Fun Farm to Fun Profile central identity system
 
 import { supabase } from '@/integrations/supabase/client';
-import type { SSOUser, SSOValidationResult, SSOSyncResult, SSOConfig } from './types';
+import { funProfile } from './client';
+import type { SSOUser, SSOSyncResult, FarmStats } from './types';
 
-// SSO Configuration - will be updated when SDK is received
-const SSO_CONFIG: SSOConfig = {
-  profileBaseUrl: 'https://profile.fun.rich', // Fun Profile base URL
-  callbackUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/sso/callback`,
-  clientId: 'fun-farm', // Platform identifier
+/**
+ * Start SSO login flow - redirects to Fun Profile OAuth
+ * Uses OAuth 2.0 + PKCE for security
+ */
+export const startSSOLogin = async (): Promise<string> => {
+  return await funProfile.startAuth();
 };
 
 /**
- * Get the SSO login URL to redirect users to Fun Profile
+ * Handle OAuth callback - exchange code for tokens
  */
-export const getSSOLoginUrl = (): string => {
-  const params = new URLSearchParams({
-    client_id: SSO_CONFIG.clientId,
-    redirect_uri: SSO_CONFIG.callbackUrl,
-    response_type: 'token',
-    scope: 'profile wallet',
-  });
-  
-  return `${SSO_CONFIG.profileBaseUrl}/auth/sso?${params.toString()}`;
+export const handleSSOCallback = async (code: string, state: string) => {
+  return await funProfile.handleCallback(code, state);
 };
 
 /**
- * Validate SSO token received from Fun Profile
- * In production, this will verify JWT signature with Fun Profile's public key
+ * Get current SSO user info
  */
-export const validateSSOToken = async (token: string): Promise<SSOValidationResult> => {
-  try {
-    // TODO: When SDK arrives, implement proper JWT verification
-    // For now, decode the token (unsafe - for development only)
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      return { valid: false, error: 'Invalid token format' };
-    }
+export const getSSOUser = async () => {
+  return await funProfile.getUser();
+};
 
-    const payload = JSON.parse(atob(parts[1]));
-    
-    // Check expiration
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      return { valid: false, error: 'Token expired' };
-    }
+/**
+ * Logout from SSO
+ */
+export const logoutSSO = async () => {
+  await funProfile.logout();
+};
 
-    // Check issuer
-    if (payload.iss !== 'fun-profile') {
-      return { valid: false, error: 'Invalid token issuer' };
-    }
+/**
+ * Sync Farm stats to Master (debounced)
+ */
+export const syncFarmDataToMaster = async (data: FarmStats) => {
+  const syncManager = funProfile.getSyncManager(3000); // 3s debounce
+  syncManager.queue('farm_stats', data as unknown as Record<string, unknown>);
+};
 
-    const user: SSOUser = {
-      fun_id: payload.sub,
-      email: payload.email,
-      display_name: payload.display_name || null,
-      avatar_url: payload.avatar_url || null,
-      wallet_address: payload.wallet_address,
-      is_verified: payload.is_verified || false,
-      created_at: new Date(payload.iat * 1000).toISOString(),
-    };
-
-    return { valid: true, user };
-  } catch (error) {
-    console.error('SSO token validation error:', error);
-    return { valid: false, error: 'Token validation failed' };
-  }
+/**
+ * Flush pending sync data (call before page unload)
+ */
+export const flushSyncData = () => {
+  const syncManager = funProfile.getSyncManager(3000);
+  syncManager.flush();
 };
 
 /**
@@ -150,5 +133,7 @@ export const linkFunIdToProfile = async (userId: string, funId: string): Promise
   }
 };
 
-export { SSO_CONFIG };
-export type { SSOUser, SSOValidationResult, SSOSyncResult, SSOConfig } from './types';
+// Re-export client and types
+export { funProfile } from './client';
+export { TokenExpiredError, RateLimitError, NetworkError } from './client';
+export type { SSOUser, SSOValidationResult, SSOSyncResult, SSOConfig, FarmStats } from './types';

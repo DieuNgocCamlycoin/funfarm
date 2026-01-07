@@ -49,7 +49,7 @@ const App = () => (
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/user/:userId" element={<UserProfile />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/sso/callback" element={<SSOCallback />} />
+                  <Route path="/auth/callback" element={<SSOCallback />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
                   <Route path="/reward" element={<Reward />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />

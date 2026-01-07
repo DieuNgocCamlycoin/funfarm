@@ -44,3 +44,18 @@ export interface SSOSyncResult {
   error?: string;
   isNewUser?: boolean;
 }
+
+// Farm-specific data for sync to Master
+export interface FarmStats {
+  camly_balance: number;
+  total_posts: number;
+  total_gifted: number;
+  total_received: number;
+  reputation_score: number;
+  last_activity?: string;
+}
+
+export interface SyncPayload {
+  farm_stats?: FarmStats;
+  activity_log?: string[];
+}
