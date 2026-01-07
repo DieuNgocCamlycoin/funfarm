@@ -975,6 +975,54 @@ export type Database = {
         }
         Relationships: []
       }
+      rejected_content: {
+        Row: {
+          admin_note: string | null
+          content: string
+          content_type: string
+          created_at: string
+          id: string
+          images: string[] | null
+          metadata: Json | null
+          post_id: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          content: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          metadata?: Json | null
+          post_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          content?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          metadata?: Json | null
+          post_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           comment_id: string | null

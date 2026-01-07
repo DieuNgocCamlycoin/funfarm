@@ -46,6 +46,7 @@ import UserVerificationTab from "@/components/admin/UserVerificationTab";
 import GiftBackfillTab from "@/components/admin/GiftBackfillTab";
 import { MergeConflictsTab } from "@/components/admin/MergeConflictsTab";
 import MergeRequestTab from "@/components/admin/MergeRequestTab";
+import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
@@ -707,6 +708,10 @@ const Admin = () => {
               <GitMerge className="h-4 w-4 text-purple-500" />
               <span className="text-purple-500 font-medium">Xung đột</span>
             </TabsTrigger>
+            <TabsTrigger value="content-moderation" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <span className="text-orange-500 font-medium">AI Review</span>
+            </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
@@ -743,6 +748,11 @@ const Admin = () => {
           {/* Deleted Users Tab */}
           <TabsContent value="deleted-users" className="mt-4">
             <DeletedUsersTab />
+          </TabsContent>
+
+          {/* Content Moderation Tab */}
+          <TabsContent value="content-moderation" className="mt-4">
+            <ContentModerationTab />
           </TabsContent>
 
           {/* Rewards Tab */}

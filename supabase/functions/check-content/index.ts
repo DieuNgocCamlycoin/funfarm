@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { content, type } = await req.json();
+    const { content, type, userId, images, postId } = await req.json();
     
     if (!content || content.trim().length === 0) {
       return new Response(
@@ -30,26 +31,40 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `Bạn là hệ thống kiểm duyệt nội dung cho FUN FARM - một nền tảng mạng xã hội nông sản sạch.
+    const systemPrompt = `Bạn là hệ thống kiểm duyệt nội dung cho FUN FARM - một nền tảng mạng xã hội trong FUN Ecosystem.
 
-QUAN TRỌNG: Hãy KHOAN DUNG và chỉ từ chối nội dung RÕ RÀNG vi phạm.
+QUAN TRỌNG: Hãy RẤT KHOAN DUNG và chỉ từ chối nội dung THỰC SỰ vi phạm nghiêm trọng.
 
-Nội dung VI PHẠM (CHỈ từ chối những điều này):
-- Spam rõ ràng: Nội dung lặp lại vô nghĩa, chỉ toàn ký tự đặc biệt vô nghĩa
-- Thù địch/Xúc phạm: Chửi bới trực tiếp, kích động thù hận, đe dọa bạo lực
-- Lừa đảo rõ ràng: Hứa hẹn giàu nhanh, đầu tư ảo, yêu cầu chuyển tiền
-- Nội dung 18+: Khiêu dâm, bạo lực đẫm máu
+=== FUN ECOSYSTEM CONTEXT ===
+FUN FARM là một trong nhiều platform thuộc hệ sinh thái FUN Ecosystem:
+- CAMLY token là phần thưởng chính thức cho hoạt động trong app
+- "Cha Vũ Trụ", "Luật Ánh Sáng" là thuật ngữ văn hóa của nền tảng
+- Các domain chính thức: fun.rich, funfarm.life, funacademy.lovable.app, *.lovable.app
+- Mời bạn bè tham gia FUN Ecosystem là hoạt động BÌNH THƯỜNG và được khuyến khích
 
-Nội dung HỢP LỆ (CHẤP NHẬN tất cả những điều này):
-- BẤT KỲ chia sẻ đời thường: cuộc sống, công việc, gia đình, bạn bè
-- BẤT KỲ ảnh chụp: phong cảnh, con người, đồ ăn, sản phẩm, selfie
-- BẤT KỲ câu chuyện cá nhân: vui, buồn, tâm sự
-- BẤT KỲ lời chào, cảm ơn, chúc mừng, động viên
+=== NỘI DUNG HỢP LỆ (LUÔN CHẤP NHẬN) ===
+- Chia sẻ link đến các platform trong FUN Ecosystem (fun.rich, funfarm.life, *.lovable.app)
+- Mời bạn bè đăng ký tài khoản, nhận quà từ FUN Ecosystem
+- Nói về phần thưởng CAMLY, quà tặng, Cha Vũ Trụ
+- BẤT KỲ chia sẻ đời thường: cuộc sống, công việc, gia đình, ảnh cá nhân
 - Quảng cáo sản phẩm nông nghiệp, thực phẩm
+- Lời chào, cảm ơn, chúc mừng, động viên
 - Hỏi đáp, thảo luận bình thường
-- Biểu cảm như emoji, cảm xúc tích cực/tiêu cực bình thường
+- Biểu cảm emoji, cảm xúc tích cực hoặc tiêu cực bình thường
 
-LƯU Ý: Nếu nội dung KHÔNG RÕ RÀNG vi phạm → CHẤP NHẬN (isValid: true)
+=== NỘI DUNG VI PHẠM (CHỈ TỪ CHỐI những điều này) ===
+- Yêu cầu gửi tiền/crypto đến địa chỉ cá nhân (ví dụ: "Gửi BNB đến 0x...")
+- Yêu cầu chia sẻ seed phrase, private key, mật khẩu
+- Hứa hẹn lợi nhuận cụ thể phi thực tế (x10, x100, 1000%/tháng)
+- Link đến website giả mạo ngân hàng, ví điện tử (phishing)
+- Spam rõ ràng: nội dung lặp lại vô nghĩa, chỉ toàn ký tự đặc biệt
+- Chửi bới trực tiếp, đe dọa bạo lực, kích động thù hận
+- Nội dung 18+: khiêu dâm, bạo lực đẫm máu
+
+=== NGUYÊN TẮC ===
+- Nếu KHÔNG CHẮC CHẮN 100% là vi phạm nghiêm trọng → CHẤP NHẬN (isValid: true)
+- Link đến FUN Ecosystem KHÔNG PHẢI lừa đảo
+- "Nhận quà", "nhận thưởng CAMLY" trong FUN Ecosystem là tính năng chính thức
 
 Trả về JSON: {"isValid": true/false, "reason": "lý do ngắn gọn nếu vi phạm hoặc null nếu hợp lệ"}`;
 
@@ -81,23 +96,44 @@ Trả về JSON: {"isValid": true/false, "reason": "lý do ngắn gọn nếu vi
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content || '';
     
+    console.log('AI response for content check:', aiResponse);
+    
     // Parse JSON from AI response
+    let result = { isValid: true, reason: null as string | null };
     try {
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const result = JSON.parse(jsonMatch[0]);
-        return new Response(
-          JSON.stringify(result),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        result = JSON.parse(jsonMatch[0]);
       }
     } catch (parseError) {
       console.error('Parse error:', parseError);
     }
 
-    // Default to valid if parsing fails
+    // If content is rejected and we have userId, save to rejected_content for admin review
+    if (!result.isValid && userId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        await supabase.from('rejected_content').insert({
+          user_id: userId,
+          content: content,
+          content_type: type || 'post',
+          rejection_reason: result.reason,
+          images: images || null,
+          post_id: postId || null,
+          status: 'pending'
+        });
+        
+        console.log('Saved rejected content for admin review:', { userId, type, reason: result.reason });
+      } catch (saveError) {
+        console.error('Error saving rejected content:', saveError);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ isValid: true, reason: null }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
