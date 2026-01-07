@@ -272,13 +272,22 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
     try {
       // Check content with AI before posting
       const checkResponse = await supabase.functions.invoke('check-content', {
-        body: { content: content.trim(), type: 'post' }
+        body: { 
+          content: content.trim(), 
+          type: 'post',
+          userId: user.id,
+          images: images.length > 0 ? images : undefined
+        }
       });
 
       if (checkResponse.data && !checkResponse.data.isValid) {
-        toast.error(checkResponse.data.reason || 'Nội dung không phù hợp với cộng đồng FUN FARM ❤️', { 
-          duration: 4000 
-        });
+        toast.error(
+          <div>
+            <p>{checkResponse.data.reason || 'Nội dung đang được kiểm tra'}</p>
+            <p className="text-xs opacity-80 mt-1">Admin sẽ review lại trong 24h ❤️</p>
+          </div>,
+          { duration: 5000 }
+        );
         setIsPosting(false);
         return;
       }

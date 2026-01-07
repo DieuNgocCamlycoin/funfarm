@@ -113,13 +113,22 @@ const CommentSection = ({ postId, isOpen, onCommentAdded }: CommentSectionProps)
     try {
       // Check content with AI before commenting
       const checkResponse = await supabase.functions.invoke('check-content', {
-        body: { content: newComment.trim(), type: 'comment' }
+        body: { 
+          content: newComment.trim(), 
+          type: 'comment',
+          userId: user.id,
+          postId: postId
+        }
       });
 
       if (checkResponse.data && !checkResponse.data.isValid) {
-        toast.error(checkResponse.data.reason || 'Bình luận không phù hợp. Hãy lan tỏa tình yêu chân thành nhé ❤️', { 
-          duration: 4000 
-        });
+        toast.error(
+          <div>
+            <p>{checkResponse.data.reason || 'Bình luận đang được kiểm tra'}</p>
+            <p className="text-xs opacity-80 mt-1">Admin sẽ review lại trong 24h ❤️</p>
+          </div>,
+          { duration: 5000 }
+        );
         setIsSubmitting(false);
         return;
       }
