@@ -30,6 +30,10 @@ interface Profile {
   banned: boolean;
   banned_at: string | null;
   ban_reason: string | null;
+  // SSO fields for "Vạn Vật Quy Nhất"
+  fun_id: string | null;
+  synced_from_profile: boolean;
+  last_synced_at: string | null;
 }
 
 interface AuthContextType {

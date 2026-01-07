@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
+import SSOCallback from "./pages/SSOCallback";
 import Reward from "./pages/Reward";
 import Leaderboard from "./pages/Leaderboard";
 import ShipperDashboard from "./pages/ShipperDashboard";
@@ -48,6 +49,7 @@ const App = () => (
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/user/:userId" element={<UserProfile />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/sso/callback" element={<SSOCallback />} />
                   <Route path="/profile-setup" element={<ProfileSetup />} />
                   <Route path="/reward" element={<Reward />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
