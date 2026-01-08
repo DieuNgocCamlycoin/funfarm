@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const FUN_PROFILE_API_URL = Deno.env.get('FUN_PROFILE_API_URL') || 'https://api.funprofile.io';
+const FUN_PROFILE_MERGE_ENDPOINT = Deno.env.get('FUN_PROFILE_MERGE_ENDPOINT') || 'https://bhtsnervqiwchluwuxki.supabase.co/functions/v1/sso-merge-request';
 
 interface MergeRequestPayload {
   user_id?: string;
@@ -230,7 +230,8 @@ serve(async (req) => {
     console.log(`Sending merge request for ${usersToMerge.length} users`);
 
     // Call Fun Profile API
-    const mergeResponse = await fetch(`${FUN_PROFILE_API_URL}/api/sso-merge-request`, {
+    console.log('Calling Fun Profile merge endpoint:', FUN_PROFILE_MERGE_ENDPOINT);
+    const mergeResponse = await fetch(FUN_PROFILE_MERGE_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
