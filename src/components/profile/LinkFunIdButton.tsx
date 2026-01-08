@@ -89,6 +89,18 @@ export function LinkFunIdButton({ compact = false }: LinkFunIdButtonProps) {
             </>
           )}
         </Button>
+
+        <p className="text-xs text-center text-muted-foreground pt-2">
+          💡 Chưa có Fun-ID?{' '}
+          <a 
+            href="https://bhtsnervqiwchluwuxki.supabase.co/functions/v1/sso-merge-request"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Đăng ký tại Fun Profile
+          </a>
+        </p>
       </CardContent>
     </Card>
   );

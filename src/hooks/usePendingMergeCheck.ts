@@ -4,8 +4,10 @@ import { useAuth } from './useAuth';
 
 export interface PendingMergeStatus {
   isPending: boolean;
+  status?: 'pending' | 'provisioned';
   requestId?: string;
   createdAt?: string;
+  userEmail?: string;
   isLoading: boolean;
 }
 
@@ -26,7 +28,7 @@ export function usePendingMergeCheck(): PendingMergeStatus {
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('merge_request_id')
+          .select('merge_request_id, email')
           .eq('id', user.id)
           .single();
 
@@ -37,20 +39,22 @@ export function usePendingMergeCheck(): PendingMergeStatus {
         }
 
         if (profile?.merge_request_id) {
-          // Get created_at from merge_request_logs
+          // Get status and created_at from merge_request_logs
           const { data: logData } = await supabase
             .from('merge_request_logs')
-            .select('created_at')
+            .select('created_at, status')
             .eq('user_id', user.id)
-            .eq('status', 'pending')
+            .in('status', ['pending', 'provisioned'])
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
 
           setStatus({
             isPending: true,
+            status: (logData?.status as 'pending' | 'provisioned') || 'pending',
             requestId: profile.merge_request_id,
             createdAt: logData?.created_at,
+            userEmail: profile.email || undefined,
             isLoading: false,
           });
         } else {

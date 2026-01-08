@@ -636,9 +636,20 @@ const ConnectWallet = () => {
           <ExternalLink className="w-4 h-4 ml-auto opacity-70" />
         </Button>
 
-        <p className="text-xs text-center text-muted-foreground">
-          Một tài khoản cho toàn bộ hệ sinh thái FUN 🌍
-        </p>
+        <div className="text-xs text-center text-muted-foreground space-y-1">
+          <p>Một tài khoản cho toàn bộ hệ sinh thái FUN 🌍</p>
+          <p className="text-orange-500/80">
+            💡 Chưa có Fun-ID?{' '}
+            <a 
+              href="https://bhtsnervqiwchluwuxki.supabase.co/functions/v1/sso-merge-request" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Đăng ký tại Fun Profile
+            </a>
+          </p>
+        </div>
 
         {/* Divider */}
         <div className="relative">

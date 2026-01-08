@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface WebhookPayload {
-  event: 'merge_completed' | 'merge_rejected' | 'merge_conflict';
+  event: 'merge_completed' | 'merge_rejected' | 'merge_conflict' | 'account_provisioned';
   request_id: string;
   email: string;
   fun_profile_id?: string;
@@ -20,6 +20,7 @@ interface WebhookPayload {
   };
   error_message?: string;
   conflict_type?: string;
+  provision_status?: 'pending_password_set';
 }
 
 // HMAC-SHA256 signature verification
@@ -247,6 +248,32 @@ serve(async (req) => {
           .eq('request_id', payload.request_id);
 
         console.log('Conflict logged for:', payload.email);
+        break;
+      }
+
+      case 'account_provisioned': {
+        // Fun Profile đã tạo account mới, chờ user set password
+        console.log('Account provisioned for:', payload.email, payload.fun_profile_id);
+
+        // Update merge_request_logs status to provisioned
+        await supabase
+          .from('merge_request_logs')
+          .update({
+            status: 'provisioned',
+            fun_profile_id: payload.fun_profile_id,
+            webhook_received_at: new Date().toISOString(),
+          })
+          .eq('email', payload.email)
+          .eq('request_id', payload.request_id);
+
+        // Send notification to user
+        await supabase.from('notifications').insert({
+          user_id: profile.id,
+          type: 'account_provisioned',
+          content: '🎉 Tài khoản Fun-ID đã được tạo! Vui lòng kiểm tra email để đặt mật khẩu và hoàn tất kết nối.',
+        });
+
+        console.log('Provisioned notification sent to:', profile.id);
         break;
       }
 
