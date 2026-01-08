@@ -89,24 +89,43 @@ serve(async (req) => {
     }
 
     const payload: WebhookPayload = JSON.parse(rawBody);
-    console.log('Received webhook:', payload.event, payload.email);
+    console.log('Received webhook:', payload.event, 'request_id:', payload.request_id);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find the user by email
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, email, fun_profile_id, is_merged, display_name, avatar_url')
-      .eq('email', payload.email)
+    // Find user via merge_request_logs (more reliable than profiles.email which may be NULL)
+    const { data: mergeLog, error: logError } = await supabase
+      .from('merge_request_logs')
+      .select('user_id, email')
+      .eq('request_id', payload.request_id)
       .single();
 
-    if (profileError || !profile) {
-      console.error('Profile not found for email:', payload.email);
+    if (logError || !mergeLog) {
+      console.error('Merge request not found for request_id:', payload.request_id);
       return new Response(
-        JSON.stringify({ error: 'Profile not found', email: payload.email }),
+        JSON.stringify({ error: 'Merge request not found', request_id: payload.request_id }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Found merge log, user_id:', mergeLog.user_id);
+
+    // Get profile using user_id from merge_request_logs
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, fun_profile_id, is_merged, display_name, avatar_url')
+      .eq('id', mergeLog.user_id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Profile not found for user_id:', mergeLog.user_id);
+      return new Response(
+        JSON.stringify({ error: 'Profile not found', user_id: mergeLog.user_id }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Found profile:', profile.id);
 
     switch (payload.event) {
       case 'merge_completed': {
@@ -140,7 +159,6 @@ serve(async (req) => {
                 webhook_received_at: new Date().toISOString(),
                 error_message: `Conflict: fun_profile_id already assigned to user ${existingWithFunProfileId.id}`,
               })
-              .eq('email', payload.email)
               .eq('request_id', payload.request_id);
 
             console.log('Conflict detected for:', payload.email);
@@ -198,10 +216,16 @@ serve(async (req) => {
             fun_profile_id: payload.fun_profile_id,
             webhook_received_at: new Date().toISOString(),
           })
-          .eq('email', payload.email)
           .eq('request_id', payload.request_id);
 
-        console.log('Merge completed for:', payload.email);
+        // Send notification to user
+        await supabase.from('notifications').insert({
+          user_id: profile.id,
+          type: 'merge_completed',
+          content: '🎉 Tài khoản Fun Farm đã được liên kết thành công với Fun-ID! Giờ đây bạn có thể đăng nhập vào tất cả nền tảng 5D bằng một tài khoản duy nhất.',
+        });
+
+        console.log('Merge completed for user_id:', profile.id);
         break;
       }
 
@@ -219,10 +243,9 @@ serve(async (req) => {
             webhook_received_at: new Date().toISOString(),
             error_message: payload.error_message || 'Merge rejected by Fun Profile',
           })
-          .eq('email', payload.email)
           .eq('request_id', payload.request_id);
 
-        console.log('Merge rejected for:', payload.email);
+        console.log('Merge rejected for user_id:', profile.id);
         break;
       }
 
@@ -244,10 +267,9 @@ serve(async (req) => {
             webhook_received_at: new Date().toISOString(),
             error_message: payload.error_message,
           })
-          .eq('email', payload.email)
           .eq('request_id', payload.request_id);
 
-        console.log('Conflict logged for:', payload.email);
+        console.log('Conflict logged for user_id:', profile.id);
         break;
       }
 
@@ -263,7 +285,6 @@ serve(async (req) => {
             fun_profile_id: payload.fun_profile_id,
             webhook_received_at: new Date().toISOString(),
           })
-          .eq('email', payload.email)
           .eq('request_id', payload.request_id);
 
         // Send notification to user
