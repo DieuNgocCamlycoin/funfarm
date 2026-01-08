@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const FUN_PROFILE_MERGE_ENDPOINT = Deno.env.get('FUN_PROFILE_MERGE_ENDPOINT') || 'https://bhtsnervqiwchluwuxki.supabase.co/functions/v1/sso-merge-request';
+const FUN_PROFILE_CLIENT_ID = 'fun_farm_client';
 
 interface MergeRequestPayload {
   user_id?: string;
@@ -228,62 +229,83 @@ serve(async (req) => {
     }
 
     console.log(`Sending merge request for ${usersToMerge.length} users`);
-
-    // Call Fun Profile API
     console.log('Calling Fun Profile merge endpoint:', FUN_PROFILE_MERGE_ENDPOINT);
-    const mergeResponse = await fetch(FUN_PROFILE_MERGE_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Platform-ID': 'fun_farm',
-        'X-Platform-Secret': funProfileClientSecret,
-      },
-      body: JSON.stringify({
-        platform_id: 'fun_farm',
-        users: usersToMerge,
-      }),
-    });
 
-    if (!mergeResponse.ok) {
-      const errorText = await mergeResponse.text();
-      console.error('Fun Profile API error:', errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to send merge request to Fun Profile', details: errorText }),
-        { status: mergeResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Send merge requests one by one (Fun Profile expects individual requests)
+    let successCount = 0;
+    const results: { email: string; success: boolean; request_id?: string; error?: string }[] = [];
 
-    const mergeResult = await mergeResponse.json();
-    console.log('Merge request result:', mergeResult);
-
-    // Log merge requests and update profiles
     for (const userData of usersToMerge) {
-      const requestId = mergeResult.request_ids?.[userData.email] || mergeResult.request_id;
-      
-      // Update profile with merge_request_id
-      await supabase
-        .from('profiles')
-        .update({ merge_request_id: requestId })
-        .eq('id', userData.platform_user_id);
-
-      // Log the request
-      await supabase
-        .from('merge_request_logs')
-        .insert({
-          user_id: userData.platform_user_id,
-          email: userData.email,
-          request_id: requestId,
-          status: 'pending',
-          profile_data: userData.platform_data,
+      try {
+        console.log(`Sending merge for user: ${userData.email}`);
+        
+        const mergeResponse = await fetch(FUN_PROFILE_MERGE_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: FUN_PROFILE_CLIENT_ID,
+            client_secret: funProfileClientSecret,
+            email: userData.email,
+            source_user_id: userData.platform_user_id,
+            source_username: userData.platform_data.display_name || userData.email.split('@')[0],
+            platform_data: userData.platform_data,
+          }),
         });
+
+        const responseText = await mergeResponse.text();
+        console.log(`Response for ${userData.email}:`, mergeResponse.status, responseText);
+
+        if (!mergeResponse.ok) {
+          console.error(`Failed to merge user ${userData.email}:`, responseText);
+          results.push({ email: userData.email, success: false, error: responseText });
+          continue;
+        }
+
+        let mergeResult;
+        try {
+          mergeResult = JSON.parse(responseText);
+        } catch {
+          mergeResult = { request_id: null, status: 'pending' };
+        }
+
+        const requestId = mergeResult.request_id || mergeResult.merge_request_id || crypto.randomUUID();
+
+        // Update profile with merge_request_id
+        await supabase
+          .from('profiles')
+          .update({ merge_request_id: requestId })
+          .eq('id', userData.platform_user_id);
+
+        // Log the request
+        await supabase
+          .from('merge_request_logs')
+          .insert({
+            user_id: userData.platform_user_id,
+            email: userData.email,
+            request_id: requestId,
+            status: mergeResult.status || 'pending',
+            profile_data: userData.platform_data,
+          });
+
+        successCount++;
+        results.push({ email: userData.email, success: true, request_id: requestId });
+        console.log(`Successfully sent merge for ${userData.email}, request_id: ${requestId}`);
+
+      } catch (userError) {
+        console.error(`Error processing user ${userData.email}:`, userError);
+        results.push({ email: userData.email, success: false, error: String(userError) });
+      }
     }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        message: `Merge request sent for ${usersToMerge.length} users`,
-        count: usersToMerge.length,
-        request_id: mergeResult.request_id,
+        success: successCount > 0,
+        message: `Merge requests sent: ${successCount}/${usersToMerge.length} successful`,
+        count: successCount,
+        failed: usersToMerge.length - successCount,
+        results,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
