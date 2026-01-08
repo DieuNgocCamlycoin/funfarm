@@ -1,7 +1,7 @@
 // 🧚 Angel Context - Quản lý trạng thái Angel Companion
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AngelCompanion from './AngelCompanion';
-import AngelChat from './AngelChat';
+import AngelChatEmbed from './AngelChatEmbed';
 import AngelChatButton from './AngelChatButton';
 
 interface AngelContextType {
@@ -52,7 +52,7 @@ export const AngelProvider: React.FC<AngelProviderProps> = ({
       {children}
       <AngelCompanion enabled={enabled} brightness={brightness} />
       <AngelChatButton />
-      <AngelChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <AngelChatEmbed isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </AngelContext.Provider>
   );
 };
