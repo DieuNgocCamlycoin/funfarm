@@ -9,7 +9,7 @@ interface AngelChatEmbedProps {
   onClose: () => void;
 }
 
-const ANGEL_AI_URL = 'https://angel-light-nexus.lovable.app';
+const ANGEL_AI_URL = 'https://angel-light-nexus.lovable.app/chat';
 
 const AngelChatEmbed: React.FC<AngelChatEmbedProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
