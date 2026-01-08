@@ -12,6 +12,7 @@ interface MergeStats {
   total_users: number;
   without_fun_id: number;
   pending_merge: number;
+  provisioned: number;
   merged: number;
 }
 
@@ -27,10 +28,11 @@ interface UserMergeInfo {
   is_merged: boolean;
   merge_request_id: string | null;
   created_at: string;
+  merge_status?: string;
 }
 
 const MergeRequestTab = () => {
-  const [stats, setStats] = useState<MergeStats>({ total_users: 0, without_fun_id: 0, pending_merge: 0, merged: 0 });
+  const [stats, setStats] = useState<MergeStats>({ total_users: 0, without_fun_id: 0, pending_merge: 0, provisioned: 0, merged: 0 });
   const [users, setUsers] = useState<UserMergeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,16 +56,24 @@ const MergeRequestTab = () => {
       return;
     }
 
+    // Fetch provisioned count from merge_request_logs
+    const { data: provisionedLogs } = await supabase
+      .from('merge_request_logs')
+      .select('user_id')
+      .eq('status', 'provisioned');
+
     const total = profiles?.length || 0;
     const withEmail = profiles?.filter(p => p.email) || [];
-    const withoutFunId = withEmail.filter(p => !p.fun_profile_id && !p.is_merged);
+    const withoutFunId = withEmail.filter(p => !p.fun_profile_id && !p.is_merged && !p.merge_request_id);
     const pending = withEmail.filter(p => p.merge_request_id && !p.is_merged);
     const merged = profiles?.filter(p => p.is_merged || p.fun_profile_id) || [];
+    const provisionedCount = provisionedLogs?.length || 0;
 
     setStats({
       total_users: total,
       without_fun_id: withoutFunId.length,
-      pending_merge: pending.length,
+      pending_merge: pending.length - provisionedCount,
+      provisioned: provisionedCount,
       merged: merged.length,
     });
   };
@@ -79,8 +89,10 @@ const MergeRequestTab = () => {
       .limit(100);
 
     if (activeTab === 'unmerged') {
-      query = query.is('fun_profile_id', null).eq('is_merged', false);
+      query = query.is('fun_profile_id', null).eq('is_merged', false).is('merge_request_id', null);
     } else if (activeTab === 'pending') {
+      query = query.not('merge_request_id', 'is', null).eq('is_merged', false);
+    } else if (activeTab === 'provisioned') {
       query = query.not('merge_request_id', 'is', null).eq('is_merged', false);
     } else if (activeTab === 'merged') {
       query = query.or('is_merged.eq.true,fun_profile_id.not.is.null');
@@ -91,6 +103,36 @@ const MergeRequestTab = () => {
     if (error) {
       console.error('Error fetching users:', error);
       toast.error('Không thể tải danh sách users');
+      setLoading(false);
+      return;
+    }
+
+    // Fetch merge status from logs for pending/provisioned users
+    if (activeTab === 'pending' || activeTab === 'provisioned') {
+      const userIds = data?.map(u => u.id) || [];
+      if (userIds.length > 0) {
+        const { data: mergeLogs } = await supabase
+          .from('merge_request_logs')
+          .select('user_id, status')
+          .in('user_id', userIds)
+          .in('status', ['pending', 'provisioned']);
+
+        const statusMap = new Map(mergeLogs?.map(l => [l.user_id, l.status]) || []);
+        
+        const usersWithStatus = data?.map(u => ({
+          ...u,
+          merge_status: statusMap.get(u.id) || 'pending'
+        })) || [];
+
+        // Filter based on tab
+        if (activeTab === 'provisioned') {
+          setUsers(usersWithStatus.filter(u => u.merge_status === 'provisioned'));
+        } else {
+          setUsers(usersWithStatus.filter(u => u.merge_status === 'pending'));
+        }
+      } else {
+        setUsers([]);
+      }
     } else {
       setUsers(data || []);
     }
@@ -161,6 +203,9 @@ const MergeRequestTab = () => {
     if (user.is_merged || user.fun_profile_id) {
       return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">✅ Đã merge</Badge>;
     }
+    if (user.merge_status === 'provisioned') {
+      return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">📧 Chờ set password</Badge>;
+    }
     if (user.merge_request_id) {
       return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">⏳ Đang chờ</Badge>;
     }
@@ -201,8 +246,20 @@ const MergeRequestTab = () => {
               <Clock className="h-5 w-5 text-yellow-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Đang chờ merge</p>
+              <p className="text-xs text-muted-foreground">Đang chờ</p>
               <p className="text-xl font-bold">{stats.pending_merge}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-border/50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-500/20">
+              <Send className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Chờ set password</p>
+              <p className="text-xl font-bold">{stats.provisioned}</p>
             </div>
           </CardContent>
         </Card>
@@ -290,12 +347,15 @@ const MergeRequestTab = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
+            <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="unmerged" className="text-xs">
                 Chưa merge ({stats.without_fun_id})
               </TabsTrigger>
               <TabsTrigger value="pending" className="text-xs">
                 Đang chờ ({stats.pending_merge})
+              </TabsTrigger>
+              <TabsTrigger value="provisioned" className="text-xs">
+                📧 Chờ set password ({stats.provisioned})
               </TabsTrigger>
               <TabsTrigger value="merged" className="text-xs">
                 Đã merge ({stats.merged})
