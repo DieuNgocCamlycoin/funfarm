@@ -10,6 +10,7 @@ const FUN_PROFILE_API_URL = Deno.env.get('FUN_PROFILE_API_URL') || 'https://api.
 
 interface MergeRequestPayload {
   user_id?: string;
+  user_ids?: string[];  // Support multiple selected users
   batch_all?: boolean;
   limit?: number;
 }
@@ -83,15 +84,31 @@ serve(async (req) => {
     }
 
     const payload: MergeRequestPayload = await req.json();
-    const { user_id, batch_all = false, limit = 100 } = payload;
+    const { user_id, user_ids, batch_all = false, limit = 100 } = payload;
 
     let usersToMerge: UserMergeData[] = [];
+
+    // Get all auth users with emails first
+    const { data: authData, error: authListError } = await supabase.auth.admin.listUsers({
+      perPage: 1000
+    });
+
+    if (authListError) {
+      console.error('Error listing auth users:', authListError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to list auth users' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const emailMap = new Map(authData.users.map(u => [u.id, u.email]));
+    console.log('Found', emailMap.size, 'auth users with emails');
 
     if (user_id) {
       // Single user merge
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, email, display_name, avatar_url, camly_balance, reputation_score, is_verified, profile_type, wallet_address')
+        .select('id, display_name, avatar_url, camly_balance, reputation_score, is_verified, profile_type, wallet_address')
         .eq('id', user_id)
         .is('fun_profile_id', null)
         .eq('is_merged', false)
@@ -104,7 +121,8 @@ serve(async (req) => {
         );
       }
 
-      if (!profile.email) {
+      const email = emailMap.get(profile.id);
+      if (!email) {
         return new Response(
           JSON.stringify({ error: 'User has no email address' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -112,7 +130,7 @@ serve(async (req) => {
       }
 
       usersToMerge.push({
-        email: profile.email,
+        email,
         platform_user_id: profile.id,
         platform_data: {
           display_name: profile.display_name,
@@ -124,14 +142,49 @@ serve(async (req) => {
           wallet_address: profile.wallet_address,
         }
       });
+    } else if (user_ids && user_ids.length > 0) {
+      // Multiple selected users
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, camly_balance, reputation_score, is_verified, profile_type, wallet_address')
+        .in('id', user_ids)
+        .is('fun_profile_id', null)
+        .eq('is_merged', false);
+
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch profiles' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      usersToMerge = (profiles || [])
+        .map(profile => {
+          const email = emailMap.get(profile.id);
+          return {
+            email: email || '',
+            platform_user_id: profile.id,
+            platform_data: {
+              display_name: profile.display_name,
+              avatar_url: profile.avatar_url,
+              camly_balance: profile.camly_balance,
+              reputation_score: profile.reputation_score,
+              is_verified: profile.is_verified,
+              profile_type: profile.profile_type,
+              wallet_address: profile.wallet_address,
+            }
+          };
+        })
+        .filter(u => u.email); // Only users with email
     } else if (batch_all) {
       // Batch merge all unmerged users
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, display_name, avatar_url, camly_balance, reputation_score, is_verified, profile_type, wallet_address')
+        .select('id, display_name, avatar_url, camly_balance, reputation_score, is_verified, profile_type, wallet_address')
         .is('fun_profile_id', null)
         .eq('is_merged', false)
-        .not('email', 'is', null)
+        .is('merge_request_id', null)
         .limit(limit);
 
       if (error) {
@@ -142,22 +195,27 @@ serve(async (req) => {
         );
       }
 
-      usersToMerge = (profiles || []).map(profile => ({
-        email: profile.email!,
-        platform_user_id: profile.id,
-        platform_data: {
-          display_name: profile.display_name,
-          avatar_url: profile.avatar_url,
-          camly_balance: profile.camly_balance,
-          reputation_score: profile.reputation_score,
-          is_verified: profile.is_verified,
-          profile_type: profile.profile_type,
-          wallet_address: profile.wallet_address,
-        }
-      }));
+      usersToMerge = (profiles || [])
+        .map(profile => {
+          const email = emailMap.get(profile.id);
+          return {
+            email: email || '',
+            platform_user_id: profile.id,
+            platform_data: {
+              display_name: profile.display_name,
+              avatar_url: profile.avatar_url,
+              camly_balance: profile.camly_balance,
+              reputation_score: profile.reputation_score,
+              is_verified: profile.is_verified,
+              profile_type: profile.profile_type,
+              wallet_address: profile.wallet_address,
+            }
+          };
+        })
+        .filter(u => u.email); // Only users with email
     } else {
       return new Response(
-        JSON.stringify({ error: 'Either user_id or batch_all must be provided' }),
+        JSON.stringify({ error: 'Either user_id, user_ids, or batch_all must be provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

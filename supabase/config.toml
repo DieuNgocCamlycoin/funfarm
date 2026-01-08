@@ -38,3 +38,6 @@ verify_jwt = true
 
 [functions.admin-resolve-conflict]
 verify_jwt = true
+
+[functions.admin-get-users-for-merge]
+verify_jwt = true

@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Users, UserX, Clock, CheckCircle, Send, Search, Loader2, AlertCircle } from 'lucide-react';
+import { Users, UserX, Clock, CheckCircle, Send, Search, Loader2, AlertCircle, Mail, MailX } from 'lucide-react';
 
 interface MergeStats {
-  total_users: number;
-  without_fun_id: number;
-  pending_merge: number;
+  total: number;
+  withEmail: number;
+  unmerged: number;
+  pending: number;
   provisioned: number;
   merged: number;
 }
@@ -27,78 +29,30 @@ interface UserMergeInfo {
   fun_id: string | null;
   is_merged: boolean;
   merge_request_id: string | null;
-  created_at: string;
-  merge_status?: string;
+  merge_status: 'none' | 'pending' | 'provisioned' | 'merged';
 }
 
 const MergeRequestTab = () => {
-  const [stats, setStats] = useState<MergeStats>({ total_users: 0, without_fun_id: 0, pending_merge: 0, provisioned: 0, merged: 0 });
+  const [stats, setStats] = useState<MergeStats>({ total: 0, withEmail: 0, unmerged: 0, pending: 0, provisioned: 0, merged: 0 });
   const [users, setUsers] = useState<UserMergeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [batchLimit, setBatchLimit] = useState(100);
   const [sendingBatch, setSendingBatch] = useState(false);
   const [sendingUserId, setSendingUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('unmerged');
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchStats();
-    fetchUsers();
+    fetchUsersFromEdge();
   }, [activeTab]);
 
-  const fetchStats = async () => {
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('id, fun_profile_id, is_merged, merge_request_id, email');
-
-    if (error) {
-      console.error('Error fetching stats:', error);
-      return;
-    }
-
-    // Fetch provisioned count from merge_request_logs
-    const { data: provisionedLogs } = await supabase
-      .from('merge_request_logs')
-      .select('user_id')
-      .eq('status', 'provisioned');
-
-    const total = profiles?.length || 0;
-    const withEmail = profiles?.filter(p => p.email) || [];
-    const withoutFunId = withEmail.filter(p => !p.fun_profile_id && !p.is_merged && !p.merge_request_id);
-    const pending = withEmail.filter(p => p.merge_request_id && !p.is_merged);
-    const merged = profiles?.filter(p => p.is_merged || p.fun_profile_id) || [];
-    const provisionedCount = provisionedLogs?.length || 0;
-
-    setStats({
-      total_users: total,
-      without_fun_id: withoutFunId.length,
-      pending_merge: pending.length - provisionedCount,
-      provisioned: provisionedCount,
-      merged: merged.length,
-    });
-  };
-
-  const fetchUsers = async () => {
+  const fetchUsersFromEdge = async () => {
     setLoading(true);
+    setSelectedUsers(new Set()); // Reset selection when tab changes
     
-    let query = supabase
-      .from('profiles')
-      .select('id, email, display_name, avatar_url, camly_balance, is_verified, fun_profile_id, fun_id, is_merged, merge_request_id, created_at')
-      .not('email', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (activeTab === 'unmerged') {
-      query = query.is('fun_profile_id', null).eq('is_merged', false).is('merge_request_id', null);
-    } else if (activeTab === 'pending') {
-      query = query.not('merge_request_id', 'is', null).eq('is_merged', false);
-    } else if (activeTab === 'provisioned') {
-      query = query.not('merge_request_id', 'is', null).eq('is_merged', false);
-    } else if (activeTab === 'merged') {
-      query = query.or('is_merged.eq.true,fun_profile_id.not.is.null');
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await supabase.functions.invoke('admin-get-users-for-merge', {
+      body: { tab: activeTab, limit: 200 }
+    });
 
     if (error) {
       console.error('Error fetching users:', error);
@@ -107,35 +61,8 @@ const MergeRequestTab = () => {
       return;
     }
 
-    // Fetch merge status from logs for pending/provisioned users
-    if (activeTab === 'pending' || activeTab === 'provisioned') {
-      const userIds = data?.map(u => u.id) || [];
-      if (userIds.length > 0) {
-        const { data: mergeLogs } = await supabase
-          .from('merge_request_logs')
-          .select('user_id, status')
-          .in('user_id', userIds)
-          .in('status', ['pending', 'provisioned']);
-
-        const statusMap = new Map(mergeLogs?.map(l => [l.user_id, l.status]) || []);
-        
-        const usersWithStatus = data?.map(u => ({
-          ...u,
-          merge_status: statusMap.get(u.id) || 'pending'
-        })) || [];
-
-        // Filter based on tab
-        if (activeTab === 'provisioned') {
-          setUsers(usersWithStatus.filter(u => u.merge_status === 'provisioned'));
-        } else {
-          setUsers(usersWithStatus.filter(u => u.merge_status === 'pending'));
-        }
-      } else {
-        setUsers([]);
-      }
-    } else {
-      setUsers(data || []);
-    }
+    setUsers(data?.users || []);
+    setStats(data?.stats || { total: 0, withEmail: 0, unmerged: 0, pending: 0, provisioned: 0, merged: 0 });
     setLoading(false);
   };
 
@@ -158,35 +85,54 @@ const MergeRequestTab = () => {
       toast.error('Lỗi gửi merge request: ' + error.message);
     } else {
       toast.success('Đã gửi merge request thành công!');
-      fetchStats();
-      fetchUsers();
+      fetchUsersFromEdge();
     }
     
     setSendingUserId(null);
   };
 
-  const sendBatchMergeRequest = async () => {
-    if (batchLimit < 1 || batchLimit > 500) {
-      toast.error('Số lượng phải từ 1 đến 500');
+  const sendMergeForSelected = async () => {
+    if (selectedUsers.size === 0) {
+      toast.error('Chưa chọn user nào');
       return;
     }
 
     setSendingBatch(true);
 
     const { data, error } = await supabase.functions.invoke('send-merge-request', {
-      body: { batch_all: true, limit: batchLimit },
+      body: { user_ids: Array.from(selectedUsers) },
     });
 
     if (error) {
       console.error('Error sending batch merge:', error);
-      toast.error('Lỗi gửi batch merge: ' + error.message);
+      toast.error('Lỗi gửi merge: ' + error.message);
     } else {
       toast.success(`Đã gửi merge request cho ${data?.count || 0} users!`);
-      fetchStats();
-      fetchUsers();
+      setSelectedUsers(new Set());
+      fetchUsersFromEdge();
     }
 
     setSendingBatch(false);
+  };
+
+  const toggleSelectUser = (userId: string) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  const selectableUsers = users.filter(u => u.email && u.merge_status === 'none');
+  
+  const selectAll = () => {
+    setSelectedUsers(new Set(selectableUsers.map(u => u.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedUsers(new Set());
   };
 
   const filteredUsers = users.filter(user => {
@@ -200,22 +146,39 @@ const MergeRequestTab = () => {
   });
 
   const getStatusBadge = (user: UserMergeInfo) => {
-    if (user.is_merged || user.fun_profile_id) {
+    if (user.merge_status === 'merged') {
       return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">✅ Đã merge</Badge>;
     }
     if (user.merge_status === 'provisioned') {
       return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">📧 Chờ set password</Badge>;
     }
-    if (user.merge_request_id) {
+    if (user.merge_status === 'pending') {
       return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">⏳ Đang chờ</Badge>;
     }
     return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">❌ Chưa có Fun-ID</Badge>;
   };
 
+  const getEmailBadge = (user: UserMergeInfo) => {
+    if (user.email) {
+      return (
+        <span className="flex items-center gap-1 text-xs text-green-400">
+          <Mail className="h-3 w-3" />
+          {user.email}
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 text-xs text-red-400">
+        <MailX className="h-3 w-3" />
+        Thiếu email
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-card/50 border-border/50">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/20">
@@ -223,7 +186,7 @@ const MergeRequestTab = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Tổng Users</p>
-              <p className="text-xl font-bold">{stats.total_users}</p>
+              <p className="text-xl font-bold">{stats.total}</p>
             </div>
           </CardContent>
         </Card>
@@ -235,7 +198,7 @@ const MergeRequestTab = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Chưa có Fun-ID</p>
-              <p className="text-xl font-bold">{stats.without_fun_id}</p>
+              <p className="text-xl font-bold">{stats.unmerged}</p>
             </div>
           </CardContent>
         </Card>
@@ -247,7 +210,7 @@ const MergeRequestTab = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Đang chờ</p>
-              <p className="text-xl font-bold">{stats.pending_merge}</p>
+              <p className="text-xl font-bold">{stats.pending}</p>
             </div>
           </CardContent>
         </Card>
@@ -277,71 +240,41 @@ const MergeRequestTab = () => {
         </Card>
       </div>
 
-      {/* Batch Merge Section */}
-      <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Send className="h-5 w-5 text-blue-400" />
-            Gửi Batch Merge Request
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Gửi merge request cho tất cả users chưa có Fun-ID và có email. Fun Profile Admin cần approve để hoàn tất.
-          </p>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Số lượng:</span>
-              <Input
-                type="number"
-                value={batchLimit}
-                onChange={(e) => setBatchLimit(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
-                className="w-24"
-                min={1}
-                max={500}
-              />
-            </div>
-            
-            <Button 
-              onClick={sendBatchMergeRequest} 
-              disabled={sendingBatch || stats.without_fun_id === 0}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {sendingBatch ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Đang gửi...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Gửi Batch Merge ({Math.min(batchLimit, stats.without_fun_id)} users)
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-yellow-400">
-            <AlertCircle className="h-4 w-4" />
-            <span>Lưu ý: Fun Profile Admin cần approve để hoàn tất merge</span>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* User List Section */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader className="pb-2">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="text-lg">Danh sách Users</CardTitle>
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm theo tên, email, ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex items-center gap-3">
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm theo tên, email, ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              
+              {activeTab === 'unmerged' && selectedUsers.size > 0 && (
+                <Button 
+                  onClick={sendMergeForSelected} 
+                  disabled={sendingBatch}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {sendingBatch ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Đang gửi...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Gửi Merge ({selectedUsers.size})
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -349,10 +282,10 @@ const MergeRequestTab = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4 flex-wrap">
               <TabsTrigger value="unmerged" className="text-xs">
-                Chưa merge ({stats.without_fun_id})
+                Chưa merge ({stats.unmerged})
               </TabsTrigger>
               <TabsTrigger value="pending" className="text-xs">
-                Đang chờ ({stats.pending_merge})
+                Đang chờ ({stats.pending})
               </TabsTrigger>
               <TabsTrigger value="provisioned" className="text-xs">
                 📧 Chờ set password ({stats.provisioned})
@@ -363,6 +296,26 @@ const MergeRequestTab = () => {
             </TabsList>
 
             <TabsContent value={activeTab} className="mt-0">
+              {/* Select All for unmerged tab */}
+              {activeTab === 'unmerged' && selectableUsers.length > 0 && (
+                <div className="flex items-center gap-4 mb-3 p-2 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={selectedUsers.size === selectableUsers.length && selectableUsers.length > 0}
+                      onCheckedChange={(checked) => checked ? selectAll() : deselectAll()}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Chọn tất cả ({selectedUsers.size}/{selectableUsers.length})
+                    </span>
+                  </div>
+                  {selectedUsers.size > 0 && (
+                    <Button variant="ghost" size="sm" onClick={deselectAll} className="text-xs">
+                      Bỏ chọn
+                    </Button>
+                  )}
+                </div>
+              )}
+
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -372,13 +325,26 @@ const MergeRequestTab = () => {
                   Không có users nào
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
                   {filteredUsers.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50 hover:border-border transition-colors"
+                      className={`flex items-center justify-between p-3 rounded-lg bg-background/50 border transition-colors ${
+                        selectedUsers.has(user.id) 
+                          ? 'border-blue-500/50 bg-blue-500/10' 
+                          : 'border-border/50 hover:border-border'
+                      }`}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Checkbox for unmerged users with email */}
+                        {activeTab === 'unmerged' && (
+                          <Checkbox
+                            checked={selectedUsers.has(user.id)}
+                            onCheckedChange={() => toggleSelectUser(user.id)}
+                            disabled={!user.email}
+                          />
+                        )}
+                        
                         <img
                           src={user.avatar_url || '/placeholder.svg'}
                           alt=""
@@ -391,14 +357,15 @@ const MergeRequestTab = () => {
                             </span>
                             {getStatusBadge(user)}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">{user.email}</span>
-                            <span>•</span>
-                            <span>{user.camly_balance?.toLocaleString() || 0} CAMLY</span>
-                            {user.is_verified && <span>• ⭐ Verified</span>}
+                          <div className="flex items-center gap-3 mt-1">
+                            {getEmailBadge(user)}
+                            <span className="text-xs text-muted-foreground">
+                              {user.camly_balance?.toLocaleString() || 0} CAMLY
+                            </span>
+                            {user.is_verified && <span className="text-xs">⭐ Verified</span>}
                           </div>
                           {user.fun_id && (
-                            <div className="text-xs text-green-400">
+                            <div className="text-xs text-green-400 mt-1">
                               🎫 Fun-ID: {user.fun_id}
                             </div>
                           )}
@@ -406,7 +373,7 @@ const MergeRequestTab = () => {
                       </div>
 
                       <div className="ml-2">
-                        {!user.is_merged && !user.fun_profile_id && !user.merge_request_id && (
+                        {user.merge_status === 'none' && user.email && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -424,8 +391,14 @@ const MergeRequestTab = () => {
                             )}
                           </Button>
                         )}
-                        {user.merge_request_id && !user.is_merged && (
-                          <span className="text-xs text-yellow-400">Đã gửi request</span>
+                        {user.merge_status === 'pending' && (
+                          <span className="text-xs text-yellow-400">⏳ Đã gửi request</span>
+                        )}
+                        {user.merge_status === 'provisioned' && (
+                          <span className="text-xs text-purple-400">📧 Đang chờ user</span>
+                        )}
+                        {!user.email && user.merge_status === 'none' && (
+                          <span className="text-xs text-red-400">⚠️ Cần email</span>
                         )}
                       </div>
                     </div>
@@ -434,6 +407,14 @@ const MergeRequestTab = () => {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Info note */}
+          {activeTab === 'unmerged' && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4 p-2 bg-muted/20 rounded">
+              <AlertCircle className="h-4 w-4" />
+              <span>Chọn users và bấm "Gửi Merge" để gửi request đến Fun Profile. Fun Profile sẽ tự động tạo tài khoản và gửi email set password.</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
