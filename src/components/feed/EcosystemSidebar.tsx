@@ -21,6 +21,7 @@ interface Platform {
   name: string;
   logo: string;
   link: string | null;
+  internal?: boolean; // For internal routes (react-router)
 }
 
 const platforms: Platform[] = [
@@ -29,7 +30,7 @@ const platforms: Platform[] = [
   { name: "FUN Planet", logo: funPlanetLogo, link: "https://planet.fun.rich/" },
   { name: "FUN Charity", logo: funCharityLogo, link: "https://angelaivan.fun.rich/" },
   { name: "FUN Wallet", logo: funWalletLogo, link: "https://funwallet-rich.lovable.app/dashboard" },
-  { name: "Angel AI", logo: angelAiLogo, link: "https://angel-light-nexus.lovable.app/" },
+  { name: "Angel AI", logo: angelAiLogo, link: "/angel-ai", internal: true },
   { name: "Green Earth", logo: greenEarthLogo, link: "https://greenearth-fun.lovable.app" },
   { name: "Camly Coin", logo: camlyCoinLogo, link: "https://camly.co/" },
   { name: "FUN Money", logo: funMoneyLogo, link: null },
@@ -221,13 +222,26 @@ const EcosystemSidebar = () => {
                 >
                   {platform.name}
                 </span>
-                {platform.link && (
+                {platform.link && !platform.internal && (
                   <ExternalLink className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
                 )}
               </div>
             );
 
             if (platform.link) {
+              // Internal link - use React Router
+              if (platform.internal) {
+                return (
+                  <Link
+                    key={platform.name}
+                    to={platform.link}
+                    onClick={() => window.scrollTo(0, 0)}
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+              // External link
               return (
                 <a
                   key={platform.name}
