@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAngel } from './AngelContext';
 import { MessageCircle, Edit, X } from 'lucide-react';
 import angelIdleGif from '@/assets/angel-gifs/angel-idle.gif';
-
+import AngelChatPopup from './AngelChatPopup';
 const BUTTON_SIZE = 56;
 const EDGE_MARGIN = 12;
 
@@ -274,6 +274,12 @@ const AngelChatButton: React.FC = () => {
           )}
         </div>
       </button>
+
+      {/* Angel Chat Popup */}
+      <AngelChatPopup 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+      />
     </>
   );
 };
