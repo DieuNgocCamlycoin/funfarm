@@ -28,6 +28,7 @@ import Whitepaper from "./pages/Whitepaper";
 import Wallet from "./pages/Wallet";
 import Notifications from "./pages/Notifications";
 import PostDetail from "./pages/PostDetail";
+import AngelAI from "./pages/AngelAI";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
                   <Route path="/wallet" element={<Wallet />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/post/:postId" element={<PostDetail />} />
+                  <Route path="/angel-ai" element={<AngelAI />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
