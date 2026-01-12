@@ -67,8 +67,9 @@ interface Sparkle {
 }
 
 // Map trạng thái với GIF
+// idle giờ dùng hovering-sparkle để mượt mà hơn (không có hiệu ứng zoom xa/gần)
 const STATE_GIFS: Record<AngelState, string> = {
-  idle: angelIdleGif,
+  idle: angelHoveringSparkleGif,  // ✨ Mặc định bay lấp lánh - ổn định, đẹp
   hovering: angelHoveringGif,
   hoveringSparkle: angelHoveringSparkleGif,
   sitting: angelSittingGif,
@@ -121,34 +122,33 @@ const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
   special: 3000,         // Cảm ơn thành kính
 };
 
-// ============= RANDOM BEHAVIORS - CÂN BẰNG =============
-// Interval lớn hơn (12s) để giảm rối mắt, chance được cân bằng
-const BEHAVIOR_INTERVAL = 12000; // 12 giây giữa mỗi lần check
+// ============= RANDOM BEHAVIORS - SÔI ĐỘNG HƠN =============
+// Interval 8s để Angel hoạt động sôi động hơn
+const BEHAVIOR_INTERVAL = 8000; // 8 giây giữa mỗi lần check
 
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
-  // Hành vi thường xuyên - tạo sự sống động nhẹ nhàng
-  { action: 'hovering', chance: 0.08, duration: 5000 },
-  { action: 'hoveringSparkle', chance: 0.06, duration: 4000 },
-  { action: 'wandering', chance: 0.05, duration: 4000 },
+  // ⬆️ TĂNG chance cho các animation vui vẻ - sôi động hơn!
+  { action: 'happyJump', chance: 0.06, duration: 2000 },   // Gấp đôi
+  { action: 'danceJump', chance: 0.06, duration: 3000 },   // Gấp đôi
+  { action: 'spinning', chance: 0.05, duration: 2500 },    // Gấp 2.5
+  { action: 'dancing', chance: 0.05, duration: 4000 },     // Gấp 2.5
+  { action: 'clapping', chance: 0.04, duration: 2500 },    // Gấp đôi
   
-  // Hành vi vui vẻ - tạo niềm vui bất ngờ
-  { action: 'happyJump', chance: 0.03, duration: 2000 },
-  { action: 'danceJump', chance: 0.03, duration: 3000 },
-  { action: 'clapping', chance: 0.02, duration: 2500 },
-  { action: 'dancing', chance: 0.02, duration: 4000 },
-  { action: 'spinning', chance: 0.02, duration: 2500 },
+  // Giảm hovering vì idle đã là hovering-sparkle rồi
+  { action: 'hovering', chance: 0.03, duration: 5000 },
+  { action: 'wandering', chance: 0.04, duration: 4000 },
   
   // Hành vi hiếm - tạo bất ngờ đặc biệt
   { action: 'sitting', chance: 0.02, duration: 8000 },
   { action: 'sleeping', chance: 0.01, duration: 15000 },
   { action: 'hiding', chance: 0.01, duration: 1500 },
-  { action: 'waving', chance: 0.01, duration: 2500 },
+  { action: 'waving', chance: 0.02, duration: 2500 },
   { action: 'special', chance: 0.01, duration: 3000 },
 ];
 
 // ============= VISUAL CONSTANTS =============
-const ANGEL_SIZE = 180;
-const SAFE_DISTANCE = 100;
+const ANGEL_SIZE = 270;        // 180 * 1.5 = 270px - Lớn hơn để nhìn rõ
+const SAFE_DISTANCE = 150;     // Tăng tương ứng với kích thước
 const OFFSET_ANGLE = Math.PI / 4;
 
 const BRIGHTNESS_LEVELS: Record<number, string> = {
