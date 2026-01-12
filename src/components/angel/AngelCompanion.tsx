@@ -1,7 +1,8 @@
 // 🧚 FUN FARM Angel Companion - Thiên thần đồng hành với GIF Animation (nền trong suốt)
+// Kịch bản Animation v2: Mượt mà, có câu chuyện, kết nối cảm xúc với user
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-// Import GIF animations (hỗ trợ nền trong suốt - không cần mix-blend-mode)
+// Import GIF animations (hỗ trợ nền trong suốt)
 import angelIdleGif from '@/assets/angel-gifs/angel-idle.gif';
 import angelDancingGif from '@/assets/angel-gifs/angel-dancing.gif';
 import angelSleepingGif from '@/assets/angel-gifs/angel-sleeping.gif';
@@ -10,9 +11,7 @@ import angelExcitedGif from '@/assets/angel-gifs/angel-excited.gif';
 import angelSittingGif from '@/assets/angel-gifs/angel-sitting.gif';
 import angelAppearingGif from '@/assets/angel-gifs/angel-appearing.gif';
 import angelHidingGif from '@/assets/angel-gifs/angel-hiding.gif';
-import angelFlyingGif from '@/assets/angel-gifs/angel-flying.gif';
 import angelSpecialGif from '@/assets/angel-gifs/angel-special.gif';
-// NEW GIFs - Thêm mới
 import angelFlyingRightGif from '@/assets/angel-gifs/angel-flying-right.gif';
 import angelFlyingLeftGif from '@/assets/angel-gifs/angel-flying-left.gif';
 import angelHoveringSparkleGif from '@/assets/angel-gifs/angel-hovering-sparkle.gif';
@@ -22,7 +21,6 @@ import angelSpinDanceGif from '@/assets/angel-gifs/angel-spin-dance.gif';
 import angelWakeUpGif from '@/assets/angel-gifs/angel-wake-up.gif';
 import angelClappingGif from '@/assets/angel-gifs/angel-clapping.gif';
 import angelClapping2Gif from '@/assets/angel-gifs/angel-clapping2.gif';
-// 6 NEW GIFs - Batch 3
 import angelCoinCelebrationGif from '@/assets/angel-gifs/angel-coin-celebration.gif';
 import angelHovering2Gif from '@/assets/angel-gifs/angel-hovering-2.gif';
 import angelDanceJump2Gif from '@/assets/angel-gifs/angel-dance-jump-2.gif';
@@ -30,30 +28,34 @@ import angelHappyJumpGif from '@/assets/angel-gifs/angel-happy-jump.gif';
 import angelHeartGif from '@/assets/angel-gifs/angel-heart.gif';
 import angelWavingGif from '@/assets/angel-gifs/angel-waving.gif';
 
+// ============= TYPES & CONSTANTS =============
+
 export type AngelState = 
-  | 'idle'
-  | 'following'
-  | 'dancing'
-  | 'sleeping'
-  | 'waking'
-  | 'sitting'
-  | 'hiding'
-  | 'appearing'
-  | 'excited'
-  | 'flying'
-  | 'special'
-  | 'wandering'
-  | 'spinning'
-  // NEW States
-  | 'hovering'
-  | 'hoveringSparkle'
-  | 'danceJump'
-  | 'clapping'
-  // 4 NEW States - Batch 3
-  | 'coinCelebration'
-  | 'happyJump'
-  | 'sendingHeart'
-  | 'waving';
+  // Trạng thái Tĩnh (Resting)
+  | 'idle'           // Chấp tay chờ đợi - mặc định
+  | 'hovering'       // Bay nhẹ tại chỗ
+  | 'hoveringSparkle'// Bay với ánh sáng
+  | 'sitting'        // Ngồi nghỉ trên element
+  | 'sleeping'       // Ngủ say
+  // Trạng thái Chuyển động (Movement)
+  | 'following'      // Bay theo cursor
+  | 'wandering'      // Bay tự do
+  // Trạng thái One-shot (Reaction)
+  | 'waving'         // Vẫy tay chào
+  | 'waking'         // Đang tỉnh dậy
+  | 'wakeUp'         // Hoàn toàn thức
+  | 'appearing'      // Xuất hiện
+  | 'hiding'         // Biến mất
+  | 'special'        // Chấp tay cảm ơn
+  // Trạng thái Vui vẻ (Celebration)
+  | 'excited'        // Nhảy ăn mừng
+  | 'happyJump'      // Nhảy vui vẻ
+  | 'dancing'        // Múa ngôi sao
+  | 'danceJump'      // Nhảy múa
+  | 'spinning'       // Xoay tròn
+  | 'clapping'       // Vỗ tay
+  | 'sendingHeart'   // Thả tim
+  | 'coinCelebration'; // Ăn mừng tiền vàng
 
 interface Sparkle {
   id: number;
@@ -67,31 +69,29 @@ interface Sparkle {
 // Map trạng thái với GIF
 const STATE_GIFS: Record<AngelState, string> = {
   idle: angelIdleGif,
-  following: angelFlyingRightGif, // Sử dụng GIF bay mới
-  dancing: angelDancingGif,
-  sleeping: angelSleepingGif,
-  waking: angelWakeUpGif, // GIF thức dậy mới
-  sitting: angelSittingGif,
-  hiding: angelHidingGif,
-  appearing: angelAppearingGif,
-  excited: angelExcitedGif,
-  flying: angelFlyingGif,
-  special: angelSpecialGif,
-  wandering: angelFlyingRightGif, // Sử dụng GIF bay mới
-  spinning: angelSpinDanceGif, // GIF xoay tròn mới
-  // NEW mappings
   hovering: angelHoveringGif,
   hoveringSparkle: angelHoveringSparkleGif,
-  danceJump: angelDanceJumpGif,
-  clapping: angelClappingGif,
-  // 4 NEW mappings - Batch 3
-  coinCelebration: angelCoinCelebrationGif,
-  happyJump: angelHappyJumpGif,
-  sendingHeart: angelHeartGif,
+  sitting: angelSittingGif,
+  sleeping: angelSleepingGif,
+  following: angelFlyingRightGif,
+  wandering: angelFlyingRightGif,
   waving: angelWavingGif,
+  waking: angelWakingGif,
+  wakeUp: angelWakeUpGif,
+  appearing: angelAppearingGif,
+  hiding: angelHidingGif,
+  special: angelSpecialGif,
+  excited: angelExcitedGif,
+  happyJump: angelHappyJumpGif,
+  dancing: angelDancingGif,
+  danceJump: angelDanceJumpGif,
+  spinning: angelSpinDanceGif,
+  clapping: angelClappingGif,
+  sendingHeart: angelHeartGif,
+  coinCelebration: angelCoinCelebrationGif,
 };
 
-// GIFs bay trái/phải để sử dụng khi flip
+// GIFs bay trái/phải
 const FLYING_GIFS = {
   right: angelFlyingRightGif,
   left: angelFlyingLeftGif,
@@ -102,60 +102,67 @@ const CLAPPING_GIFS = [angelClappingGif, angelClapping2Gif];
 const HOVERING_GIFS = [angelHoveringGif, angelHovering2Gif];
 const DANCE_JUMP_GIFS = [angelDanceJumpGif, angelDanceJump2Gif];
 
-// Các trạng thái one-shot với thời gian chuyển về idle
+// ============= TIMING CONFIGURATION =============
+// Thời gian chuyển đổi mượt mà cho one-shot animations
 const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
-  waking: 2000,
-  appearing: 1500,
-  excited: 2000,
-  special: 3000,
-  spinning: 2000,
-  danceJump: 3000,
-  clapping: 2500,
-  // 4 NEW durations
-  coinCelebration: 3500,
-  happyJump: 2000,
-  sendingHeart: 2500,
-  waving: 2000,
+  waving: 2500,          // Chào user đủ lâu để ấm áp
+  waking: 2000,          // Đang tỉnh
+  wakeUp: 1500,          // Hoàn toàn thức
+  appearing: 2000,       // Xuất hiện rõ ràng
+  hiding: 1500,          // Biến mất nhanh
+  excited: 2500,         // Ăn mừng vừa đủ
+  happyJump: 2000,       // Nhảy vui
+  dancing: 4000,         // Múa đủ lâu để thấy đẹp
+  danceJump: 3000,       // Nhảy múa
+  spinning: 2500,        // Xoay vừa đủ
+  clapping: 2500,        // Vỗ tay
+  sendingHeart: 2500,    // Thả tim với tình yêu
+  coinCelebration: 4000, // Ăn mừng tiền - sự kiện lớn
+  special: 3000,         // Cảm ơn thành kính
 };
 
-// Random behaviors khi idle - đa dạng hơn với actions mới
+// ============= RANDOM BEHAVIORS - CÂN BẰNG =============
+// Interval lớn hơn (12s) để giảm rối mắt, chance được cân bằng
+const BEHAVIOR_INTERVAL = 12000; // 12 giây giữa mỗi lần check
+
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
-  { action: 'dancing', chance: 0.05, duration: 4000 },
-  { action: 'sleeping', chance: 0.02, duration: 8000 },
-  { action: 'hiding', chance: 0.02, duration: 5000 },
-  { action: 'excited', chance: 0.04, duration: 2000 },
-  { action: 'spinning', chance: 0.04, duration: 2000 },
-  { action: 'special', chance: 0.02, duration: 3000 },
-  { action: 'wandering', chance: 0.07, duration: 4000 },
-  // NEW behaviors
-  { action: 'hovering', chance: 0.06, duration: 5000 },
-  { action: 'hoveringSparkle', chance: 0.05, duration: 4000 },
-  { action: 'danceJump', chance: 0.04, duration: 3000 },
-  { action: 'clapping', chance: 0.04, duration: 2500 },
-  // 4 NEW behaviors - Batch 3
-  { action: 'happyJump', chance: 0.04, duration: 2000 },
-  { action: 'waving', chance: 0.03, duration: 2000 },
-  { action: 'sendingHeart', chance: 0.03, duration: 2500 },
-  { action: 'coinCelebration', chance: 0.02, duration: 3500 },
+  // Hành vi thường xuyên - tạo sự sống động nhẹ nhàng
+  { action: 'hovering', chance: 0.08, duration: 5000 },
+  { action: 'hoveringSparkle', chance: 0.06, duration: 4000 },
+  { action: 'wandering', chance: 0.05, duration: 4000 },
+  
+  // Hành vi vui vẻ - tạo niềm vui bất ngờ
+  { action: 'happyJump', chance: 0.03, duration: 2000 },
+  { action: 'danceJump', chance: 0.03, duration: 3000 },
+  { action: 'clapping', chance: 0.02, duration: 2500 },
+  { action: 'dancing', chance: 0.02, duration: 4000 },
+  { action: 'spinning', chance: 0.02, duration: 2500 },
+  
+  // Hành vi hiếm - tạo bất ngờ đặc biệt
+  { action: 'sitting', chance: 0.02, duration: 8000 },
+  { action: 'sleeping', chance: 0.01, duration: 15000 },
+  { action: 'hiding', chance: 0.01, duration: 1500 },
+  { action: 'waving', chance: 0.01, duration: 2500 },
+  { action: 'special', chance: 0.01, duration: 3000 },
 ];
 
-// Kích thước Angel và khoảng cách an toàn
+// ============= VISUAL CONSTANTS =============
 const ANGEL_SIZE = 180;
 const SAFE_DISTANCE = 100;
-const OFFSET_ANGLE = Math.PI / 4; // 45 độ
+const OFFSET_ANGLE = Math.PI / 4;
 
-// Brightness Levels - độ sáng da
 const BRIGHTNESS_LEVELS: Record<number, string> = {
   1: 'brightness(0.8)',
   2: 'brightness(0.9)',
-  3: 'brightness(1.0)', // Mặc định
+  3: 'brightness(1.0)',
   4: 'brightness(1.15)',
   5: 'brightness(1.3) saturate(0.9)',
-  6: 'brightness(1.5) saturate(0.8) contrast(1.1)', // Trắng sáng nhất
+  6: 'brightness(1.5) saturate(0.8) contrast(1.1)',
 };
 
-// Default glow effect
 const DEFAULT_GLOW = 'drop-shadow(0 0 25px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.4))';
+
+// ============= COMPONENT =============
 
 interface AngelCompanionProps {
   enabled?: boolean;
@@ -166,43 +173,58 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   enabled = true, 
   brightness = 3 
 }) => {
+  // Position & Movement
   const [position, setPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [targetPosition, setTargetPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-  const [state, setState] = useState<AngelState>('waving'); // Start with waving to greet user
-  const [particles, setParticles] = useState<Sparkle[]>([]);
   const [isMoving, setIsMoving] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+  
+  // State Management
+  const [state, setState] = useState<AngelState>('waving');
   const [isHidden, setIsHidden] = useState(false);
   const [isSitting, setIsSitting] = useState(false);
-  const [isFlipped, setIsFlipped] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [hasGreeted, setHasGreeted] = useState(false);
+  
+  // Variants for random GIF selection
   const [clappingVariant, setClappingVariant] = useState(0);
   const [hoveringVariant, setHoveringVariant] = useState(0);
   const [danceJumpVariant, setDanceJumpVariant] = useState(0);
-  const [hasGreeted, setHasGreeted] = useState(false);
   
+  // Visual Effects
+  const [particles, setParticles] = useState<Sparkle[]>([]);
+  
+  // Refs for timers
   const lastMoveTime = useRef(Date.now());
   const lastMousePosition = useRef({ x: 0, y: 0 });
   const idleTimer = useRef<NodeJS.Timeout>();
   const behaviorTimer = useRef<NodeJS.Timeout>();
   const wanderTimer = useRef<NodeJS.Timeout>();
+  const transitionTimer = useRef<NodeJS.Timeout>();
   const frameRef = useRef<number>();
 
-  // Initial greeting animation
+  // ============= FLOW 1: INITIAL GREETING =============
   useEffect(() => {
     if (!enabled || hasGreeted) return;
     
-    // Angel waves to greet user on page load
+    // Angel vẫy tay chào khi load trang
     setState('waving');
     setHasGreeted(true);
     
+    // Flow: waving → hovering → idle
     const greetTimer = setTimeout(() => {
-      setState('idle');
+      setState('hovering');
+      setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
+      
+      setTimeout(() => {
+        setState('idle');
+      }, 3000);
     }, 2500);
     
     return () => clearTimeout(greetTimer);
   }, [enabled, hasGreeted]);
 
-  // Preload all GIFs for smooth transitions
+  // ============= PRELOAD GIFS =============
   useEffect(() => {
     const allGifs = [
       ...Object.values(STATE_GIFS),
@@ -217,26 +239,52 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     });
   }, []);
 
-  // Handle one-shot animations với setTimeout (GIF không có onEnded event)
+  // ============= ONE-SHOT ANIMATION HANDLER =============
   useEffect(() => {
     const duration = ONE_SHOT_DURATIONS[state];
-    if (duration && hasGreeted) {
-      const timer = setTimeout(() => {
+    if (duration && hasGreeted && state !== 'waving') {
+      if (transitionTimer.current) clearTimeout(transitionTimer.current);
+      
+      transitionTimer.current = setTimeout(() => {
         setIsSpinning(false);
-        setState('idle');
+        
+        // Flow mượt: thêm bước chuyển tiếp trước khi về idle
+        if (state === 'sleeping') {
+          // sleeping → waking → wakeUp → idle
+          setState('waking');
+        } else if (state === 'waking') {
+          setState('wakeUp');
+        } else if (state === 'wakeUp') {
+          setState('idle');
+        } else if (state === 'hiding') {
+          setIsHidden(true);
+          setTimeout(() => {
+            setIsHidden(false);
+            setState('appearing');
+          }, 500);
+        } else if (state === 'appearing') {
+          // appearing → hovering → idle
+          setState('hovering');
+          setTimeout(() => setState('idle'), 2000);
+        } else {
+          setState('idle');
+        }
       }, duration);
-      return () => clearTimeout(timer);
+      
+      return () => {
+        if (transitionTimer.current) clearTimeout(transitionTimer.current);
+      };
     }
   }, [state, hasGreeted]);
 
-  // Handle spinning state
+  // ============= SPINNING STATE =============
   useEffect(() => {
     if (state === 'spinning') {
       setIsSpinning(true);
     }
   }, [state]);
 
-  // Smooth position interpolation
+  // ============= SMOOTH POSITION INTERPOLATION =============
   useEffect(() => {
     if (!enabled) return;
     
@@ -248,7 +296,8 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         
         if (distance < 1) return prev;
         
-        const speed = isSitting ? 0.02 : state === 'wandering' ? 0.03 : 0.06;
+        // Tốc độ khác nhau cho từng trạng thái
+        const speed = isSitting ? 0.02 : state === 'wandering' ? 0.03 : 0.05;
         return {
           x: prev.x + dx * speed,
           y: prev.y + dy * speed,
@@ -264,7 +313,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     };
   }, [targetPosition, enabled, isSitting, state]);
 
-  // Create sparkle particles
+  // ============= CREATE SPARKLE PARTICLES =============
   const createSparkle = useCallback((x: number, y: number) => {
     const colors = ['#ffd700', '#ff69b4', '#00ff88', '#87ceeb', '#ff6b6b', '#da70d6'];
     const newSparkle: Sparkle = {
@@ -276,36 +325,34 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
       rotation: Math.random() * 360,
     };
     
-    setParticles(prev => [...prev.slice(-20), newSparkle]);
+    setParticles(prev => [...prev.slice(-15), newSparkle]);
     
     setTimeout(() => {
       setParticles(prev => prev.filter(p => p.id !== newSparkle.id));
     }, 1000);
   }, []);
 
-  // Mouse move handler - giữ khoảng cách an toàn
+  // ============= FLOW 2: MOUSE MOVE HANDLER =============
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!enabled || isHidden || isSitting) return;
     
     const now = Date.now();
     lastMoveTime.current = now;
     
-    // Tính hướng di chuyển để lật Angel
+    // Lật Angel theo hướng di chuyển
     const dx = e.clientX - lastMousePosition.current.x;
     if (Math.abs(dx) > 5) {
-      setIsFlipped(dx < 0); // Lật khi di chuyển sang trái
+      setIsFlipped(dx < 0);
     }
     lastMousePosition.current = { x: e.clientX, y: e.clientY };
     
-    // Tính vị trí với khoảng cách an toàn - Angel ở phía trên bên phải cursor
+    // Tính vị trí với khoảng cách an toàn
     const offsetX = Math.cos(OFFSET_ANGLE) * SAFE_DISTANCE;
     const offsetY = Math.sin(OFFSET_ANGLE) * SAFE_DISTANCE;
     
-    // Điều chỉnh vị trí khi cursor ở gần cạnh màn hình
     let newX = e.clientX + (isFlipped ? -offsetX : offsetX);
     let newY = e.clientY - offsetY;
     
-    // Giữ Angel trong màn hình
     newX = Math.max(ANGEL_SIZE / 2, Math.min(window.innerWidth - ANGEL_SIZE / 2, newX));
     newY = Math.max(ANGEL_SIZE / 2, Math.min(window.innerHeight - ANGEL_SIZE / 2, newY));
     
@@ -316,70 +363,62 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
       setState('following');
     }
     
-    // Create sparkle trail
-    if (Math.random() > 0.6) {
+    // Sparkle trail - giảm tần suất
+    if (Math.random() > 0.75) {
       createSparkle(position.x, position.y);
     }
     
-    // Clear idle timer and set new one
+    // Flow: following → [pause] → hovering → idle
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
       setIsMoving(false);
       if (!isSitting) {
-        // Chuyển về hovering thay vì idle khi dừng di chuyển
+        // Luôn hovering trước khi về idle
         const randomHover = Math.random();
-        if (randomHover < 0.25) {
+        if (randomHover < 0.3) {
           setState('hoveringSparkle');
           setTimeout(() => setState('idle'), 3000);
-        } else if (randomHover < 0.5) {
+        } else {
           setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
           setState('hovering');
-          setTimeout(() => setState('idle'), 2000);
-        } else {
-          setState('idle');
+          setTimeout(() => setState('idle'), 2500);
         }
       }
-    }, 200);
+    }, 300);
   }, [enabled, isHidden, isSitting, isMoving, isFlipped, createSparkle, position]);
 
-  // Click handler - Angel gets excited
+  // ============= FLOW 4: CLICK HANDLER =============
   const handleClick = useCallback(() => {
     if (!enabled || isHidden) return;
     
-    // Ngẫu nhiên chọn hành động khi click - thêm actions mới
+    // Chỉ chọn từ các animation vui vẻ phù hợp
     const actions: AngelState[] = [
-      'excited', 'dancing', 'spinning', 'special', 'danceJump', 'clapping',
-      'happyJump', 'sendingHeart'
+      'excited', 'happyJump', 'danceJump', 'clapping', 'spinning'
     ];
     const randomAction = actions[Math.floor(Math.random() * actions.length)];
     
+    // Set variants for animations with multiple GIFs
     if (randomAction === 'clapping') {
       setClappingVariant(Math.random() < 0.5 ? 0 : 1);
     }
     if (randomAction === 'danceJump') {
       setDanceJumpVariant(Math.random() < 0.5 ? 0 : 1);
     }
-    
-    setState(randomAction);
-    
     if (randomAction === 'spinning') {
       setIsSpinning(true);
     }
     
+    setState(randomAction);
+    
     // Burst of sparkles
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 8; i++) {
       setTimeout(() => {
         createSparkle(position.x, position.y);
-      }, i * 40);
+      }, i * 50);
     }
-    
-    setTimeout(() => {
-      if (!isMoving) setState('idle');
-      setIsSpinning(false);
-    }, 2500);
-  }, [enabled, isHidden, isMoving, position, createSparkle]);
+  }, [enabled, isHidden, position, createSparkle]);
 
-  // Detect perch spots (ranking boards, logo)
+  // ============= PERCH SPOT DETECTION =============
   const checkPerchSpots = useCallback(() => {
     if (!enabled || isHidden || isMoving) return;
     
@@ -392,7 +431,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         Math.pow(position.y - rect.top, 2)
       );
       
-      if (distance < 150 && Math.random() < 0.02) {
+      if (distance < 150 && Math.random() < 0.015) {
         setIsSitting(true);
         setState('sitting');
         setTargetPosition({
@@ -402,39 +441,34 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         
         setTimeout(() => {
           setIsSitting(false);
-          setState('idle');
-        }, 5000 + Math.random() * 5000);
+          setState('hovering');
+          setTimeout(() => setState('idle'), 2000);
+        }, 8000 + Math.random() * 7000);
       }
     });
   }, [enabled, isHidden, isMoving, position]);
 
-  // Wandering - bay ngẫu nhiên trên màn hình
+  // ============= WANDERING - BAY TỰ DO =============
   const startWandering = useCallback(() => {
     if (!enabled || isMoving || isSitting || isHidden) return;
     
-    // Chọn vị trí ngẫu nhiên trên màn hình
     const padding = ANGEL_SIZE;
     const newX = padding + Math.random() * (window.innerWidth - padding * 2);
     const newY = padding + Math.random() * (window.innerHeight - padding * 2);
     
-    // Lật Angel theo hướng bay
     setIsFlipped(newX < position.x);
-    
     setState('wandering');
     setTargetPosition({ x: newX, y: newY });
     
-    // Sau khi đến nơi, chuyển về idle hoặc làm hành động khác
+    // Flow: wandering → hovering → idle
     setTimeout(() => {
-      const afterActions: AngelState[] = ['dancing', 'danceJump', 'clapping', 'hoveringSparkle', 'happyJump', 'waving', 'idle'];
-      const randomAfter = afterActions[Math.floor(Math.random() * afterActions.length)];
-      setState(randomAfter);
-      if (randomAfter !== 'idle') {
-        setTimeout(() => setState('idle'), 3000);
-      }
+      setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
+      setState('hovering');
+      setTimeout(() => setState('idle'), 2500);
     }, 4000);
   }, [enabled, isMoving, isSitting, isHidden, position.x]);
 
-  // Random behavior when idle
+  // ============= FLOW 5: RANDOM BEHAVIORS =============
   useEffect(() => {
     if (!enabled || state !== 'idle' || isMoving || !hasGreeted) return;
     
@@ -445,53 +479,53 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
       for (const behavior of RANDOM_BEHAVIORS) {
         cumulative += behavior.chance;
         if (random < cumulative) {
-          if (behavior.action === 'wandering') {
-            startWandering();
-          } else if (behavior.action === 'spinning') {
-            setState('spinning');
-            setIsSpinning(true);
-          } else if (behavior.action === 'hiding') {
-            setState(behavior.action);
-            setIsHidden(true);
-            setTimeout(() => {
-              setIsHidden(false);
-              setState('appearing');
-            }, behavior.duration);
-          } else if (behavior.action === 'sleeping') {
-            setState(behavior.action);
-            setTimeout(() => {
-              setState('waking');
-            }, behavior.duration);
-          } else if (behavior.action === 'clapping') {
-            setClappingVariant(Math.random() < 0.5 ? 0 : 1);
-            setState(behavior.action);
-            setTimeout(() => setState('idle'), behavior.duration);
-          } else if (behavior.action === 'hovering') {
-            setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
-            setState(behavior.action);
-            setTimeout(() => setState('idle'), behavior.duration);
-          } else if (behavior.action === 'danceJump') {
-            setDanceJumpVariant(Math.random() < 0.5 ? 0 : 1);
-            setState(behavior.action);
-            setTimeout(() => setState('idle'), behavior.duration);
-          } else {
-            setState(behavior.action);
-            setTimeout(() => setState('idle'), behavior.duration);
+          // Handle each behavior với flow phù hợp
+          switch (behavior.action) {
+            case 'wandering':
+              startWandering();
+              break;
+            case 'spinning':
+              setIsSpinning(true);
+              setState('spinning');
+              break;
+            case 'hiding':
+              setState('hiding');
+              // hiding → appearing handled by one-shot timer
+              break;
+            case 'sleeping':
+              setState('sleeping');
+              // sleeping → waking → wakeUp handled by one-shot timer
+              break;
+            case 'clapping':
+              setClappingVariant(Math.random() < 0.5 ? 0 : 1);
+              setState('clapping');
+              break;
+            case 'hovering':
+              setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
+              setState('hovering');
+              setTimeout(() => setState('idle'), behavior.duration);
+              break;
+            case 'danceJump':
+              setDanceJumpVariant(Math.random() < 0.5 ? 0 : 1);
+              setState('danceJump');
+              break;
+            default:
+              setState(behavior.action);
+              break;
           }
           break;
         }
       }
       
-      // Check for perch spots
       checkPerchSpots();
-    }, 6000);
+    }, BEHAVIOR_INTERVAL);
     
     return () => {
       if (behaviorTimer.current) clearInterval(behaviorTimer.current);
     };
   }, [enabled, state, isMoving, checkPerchSpots, startWandering, hasGreeted]);
 
-  // Event listeners
+  // ============= EVENT LISTENERS =============
   useEffect(() => {
     if (!enabled) return;
     
@@ -504,30 +538,27 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     };
   }, [enabled, handleMouseMove, handleClick]);
 
-  // Cleanup timers on unmount
+  // ============= CLEANUP =============
   useEffect(() => {
     return () => {
       if (wanderTimer.current) clearTimeout(wanderTimer.current);
+      if (transitionTimer.current) clearTimeout(transitionTimer.current);
     };
   }, []);
 
   if (!enabled) return null;
 
-  // Chọn GIF phù hợp dựa trên state và direction
+  // ============= GET CURRENT GIF =============
   const getCurrentGif = () => {
-    // Sử dụng GIF bay theo hướng khi following hoặc wandering
     if (state === 'following' || state === 'wandering') {
       return isFlipped ? FLYING_GIFS.left : FLYING_GIFS.right;
     }
-    // Sử dụng variant cho clapping
     if (state === 'clapping') {
       return CLAPPING_GIFS[clappingVariant];
     }
-    // Sử dụng variant cho hovering
     if (state === 'hovering') {
       return HOVERING_GIFS[hoveringVariant];
     }
-    // Sử dụng variant cho danceJump
     if (state === 'danceJump') {
       return DANCE_JUMP_GIFS[danceJumpVariant];
     }
@@ -536,11 +567,10 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
 
   const currentGif = getCurrentGif();
   const halfSize = ANGEL_SIZE / 2;
-
-  // Kết hợp các filter: glow + brightness
   const brightnessFilter = BRIGHTNESS_LEVELS[brightness] || BRIGHTNESS_LEVELS[3];
   const combinedFilter = [DEFAULT_GLOW, brightnessFilter].filter(Boolean).join(' ');
 
+  // ============= RENDER =============
   return (
     <div className="fixed inset-0 pointer-events-none z-[99999]">
       {/* Sparkle particles */}
@@ -565,9 +595,9 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         </svg>
       ))}
       
-      {/* Angel GIF - với skin và brightness filters */}
+      {/* Angel GIF */}
       <div
-        className={`absolute transition-all duration-300 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
+        className={`absolute transition-all duration-500 ${isHidden ? 'opacity-0 scale-0' : 'opacity-100'}`}
         style={{
           left: position.x - halfSize,
           top: position.y - halfSize - 20,
@@ -575,7 +605,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
           height: 'auto',
           filter: combinedFilter,
           transform: `${isFlipped && state !== 'following' && state !== 'wandering' ? 'scaleX(-1)' : 'scaleX(1)'} ${isSpinning ? 'rotate(360deg)' : 'rotate(0deg)'}`,
-          transition: isSpinning ? 'transform 0.8s ease-in-out' : 'transform 0.2s ease-out',
+          transition: isSpinning ? 'transform 0.8s ease-in-out' : 'transform 0.3s ease-out',
         }}
       >
         <img
@@ -587,6 +617,8 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
           draggable={false}
         />
         
+        {/* ===== VISUAL EFFECTS ===== */}
+        
         {/* Sleeping Z's */}
         {state === 'sleeping' && (
           <div className="absolute -top-4 right-0" style={{ transform: isFlipped ? 'scaleX(-1)' : 'none' }}>
@@ -596,7 +628,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
           </div>
         )}
         
-        {/* Excitement stars */}
+        {/* Excitement stars - cho các state vui */}
         {(state === 'excited' || state === 'special' || state === 'danceJump' || state === 'happyJump') && (
           <>
             <span className="absolute -top-4 -left-4 text-xl animate-bounce">✨</span>
@@ -616,7 +648,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         )}
         
         {/* Flying trail */}
-        {(state === 'flying' || state === 'wandering' || state === 'following') && (
+        {(state === 'wandering' || state === 'following') && (
           <>
             <span className="absolute top-1/2 -left-4 text-sm opacity-60">✨</span>
             <span className="absolute top-1/2 -left-8 text-xs opacity-40">✨</span>
@@ -671,14 +703,12 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         
         {/* Happy jump effect */}
         {state === 'happyJump' && (
-          <>
-            <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce">🌟</span>
-          </>
+          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce">🌟</span>
         )}
         
         {/* Spinning effect */}
         {isSpinning && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="text-3xl animate-spin">🌟</span>
           </div>
         )}
