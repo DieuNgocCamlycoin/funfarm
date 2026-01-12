@@ -22,6 +22,13 @@ import angelSpinDanceGif from '@/assets/angel-gifs/angel-spin-dance.gif';
 import angelWakeUpGif from '@/assets/angel-gifs/angel-wake-up.gif';
 import angelClappingGif from '@/assets/angel-gifs/angel-clapping.gif';
 import angelClapping2Gif from '@/assets/angel-gifs/angel-clapping2.gif';
+// 6 NEW GIFs - Batch 3
+import angelCoinCelebrationGif from '@/assets/angel-gifs/angel-coin-celebration.gif';
+import angelHovering2Gif from '@/assets/angel-gifs/angel-hovering-2.gif';
+import angelDanceJump2Gif from '@/assets/angel-gifs/angel-dance-jump-2.gif';
+import angelHappyJumpGif from '@/assets/angel-gifs/angel-happy-jump.gif';
+import angelHeartGif from '@/assets/angel-gifs/angel-heart.gif';
+import angelWavingGif from '@/assets/angel-gifs/angel-waving.gif';
 
 export type AngelState = 
   | 'idle'
@@ -41,7 +48,12 @@ export type AngelState =
   | 'hovering'
   | 'hoveringSparkle'
   | 'danceJump'
-  | 'clapping';
+  | 'clapping'
+  // 4 NEW States - Batch 3
+  | 'coinCelebration'
+  | 'happyJump'
+  | 'sendingHeart'
+  | 'waving';
 
 interface Sparkle {
   id: number;
@@ -72,6 +84,11 @@ const STATE_GIFS: Record<AngelState, string> = {
   hoveringSparkle: angelHoveringSparkleGif,
   danceJump: angelDanceJumpGif,
   clapping: angelClappingGif,
+  // 4 NEW mappings - Batch 3
+  coinCelebration: angelCoinCelebrationGif,
+  happyJump: angelHappyJumpGif,
+  sendingHeart: angelHeartGif,
+  waving: angelWavingGif,
 };
 
 // GIFs bay trái/phải để sử dụng khi flip
@@ -80,8 +97,10 @@ const FLYING_GIFS = {
   left: angelFlyingLeftGif,
 };
 
-// Clapping variants
+// Variant arrays for random selection
 const CLAPPING_GIFS = [angelClappingGif, angelClapping2Gif];
+const HOVERING_GIFS = [angelHoveringGif, angelHovering2Gif];
+const DANCE_JUMP_GIFS = [angelDanceJumpGif, angelDanceJump2Gif];
 
 // Các trạng thái one-shot với thời gian chuyển về idle
 const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
@@ -92,22 +111,32 @@ const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
   spinning: 2000,
   danceJump: 3000,
   clapping: 2500,
+  // 4 NEW durations
+  coinCelebration: 3500,
+  happyJump: 2000,
+  sendingHeart: 2500,
+  waving: 2000,
 };
 
 // Random behaviors khi idle - đa dạng hơn với actions mới
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
-  { action: 'dancing', chance: 0.06, duration: 4000 },
-  { action: 'sleeping', chance: 0.03, duration: 8000 },
-  { action: 'hiding', chance: 0.03, duration: 5000 },
+  { action: 'dancing', chance: 0.05, duration: 4000 },
+  { action: 'sleeping', chance: 0.02, duration: 8000 },
+  { action: 'hiding', chance: 0.02, duration: 5000 },
   { action: 'excited', chance: 0.04, duration: 2000 },
-  { action: 'spinning', chance: 0.05, duration: 2000 },
-  { action: 'special', chance: 0.03, duration: 3000 },
-  { action: 'wandering', chance: 0.08, duration: 4000 },
+  { action: 'spinning', chance: 0.04, duration: 2000 },
+  { action: 'special', chance: 0.02, duration: 3000 },
+  { action: 'wandering', chance: 0.07, duration: 4000 },
   // NEW behaviors
-  { action: 'hovering', chance: 0.08, duration: 5000 },
-  { action: 'hoveringSparkle', chance: 0.06, duration: 4000 },
-  { action: 'danceJump', chance: 0.05, duration: 3000 },
-  { action: 'clapping', chance: 0.05, duration: 2500 },
+  { action: 'hovering', chance: 0.06, duration: 5000 },
+  { action: 'hoveringSparkle', chance: 0.05, duration: 4000 },
+  { action: 'danceJump', chance: 0.04, duration: 3000 },
+  { action: 'clapping', chance: 0.04, duration: 2500 },
+  // 4 NEW behaviors - Batch 3
+  { action: 'happyJump', chance: 0.04, duration: 2000 },
+  { action: 'waving', chance: 0.03, duration: 2000 },
+  { action: 'sendingHeart', chance: 0.03, duration: 2500 },
+  { action: 'coinCelebration', chance: 0.02, duration: 3500 },
 ];
 
 // Kích thước Angel và khoảng cách an toàn
@@ -139,7 +168,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
 }) => {
   const [position, setPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const [targetPosition, setTargetPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-  const [state, setState] = useState<AngelState>('idle');
+  const [state, setState] = useState<AngelState>('waving'); // Start with waving to greet user
   const [particles, setParticles] = useState<Sparkle[]>([]);
   const [isMoving, setIsMoving] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
@@ -147,6 +176,9 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [clappingVariant, setClappingVariant] = useState(0);
+  const [hoveringVariant, setHoveringVariant] = useState(0);
+  const [danceJumpVariant, setDanceJumpVariant] = useState(0);
+  const [hasGreeted, setHasGreeted] = useState(false);
   
   const lastMoveTime = useRef(Date.now());
   const lastMousePosition = useRef({ x: 0, y: 0 });
@@ -155,12 +187,29 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   const wanderTimer = useRef<NodeJS.Timeout>();
   const frameRef = useRef<number>();
 
+  // Initial greeting animation
+  useEffect(() => {
+    if (!enabled || hasGreeted) return;
+    
+    // Angel waves to greet user on page load
+    setState('waving');
+    setHasGreeted(true);
+    
+    const greetTimer = setTimeout(() => {
+      setState('idle');
+    }, 2500);
+    
+    return () => clearTimeout(greetTimer);
+  }, [enabled, hasGreeted]);
+
   // Preload all GIFs for smooth transitions
   useEffect(() => {
     const allGifs = [
       ...Object.values(STATE_GIFS),
       ...Object.values(FLYING_GIFS),
       ...CLAPPING_GIFS,
+      ...HOVERING_GIFS,
+      ...DANCE_JUMP_GIFS,
     ];
     allGifs.forEach(src => {
       const img = new Image();
@@ -171,14 +220,14 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   // Handle one-shot animations với setTimeout (GIF không có onEnded event)
   useEffect(() => {
     const duration = ONE_SHOT_DURATIONS[state];
-    if (duration) {
+    if (duration && hasGreeted) {
       const timer = setTimeout(() => {
         setIsSpinning(false);
         setState('idle');
       }, duration);
       return () => clearTimeout(timer);
     }
-  }, [state]);
+  }, [state, hasGreeted]);
 
   // Handle spinning state
   useEffect(() => {
@@ -278,12 +327,16 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
       setIsMoving(false);
       if (!isSitting) {
         // Chuyển về hovering thay vì idle khi dừng di chuyển
-        if (Math.random() < 0.3) {
+        const randomHover = Math.random();
+        if (randomHover < 0.25) {
           setState('hoveringSparkle');
           setTimeout(() => setState('idle'), 3000);
-        } else {
+        } else if (randomHover < 0.5) {
+          setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
           setState('hovering');
           setTimeout(() => setState('idle'), 2000);
+        } else {
+          setState('idle');
         }
       }
     }, 200);
@@ -294,11 +347,17 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     if (!enabled || isHidden) return;
     
     // Ngẫu nhiên chọn hành động khi click - thêm actions mới
-    const actions: AngelState[] = ['excited', 'dancing', 'spinning', 'special', 'danceJump', 'clapping'];
+    const actions: AngelState[] = [
+      'excited', 'dancing', 'spinning', 'special', 'danceJump', 'clapping',
+      'happyJump', 'sendingHeart'
+    ];
     const randomAction = actions[Math.floor(Math.random() * actions.length)];
     
     if (randomAction === 'clapping') {
       setClappingVariant(Math.random() < 0.5 ? 0 : 1);
+    }
+    if (randomAction === 'danceJump') {
+      setDanceJumpVariant(Math.random() < 0.5 ? 0 : 1);
     }
     
     setState(randomAction);
@@ -366,7 +425,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     
     // Sau khi đến nơi, chuyển về idle hoặc làm hành động khác
     setTimeout(() => {
-      const afterActions: AngelState[] = ['dancing', 'danceJump', 'clapping', 'hoveringSparkle', 'idle'];
+      const afterActions: AngelState[] = ['dancing', 'danceJump', 'clapping', 'hoveringSparkle', 'happyJump', 'waving', 'idle'];
       const randomAfter = afterActions[Math.floor(Math.random() * afterActions.length)];
       setState(randomAfter);
       if (randomAfter !== 'idle') {
@@ -377,7 +436,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
 
   // Random behavior when idle
   useEffect(() => {
-    if (!enabled || state !== 'idle' || isMoving) return;
+    if (!enabled || state !== 'idle' || isMoving || !hasGreeted) return;
     
     behaviorTimer.current = setInterval(() => {
       const random = Math.random();
@@ -407,6 +466,14 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
             setClappingVariant(Math.random() < 0.5 ? 0 : 1);
             setState(behavior.action);
             setTimeout(() => setState('idle'), behavior.duration);
+          } else if (behavior.action === 'hovering') {
+            setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
+            setState(behavior.action);
+            setTimeout(() => setState('idle'), behavior.duration);
+          } else if (behavior.action === 'danceJump') {
+            setDanceJumpVariant(Math.random() < 0.5 ? 0 : 1);
+            setState(behavior.action);
+            setTimeout(() => setState('idle'), behavior.duration);
           } else {
             setState(behavior.action);
             setTimeout(() => setState('idle'), behavior.duration);
@@ -422,7 +489,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     return () => {
       if (behaviorTimer.current) clearInterval(behaviorTimer.current);
     };
-  }, [enabled, state, isMoving, checkPerchSpots, startWandering]);
+  }, [enabled, state, isMoving, checkPerchSpots, startWandering, hasGreeted]);
 
   // Event listeners
   useEffect(() => {
@@ -455,6 +522,14 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     // Sử dụng variant cho clapping
     if (state === 'clapping') {
       return CLAPPING_GIFS[clappingVariant];
+    }
+    // Sử dụng variant cho hovering
+    if (state === 'hovering') {
+      return HOVERING_GIFS[hoveringVariant];
+    }
+    // Sử dụng variant cho danceJump
+    if (state === 'danceJump') {
+      return DANCE_JUMP_GIFS[danceJumpVariant];
     }
     return STATE_GIFS[state];
   };
@@ -522,7 +597,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         )}
         
         {/* Excitement stars */}
-        {(state === 'excited' || state === 'special' || state === 'danceJump') && (
+        {(state === 'excited' || state === 'special' || state === 'danceJump' || state === 'happyJump') && (
           <>
             <span className="absolute -top-4 -left-4 text-xl animate-bounce">✨</span>
             <span className="absolute -top-4 -right-4 text-xl animate-bounce" style={{ animationDelay: '0.1s' }}>✨</span>
@@ -532,7 +607,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         )}
         
         {/* Dancing music notes */}
-        {(state === 'dancing' || state === 'danceJump') && (
+        {(state === 'dancing' || state === 'danceJump' || state === 'happyJump') && (
           <>
             <span className="absolute -top-6 left-0 text-xl animate-bounce">🎵</span>
             <span className="absolute -top-8 right-0 text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>🎶</span>
@@ -563,6 +638,41 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
             <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-xl animate-bounce">👏</span>
             <span className="absolute top-0 -left-4 text-sm animate-ping">✨</span>
             <span className="absolute top-0 -right-4 text-sm animate-ping" style={{ animationDelay: '0.2s' }}>✨</span>
+          </>
+        )}
+        
+        {/* Sending heart effect */}
+        {state === 'sendingHeart' && (
+          <>
+            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-2xl animate-bounce">💕</span>
+            <span className="absolute -top-10 left-1/4 text-lg animate-ping" style={{ animationDelay: '0.1s' }}>💗</span>
+            <span className="absolute -top-10 right-1/4 text-lg animate-ping" style={{ animationDelay: '0.3s' }}>💗</span>
+          </>
+        )}
+        
+        {/* Waving effect */}
+        {state === 'waving' && (
+          <>
+            <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-xl animate-bounce">👋</span>
+            <span className="absolute -top-2 -right-2 text-lg animate-pulse">✨</span>
+          </>
+        )}
+        
+        {/* Coin celebration effect */}
+        {state === 'coinCelebration' && (
+          <>
+            <span className="absolute -top-6 left-0 text-xl animate-bounce">🪙</span>
+            <span className="absolute -top-8 right-0 text-xl animate-bounce" style={{ animationDelay: '0.1s' }}>💰</span>
+            <span className="absolute -top-10 left-1/2 text-2xl animate-bounce" style={{ animationDelay: '0.2s' }}>🎉</span>
+            <span className="absolute top-1/4 -left-6 text-lg animate-ping">✨</span>
+            <span className="absolute top-1/4 -right-6 text-lg animate-ping" style={{ animationDelay: '0.15s' }}>✨</span>
+          </>
+        )}
+        
+        {/* Happy jump effect */}
+        {state === 'happyJump' && (
+          <>
+            <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce">🌟</span>
           </>
         )}
         
