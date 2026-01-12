@@ -1,4 +1,4 @@
-// 🧚 Angel Chat Popup - Native chat với Angel AI
+// 🧚 Angel Fun Farm Chat Popup - Native chat với Angel Fun Farm
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Maximize2, Minimize2, Trash2, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import angelIdleGif from '@/assets/angel-gifs/angel-idle.gif';
-import angelExcitedGif from '@/assets/angel-gifs/angel-excited.gif';
+// Dùng GIF sinh động hơn cho avatar
+import angelHoveringSparkleGif from '@/assets/angel-gifs/angel-hovering-sparkle.gif';
+import angelDancingGif from '@/assets/angel-gifs/angel-dancing.gif';
+import angelWavingGif from '@/assets/angel-gifs/angel-waving.gif';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -182,23 +184,23 @@ const AngelChatPopup: React.FC<AngelChatPopupProps> = ({ isOpen, onClose }) => {
                        bg-background border border-border animate-in slide-in-from-bottom-4 duration-300`}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 
-                        bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400">
+                        bg-gradient-to-r from-amber-400 via-orange-400 to-pink-400">
           <div className="flex items-center gap-3">
             <div className="relative">
               <img 
-                src={isLoading ? angelExcitedGif : angelIdleGif} 
-                alt="Angel" 
-                className="w-10 h-10 rounded-full border-2 border-white/50"
+                src={isLoading ? angelDancingGif : angelHoveringSparkleGif} 
+                alt="Angel Fun Farm" 
+                className="w-12 h-12 rounded-full border-2 border-white/70 shadow-lg"
               />
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 
-                             border-2 border-white rounded-full" />
+                             border-2 border-white rounded-full animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-1">
-                <span className="font-bold text-white">Angel AI</span>
-                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <span className="font-bold text-white text-lg">Angel Fun Farm</span>
+                <Sparkles className="w-4 h-4 text-yellow-200" />
               </div>
-              <span className="text-xs text-white/80">Luôn sẵn sàng giúp đỡ bạn</span>
+              <span className="text-xs text-white/90">🧚 Thiên thần đồng hành cùng bạn</span>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -230,21 +232,34 @@ const AngelChatPopup: React.FC<AngelChatPopupProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Messages Area */}
+        {/* Messages Area - Background GIF của Angel */}
         <div 
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4
-                     bg-gradient-to-b from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30"
+          className="flex-1 overflow-y-auto p-4 space-y-4 relative"
+          style={{
+            background: `linear-gradient(to bottom, rgba(255, 251, 235, 0.95), rgba(254, 243, 199, 0.9))`,
+          }}
         >
+          {/* Background Angel GIF - mờ nhẹ */}
+          <div 
+            className="absolute inset-0 opacity-10 pointer-events-none"
+            style={{
+              backgroundImage: `url(${angelWavingGif})`,
+              backgroundSize: '200px',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+          
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="flex flex-col items-center justify-center h-full text-center px-4 relative z-10">
               <img 
-                src={angelIdleGif} 
-                alt="Angel" 
-                className="w-24 h-24 mb-4"
+                src={angelWavingGif} 
+                alt="Angel Fun Farm" 
+                className="w-28 h-28 mb-4"
               />
               <h3 className="font-semibold text-foreground mb-2">
-                Xin chào! Mình là Angel 🧚
+                Xin chào! Mình là Angel Fun Farm 🧚
               </h3>
               <p className="text-sm text-muted-foreground">
                 Mình có thể giúp bạn về Fun Farm, CAMLY Token, cách kiếm thưởng, 
@@ -256,13 +271,13 @@ const AngelChatPopup: React.FC<AngelChatPopupProps> = ({ isOpen, onClose }) => {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex relative z-10 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {msg.role === 'assistant' && (
                 <img 
-                  src={angelIdleGif} 
-                  alt="Angel" 
-                  className="w-8 h-8 rounded-full mr-2 flex-shrink-0"
+                  src={angelHoveringSparkleGif} 
+                  alt="Angel Fun Farm" 
+                  className="w-9 h-9 rounded-full mr-2 flex-shrink-0 border border-amber-200"
                 />
               )}
               <div
