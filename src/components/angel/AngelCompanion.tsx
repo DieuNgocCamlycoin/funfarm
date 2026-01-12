@@ -333,15 +333,21 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   }, []);
 
   // ============= FLOW 2: MOUSE MOVE HANDLER =============
+  // Theo dõi hướng và tốc độ di chuyển để chọn GIF bay phù hợp
+  const [flyDirection, setFlyDirection] = useState<'left' | 'right'>('right');
+  
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!enabled || isHidden || isSitting) return;
     
     const now = Date.now();
+    const timeDelta = now - lastMoveTime.current;
     lastMoveTime.current = now;
     
-    // Lật Angel theo hướng di chuyển
+    // Xác định hướng di chuyển (trái/phải) dựa vào vị trí chuột
     const dx = e.clientX - lastMousePosition.current.x;
-    if (Math.abs(dx) > 5) {
+    if (Math.abs(dx) > 3) {
+      const newDirection = dx > 0 ? 'right' : 'left';
+      setFlyDirection(newDirection);
       setIsFlipped(dx < 0);
     }
     lastMousePosition.current = { x: e.clientX, y: e.clientY };
@@ -368,23 +374,15 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
       createSparkle(position.x, position.y);
     }
     
-    // Flow: following → [pause] → hovering → idle
+    // Flow: following → idle (vì idle đã là hovering-sparkle rồi)
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
       setIsMoving(false);
       if (!isSitting) {
-        // Luôn hovering trước khi về idle
-        const randomHover = Math.random();
-        if (randomHover < 0.3) {
-          setState('hoveringSparkle');
-          setTimeout(() => setState('idle'), 3000);
-        } else {
-          setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
-          setState('hovering');
-          setTimeout(() => setState('idle'), 2500);
-        }
+        // Trực tiếp về idle vì idle đã là bay lấp lánh
+        setState('idle');
       }
-    }, 300);
+    }, 400); // Thời gian dựa theo tốc độ di chuyển
   }, [enabled, isHidden, isSitting, isMoving, isFlipped, createSparkle, position]);
 
   // ============= FLOW 4: CLICK HANDLER =============
@@ -550,8 +548,9 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
 
   // ============= GET CURRENT GIF =============
   const getCurrentGif = () => {
+    // Bay theo hướng di chuyển của chuột
     if (state === 'following' || state === 'wandering') {
-      return isFlipped ? FLYING_GIFS.left : FLYING_GIFS.right;
+      return flyDirection === 'left' ? FLYING_GIFS.left : FLYING_GIFS.right;
     }
     if (state === 'clapping') {
       return CLAPPING_GIFS[clappingVariant];
@@ -608,14 +607,23 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
           transition: isSpinning ? 'transform 0.8s ease-in-out' : 'transform 0.3s ease-out',
         }}
       >
-        <img
-          key={currentGif}
-          src={currentGif}
-          alt="Angel Companion"
-          className="w-full h-auto"
-          style={{ transformOrigin: 'center center' }}
-          draggable={false}
-        />
+        {/* Mask mờ viền để Angel hòa nhập với môi trường */}
+        <div 
+          className="relative"
+          style={{
+            mask: 'radial-gradient(ellipse 48% 48% at center, black 70%, transparent 100%)',
+            WebkitMask: 'radial-gradient(ellipse 48% 48% at center, black 70%, transparent 100%)',
+          }}
+        >
+          <img
+            key={currentGif}
+            src={currentGif}
+            alt="Angel Fun Farm"
+            className="w-full h-auto"
+            style={{ transformOrigin: 'center center' }}
+            draggable={false}
+          />
+        </div>
         
         {/* ===== VISUAL EFFECTS ===== */}
         
@@ -706,12 +714,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
           <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce">🌟</span>
         )}
         
-        {/* Spinning effect */}
-        {isSpinning && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-3xl animate-spin">🌟</span>
-          </div>
-        )}
+        {/* Spinning effect - không cần icon che mặt nữa */}
       </div>
     </div>
   );
