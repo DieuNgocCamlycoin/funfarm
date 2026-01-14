@@ -97,12 +97,10 @@ serve(async (req) => {
       .eq("id", otpRecord.id);
 
     // Update user profile to mark email as verified
+    // Note: Only update email_verified column (email_verified_at doesn't exist in schema)
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ 
-        email_verified: true,
-        email_verified_at: new Date().toISOString()
-      })
+      .update({ email_verified: true })
       .eq("id", userId);
 
     if (profileError) {

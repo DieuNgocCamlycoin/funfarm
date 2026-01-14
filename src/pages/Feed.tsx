@@ -36,8 +36,24 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
   return mapping[profileType] || 'farm';
 };
 const Feed = () => {
-  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const { setOnCreatePost } = useAngel();
+
+  // Auth guard: redirect to /auth if not logged in or email not verified
+  useEffect(() => {
+    if (authLoading) return; // Wait for auth to settle
+    
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    
+    if (profile && !profile.email_verified) {
+      navigate('/auth');
+      return;
+    }
+  }, [user, profile, authLoading, navigate]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
