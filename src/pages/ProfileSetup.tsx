@@ -222,6 +222,7 @@ const ProfileSetup = () => {
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
+          toast.warning('Không thể tải ảnh lên, vui lòng thử lại sau. Tạm thời dùng avatar mặc định.');
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from('avatars')
@@ -234,8 +235,14 @@ const ProfileSetup = () => {
       // Determine bonus amount based on flow type
       const bonusAmount = isUpgradeFlow ? LIGHT_LAW_UPGRADE_BONUS : WELCOME_BONUS;
       const currentPending = profile?.pending_reward || 0;
+      
+      // Check if bonus already claimed (prevent duplicates)
+      const shouldAddBonus = isUpgradeFlow 
+        ? !(profile as any)?.law_of_light_accepted  // Upgrade: only add if not accepted before
+        : !(profile as any)?.verification_bonus_claimed; // New user: only add if not claimed
+      const bonusToAdd = shouldAddBonus ? bonusAmount : 0;
 
-      // Update profile with Light Law acceptance
+      // Update profile with Light Law acceptance and verification
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -245,8 +252,11 @@ const ProfileSetup = () => {
           bio: formData.bio,
           avatar_url: avatarUrl,
           welcome_bonus_claimed: true,
+          verification_bonus_claimed: true, // Mark verification bonus as claimed
           verification_status: 'verified', // Mark as verified after completing Light Law
-          pending_reward: currentPending + bonusAmount, // Add bonus to existing pending
+          law_of_light_accepted: true, // Mark Light Law accepted
+          law_of_light_accepted_at: new Date().toISOString(), // Timestamp of acceptance
+          pending_reward: currentPending + bonusToAdd,
         })
         .eq('id', user.id);
 
