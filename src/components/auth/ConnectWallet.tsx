@@ -192,10 +192,10 @@ const ConnectWallet = () => {
             setShowOTPModal(true);
             toast.success(
               <div className="flex items-center gap-2">
-                <span>🎉</span>
+                <span>📧</span>
                 <div>
-                  <p className="font-medium">Tài khoản đã được tạo! 🎁</p>
-                  <p className="text-sm opacity-80">Kiểm tra email để nhập mã OTP xác minh</p>
+                  <p className="font-medium">Đã gửi mã OTP!</p>
+                  <p className="text-sm opacity-80">Vui lòng xác minh email để hoàn tất đăng ký</p>
                 </div>
               </div>,
               { duration: 5000 }
