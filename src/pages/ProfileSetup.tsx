@@ -327,6 +327,13 @@ const ProfileSetup = () => {
     return null;
   }
 
+  // Guard: Email must be verified (OTP completed) before accessing profile setup
+  if (profile && !profile.email_verified) {
+    toast.warning('Vui lòng xác minh email bằng mã OTP trước khi tiếp tục');
+    navigate('/auth');
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="container max-w-2xl mx-auto">
