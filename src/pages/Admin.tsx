@@ -139,7 +139,7 @@ const Admin = () => {
   const [blockchainLastUpdated, setBlockchainLastUpdated] = useState<string | null>(null);
   const [blockchainError, setBlockchainError] = useState<string | null>(null);
 
-  // Check admin role
+  // Check admin or owner role
   useEffect(() => {
     if (authLoading) return;
 
@@ -150,12 +150,14 @@ const Admin = () => {
       }
 
       try {
-        const { data, error } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'admin'
-        });
+        const [adminResult, ownerResult] = await Promise.all([
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'owner' })
+        ]);
 
-        if (error || !data) {
+        const hasAccess = adminResult.data === true || ownerResult.data === true;
+
+        if (!hasAccess) {
           toast.error('Bạn không có quyền truy cập trang này');
           navigate('/feed');
           return;
