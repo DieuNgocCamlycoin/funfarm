@@ -43,12 +43,18 @@ const ConnectWallet = () => {
     }
   }, [resendCooldown]);
 
-  // Redirect to profile setup if authenticated but no profile type selected
+  // Redirect to profile setup if authenticated AND email verified
   useEffect(() => {
-    if (user && profile && !profile.welcome_bonus_claimed) {
-      navigate('/profile-setup');
-    } else if (user && profile?.welcome_bonus_claimed) {
-      navigate('/feed');
+    if (user && profile) {
+      // Only redirect if email is verified (OTP completed)
+      if (profile.email_verified) {
+        if (!profile.welcome_bonus_claimed) {
+          navigate('/profile-setup');
+        } else {
+          navigate('/feed');
+        }
+      }
+      // If email not verified, stay on auth page - OTP modal will show
     }
   }, [user, profile, navigate]);
 
