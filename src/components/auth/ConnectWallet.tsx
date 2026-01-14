@@ -327,14 +327,17 @@ const ConnectWallet = () => {
     navigate('/');
   };
 
-  // User signed in but email NOT verified - show OTP verification UI
-  if (user && profile && !profile.email_verified) {
-    // Set pending email/userId if not already set (for refresh scenarios)
-    if (!pendingEmail && user.email) {
+  // Sync pending email/userId when user exists but email not verified (for refresh scenarios)
+  // This is moved to useEffect to avoid setState during render
+  useEffect(() => {
+    if (user && profile && !profile.email_verified && !pendingEmail && user.email) {
       setPendingEmail(user.email);
       setPendingUserId(user.id);
     }
-    
+  }, [user, profile, pendingEmail]);
+
+  // User signed in but email NOT verified - show OTP verification UI
+  if (user && profile && !profile.email_verified) {
     return (
       <>
         <Card className="w-full max-w-md mx-auto border-amber-500/30 shadow-lg bg-amber-50/10">
