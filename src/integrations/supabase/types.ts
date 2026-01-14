@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invitee_id: string
+          inviter_id: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       angel_chat_messages: {
         Row: {
           content: string
@@ -250,6 +277,42 @@ export type Database = {
           profile_type?: string | null
           user_id?: string
           wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      email_otps: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number | null
+          otp_code: string
+          user_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number | null
+          otp_code: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number | null
+          otp_code?: string
+          user_id?: string | null
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -1361,6 +1424,10 @@ export type Database = {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
       }
+      add_admin_role: {
+        Args: { p_owner_id: string; p_target_user_id: string }
+        Returns: boolean
+      }
       add_camly_reward: {
         Args: { amount: number; user_id: string }
         Returns: undefined
@@ -1382,6 +1449,7 @@ export type Database = {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
       }
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       complete_delivery: {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
@@ -1466,6 +1534,10 @@ export type Database = {
         Args: { p_admin_id: string; p_note?: string; p_user_id: string }
         Returns: number
       }
+      remove_admin_role: {
+        Args: { p_owner_id: string; p_target_user_id: string }
+        Returns: boolean
+      }
       send_daily_limit_notification: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: undefined
@@ -1473,7 +1545,7 @@ export type Database = {
       update_good_heart_badge: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "shipper"
+      app_role: "admin" | "moderator" | "user" | "shipper" | "owner"
       profile_type:
         | "farmer"
         | "fisher"
@@ -1608,7 +1680,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "shipper"],
+      app_role: ["admin", "moderator", "user", "shipper", "owner"],
       profile_type: [
         "farmer",
         "fisher",
