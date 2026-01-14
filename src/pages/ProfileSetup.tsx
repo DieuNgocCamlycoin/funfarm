@@ -310,7 +310,6 @@ const ProfileSetup = () => {
   };
 
   // Wait for auth to settle before redirecting
-  // This prevents redirect to /auth when user clicks magic link (session is being parsed from URL)
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -322,14 +321,26 @@ const ProfileSetup = () => {
     );
   }
 
+  // Redirect to auth if not logged in
   if (!user) {
     navigate('/auth');
     return null;
   }
 
+  // Wait for profile to load before making email_verified decision
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Đang tải hồ sơ...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Guard: Email must be verified (OTP completed) before accessing profile setup
-  if (profile && !profile.email_verified) {
-    toast.warning('Vui lòng xác minh email bằng mã OTP trước khi tiếp tục');
+  if (!profile.email_verified) {
     navigate('/auth');
     return null;
   }
