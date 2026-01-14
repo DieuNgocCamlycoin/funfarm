@@ -665,8 +665,13 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="reward-calc" className="w-full">
+        <Tabs defaultValue="admin-management" className="w-full">
           <TabsList className="flex flex-wrap h-auto gap-1 p-2 bg-muted/50">
+            {/* Tab Quản lý Admin đầu tiên */}
+            <TabsTrigger value="admin-management" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Crown className="h-4 w-4 text-yellow-500" />
+              <span className="text-yellow-600 font-medium">Quản lý Admin</span>
+            </TabsTrigger>
             {/* Hàng 1: Quản lý & Công cụ */}
             <TabsTrigger value="reward-calc" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Download className="h-4 w-4 text-purple-500" />
@@ -736,10 +741,6 @@ const Admin = () => {
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="admin-management" className="flex items-center gap-1.5 px-3 py-2 text-xs">
-              <Crown className="h-4 w-4 text-yellow-500" />
-              <span className="text-yellow-600 font-medium">Quản lý Admin</span>
             </TabsTrigger>
           </TabsList>
 
