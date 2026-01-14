@@ -1361,6 +1361,10 @@ export type Database = {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
       }
+      add_admin_role: {
+        Args: { p_owner_id: string; p_target_user_id: string }
+        Returns: boolean
+      }
       add_camly_reward: {
         Args: { amount: number; user_id: string }
         Returns: undefined
@@ -1466,6 +1470,10 @@ export type Database = {
         Args: { p_admin_id: string; p_note?: string; p_user_id: string }
         Returns: number
       }
+      remove_admin_role: {
+        Args: { p_owner_id: string; p_target_user_id: string }
+        Returns: boolean
+      }
       send_daily_limit_notification: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: undefined
@@ -1473,7 +1481,7 @@ export type Database = {
       update_good_heart_badge: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "shipper"
+      app_role: "admin" | "moderator" | "user" | "shipper" | "owner"
       profile_type:
         | "farmer"
         | "fisher"
@@ -1608,7 +1616,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "shipper"],
+      app_role: ["admin", "moderator", "user", "shipper", "owner"],
       profile_type: [
         "farmer",
         "fisher",
