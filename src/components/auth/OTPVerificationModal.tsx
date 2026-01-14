@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Loader2, Mail, RefreshCw, CheckCircle2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, RefreshCw, CheckCircle2, Sparkles, ArrowLeft, Edit2, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { WELCOME_BONUS } from '@/lib/constants';
@@ -19,7 +20,7 @@ export function OTPVerificationModal({
   isOpen, 
   onClose, 
   onVerified, 
-  email, 
+  email: initialEmail, 
   userId 
 }: OTPVerificationModalProps) {
   const [otp, setOtp] = useState('');
@@ -27,6 +28,17 @@ export function OTPVerificationModal({
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(60);
   const [isVerified, setIsVerified] = useState(false);
+  
+  // Email editing state
+  const [currentEmail, setCurrentEmail] = useState(initialEmail);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+
+  // Sync email when prop changes
+  useEffect(() => {
+    setCurrentEmail(initialEmail);
+  }, [initialEmail]);
 
   // Countdown timer for resend
   useEffect(() => {
@@ -41,6 +53,8 @@ export function OTPVerificationModal({
     if (isOpen) {
       setOtp('');
       setIsVerified(false);
+      setIsEditingEmail(false);
+      setNewEmail('');
     }
   }, [isOpen]);
 
@@ -61,7 +75,7 @@ export function OTPVerificationModal({
     setIsVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke('verify-otp', {
-        body: { email, userId, otp }
+        body: { email: currentEmail, userId, otp }
       });
 
       if (error) throw error;
@@ -113,7 +127,7 @@ export function OTPVerificationModal({
     setIsResending(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { email, userId }
+        body: { email: currentEmail, userId }
       });
 
       if (error) throw error;
@@ -132,6 +146,75 @@ export function OTPVerificationModal({
       toast.error('Không thể gửi lại mã. Vui lòng thử lại.');
     } finally {
       setIsResending(false);
+    }
+  };
+
+  const handleStartEditEmail = () => {
+    setNewEmail('');
+    setIsEditingEmail(true);
+  };
+
+  const handleCancelEditEmail = () => {
+    setIsEditingEmail(false);
+    setNewEmail('');
+  };
+
+  const handleChangeEmail = async () => {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!newEmail || !emailRegex.test(newEmail)) {
+      toast.error('Vui lòng nhập email hợp lệ');
+      return;
+    }
+
+    if (newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+      toast.error('Email mới phải khác email cũ');
+      return;
+    }
+
+    setIsChangingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('change-email-otp', {
+        body: { 
+          userId, 
+          oldEmail: currentEmail, 
+          newEmail 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setCurrentEmail(newEmail);
+        setIsEditingEmail(false);
+        setNewEmail('');
+        setOtp('');
+        setResendCooldown(60);
+        toast.success(
+          <div>
+            <p className="font-medium">Đã đổi email thành công! 📧</p>
+            <p className="text-sm opacity-80">Mã OTP mới đã được gửi đến {newEmail}</p>
+          </div>
+        );
+      } else {
+        throw new Error(data.message || 'Failed to change email');
+      }
+    } catch (error: any) {
+      console.error('Change email error:', error);
+      const message = error.message || 'Không thể đổi email';
+      
+      if (error.context?.body) {
+        try {
+          const body = JSON.parse(error.context.body);
+          toast.error(body.message || message);
+        } catch {
+          toast.error(message);
+        }
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setIsChangingEmail(false);
     }
   };
 
@@ -154,11 +237,22 @@ export function OTPVerificationModal({
           <DialogDescription className="text-base">
             {isVerified ? (
               'Đang chuyển hướng...'
+            ) : isEditingEmail ? (
+              'Nhập email mới để nhận mã OTP'
             ) : (
               <>
                 Chúng tôi đã gửi mã 6 số đến
                 <br />
-                <span className="font-semibold text-foreground">{email}</span>
+                <span className="font-semibold text-foreground inline-flex items-center gap-1">
+                  {currentEmail}
+                  <button
+                    onClick={handleStartEditEmail}
+                    className="text-primary hover:text-primary/80 transition-colors p-1"
+                    title="Đổi email"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </span>
               </>
             )}
           </DialogDescription>
@@ -166,93 +260,141 @@ export function OTPVerificationModal({
 
         {!isVerified && (
           <div className="space-y-6 py-4">
-            {/* OTP Input */}
-            <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={setOtp}
-                disabled={isVerifying}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
+            {/* Email Editing Mode */}
+            {isEditingEmail ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="Nhập email mới"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    disabled={isChangingEmail}
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleCancelEditEmail}
+                    disabled={isChangingEmail}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button
+                  onClick={handleChangeEmail}
+                  disabled={!newEmail || isChangingEmail}
+                  className="w-full gap-2"
+                >
+                  {isChangingEmail ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Xác nhận đổi email
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Mã OTP mới sẽ được gửi đến email này
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* OTP Input */}
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={otp}
+                    onChange={setOtp}
+                    disabled={isVerifying}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
 
-            {/* Verify Button */}
-            <Button
-              onClick={handleVerify}
-              disabled={otp.length !== 6 || isVerifying}
-              className="w-full h-12 gradient-hero border-0 gap-2"
-            >
-              {isVerifying ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Đang xác minh...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Xác minh
-                </>
-              )}
-            </Button>
+                {/* Verify Button */}
+                <Button
+                  onClick={handleVerify}
+                  disabled={otp.length !== 6 || isVerifying}
+                  className="w-full h-12 gradient-hero border-0 gap-2"
+                >
+                  {isVerifying ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Đang xác minh...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      Xác minh
+                    </>
+                  )}
+                </Button>
 
-            {/* Bonus reminder */}
-            <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-3 text-center border border-primary/20">
-              <p className="text-sm text-muted-foreground">
-                Xác minh để nhận <span className="text-primary font-bold">{WELCOME_BONUS.toLocaleString()} CLC</span> chào mừng! 🎁
-              </p>
-            </div>
+                {/* Bonus reminder */}
+                <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-3 text-center border border-primary/20">
+                  <p className="text-sm text-muted-foreground">
+                    Xác minh để nhận <span className="text-primary font-bold">{WELCOME_BONUS.toLocaleString()} CLC</span> chào mừng! 🎁
+                  </p>
+                </div>
 
-            {/* Resend Section */}
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Không nhận được mã?
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResend}
-                disabled={resendCooldown > 0 || isResending}
-                className="gap-2"
-              >
-                {isResending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                {resendCooldown > 0 
-                  ? `Gửi lại sau ${resendCooldown}s` 
-                  : 'Gửi lại mã'}
-              </Button>
-            </div>
+                {/* Resend Section */}
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Không nhận được mã?
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResend}
+                    disabled={resendCooldown > 0 || isResending}
+                    className="gap-2"
+                  >
+                    {isResending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    {resendCooldown > 0 
+                      ? `Gửi lại sau ${resendCooldown}s` 
+                      : 'Gửi lại mã'}
+                  </Button>
+                </div>
 
-            {/* Tips */}
-            <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground mb-1">💡 Mẹo:</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                <li>Kiểm tra thư mục Spam/Junk</li>
-                <li>Mã có hiệu lực trong 10 phút</li>
-                <li>Tối đa 5 lần nhập sai</li>
-              </ul>
-            </div>
+                {/* Tips */}
+                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">💡 Mẹo:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Kiểm tra thư mục Spam/Junk</li>
+                    <li>Mã có hiệu lực trong 10 phút</li>
+                    <li>Tối đa 5 lần nhập sai</li>
+                    <li>Nhập sai email? Bấm biểu tượng ✏️ để đổi</li>
+                  </ul>
+                </div>
 
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full text-center text-sm text-primary hover:underline inline-flex items-center justify-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Quay lại
-            </button>
+                {/* Back button */}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full text-center text-sm text-primary hover:underline inline-flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Quay lại
+                </button>
+              </>
+            )}
           </div>
         )}
 

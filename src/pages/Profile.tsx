@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
@@ -79,7 +79,8 @@ interface Stats {
 }
 
 const Profile = () => {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile, user, refreshProfile, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState<Post[]>([]);
   const [stats, setStats] = useState<Stats>({ postsCount: 0, friendsCount: 0 });
@@ -87,6 +88,17 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [banInfo, setBanInfo] = useState<{ expires_at: string; reason: string } | null>(null);
+
+  // Auth guard: redirect if not logged in or email not verified
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+      return;
+    }
+    if (!authLoading && user && profile && !profile.email_verified) {
+      navigate('/auth');
+    }
+  }, [user, profile, authLoading, navigate]);
 
   const roleInfo = profileTypeLabels[profile?.profile_type || 'farmer'];
   const violationLevel = (profile as any)?.violation_level || 0;
