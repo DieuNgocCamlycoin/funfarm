@@ -94,7 +94,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const { error: emailError } = await resend.emails.send({
-      from: "Fun Farm <noreply@funfarm.life>",
+      from: "Fun Farm <noreply@farm.fun.rich>",
       to: [email],
       subject: "🌱 Mã xác minh Fun Farm - " + otp,
       html: `
