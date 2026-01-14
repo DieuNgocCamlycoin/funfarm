@@ -215,11 +215,12 @@ const ConnectWallet = () => {
     setIsLoading(false);
   };
 
-  const handleOTPVerified = () => {
+  const handleOTPVerified = async () => {
     setShowOTPModal(false);
-    // Refresh profile and navigate to profile setup
-    refreshProfile();
-    navigate('/profile-setup');
+    // Wait for profile refresh to complete before navigating
+    // This ensures email_verified is true when ProfileSetup checks
+    await refreshProfile();
+    // Navigation will be handled by useEffect when profile.email_verified becomes true
   };
 
   const handleResendConfirmation = async (emailToResend?: string) => {
@@ -326,8 +327,67 @@ const ConnectWallet = () => {
     navigate('/');
   };
 
-  // Signed in user view
-  if (user) {
+  // User signed in but email NOT verified - show OTP verification UI
+  if (user && profile && !profile.email_verified) {
+    // Set pending email/userId if not already set (for refresh scenarios)
+    if (!pendingEmail && user.email) {
+      setPendingEmail(user.email);
+      setPendingUserId(user.id);
+    }
+    
+    return (
+      <>
+        <Card className="w-full max-w-md mx-auto border-amber-500/30 shadow-lg bg-amber-50/10">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+              <Mail className="w-8 h-8 text-amber-600" />
+            </div>
+            <CardTitle className="text-2xl font-display text-amber-700">
+              Xác minh Email
+            </CardTitle>
+            <CardDescription className="text-sm">
+              {user.email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                Vui lòng nhập mã OTP đã gửi đến email của bạn để hoàn tất đăng ký.
+              </p>
+              <Button 
+                onClick={() => setShowOTPModal(true)}
+                className="w-full gap-2 gradient-hero"
+              >
+                <KeyRound className="w-4 h-4" />
+                Nhập mã OTP
+              </Button>
+              <div className="pt-2 border-t">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => signOut()}
+                  className="gap-2 text-muted-foreground"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Đăng xuất
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <OTPVerificationModal
+          isOpen={showOTPModal}
+          onClose={handleBackFromOTP}
+          email={pendingEmail || user.email || ''}
+          userId={pendingUserId || user.id}
+          onVerified={handleOTPVerified}
+        />
+      </>
+    );
+  }
+
+  // Signed in user with verified email
+  if (user && profile && profile.email_verified) {
     return (
       <Card className="w-full max-w-md mx-auto border-primary/20 shadow-glow">
         <CardHeader className="text-center">
