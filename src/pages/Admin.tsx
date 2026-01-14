@@ -49,9 +49,10 @@ import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
+import AdminManagementTab from "@/components/admin/AdminManagementTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
-import { GitMerge, Send } from "lucide-react";
+import { GitMerge, Send, Crown } from "lucide-react";
 
 interface PendingRewardUser {
   id: string;
@@ -121,6 +122,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [pendingUsers, setPendingUsers] = useState<PendingRewardUser[]>([]);
   const [allUsers, setAllUsers] = useState<AllUserReward[]>([]);
@@ -149,6 +151,20 @@ const Admin = () => {
       }
 
       try {
+        // Check if user is owner first
+        const { data: ownerData } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'owner'
+        });
+
+        if (ownerData) {
+          setIsOwner(true);
+          setIsAdmin(true);
+          setCheckingAdmin(false);
+          return;
+        }
+
+        // Check if user is admin
         const { data, error } = await supabase.rpc('has_role', {
           _user_id: user.id,
           _role: 'admin'
@@ -721,6 +737,10 @@ const Admin = () => {
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
             </TabsTrigger>
+            <TabsTrigger value="admin-management" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Crown className="h-4 w-4 text-yellow-500" />
+              <span className="text-yellow-600 font-medium">Quản lý Admin</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Reward Calculation Tab */}
@@ -979,6 +999,11 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Admin Management Tab */}
+          <TabsContent value="admin-management" className="mt-4">
+            <AdminManagementTab currentUserId={user?.id} isOwner={isOwner} />
           </TabsContent>
 
           {/* Approved Users Tab */}
