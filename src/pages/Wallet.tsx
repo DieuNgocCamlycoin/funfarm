@@ -92,8 +92,13 @@ const Wallet_Page = () => {
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
+      return;
     }
-  }, [user, authLoading, navigate]);
+    // Guard: Redirect if email not verified
+    if (!authLoading && user && profile && !profile.email_verified) {
+      navigate('/auth');
+    }
+  }, [user, profile, authLoading, navigate]);
 
   useEffect(() => {
     if (user) {

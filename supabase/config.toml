@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.verify-otp]
 verify_jwt = false
+
+[functions.cleanup-zombies]
+verify_jwt = false
+
+[functions.change-email-otp]
+verify_jwt = false
