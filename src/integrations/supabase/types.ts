@@ -280,6 +280,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_otps: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number | null
+          otp_code: string
+          user_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number | null
+          otp_code: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number | null
+          otp_code?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string
@@ -1413,6 +1449,7 @@ export type Database = {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
       }
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       complete_delivery: {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean

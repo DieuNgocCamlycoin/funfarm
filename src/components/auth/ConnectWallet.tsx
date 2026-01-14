@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { WELCOME_BONUS } from '@/lib/constants';
 import { startSSOLogin } from '@/lib/sso';
 import funProfileLogo from '@/assets/platforms/fun-profile.png';
+import { OTPVerificationModal } from './OTPVerificationModal';
 
 const ConnectWallet = () => {
   const { signUp, signIn, user, profile, signOut, refreshProfile } = useAuth();
@@ -25,9 +26,10 @@ const ConnectWallet = () => {
   const [password, setPassword] = useState('');
   const { t } = useTranslation();
   
-  // Magic link confirmation states
-  const [showEmailSentScreen, setShowEmailSentScreen] = useState(false);
+  // OTP verification states
+  const [showOTPModal, setShowOTPModal] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingUserId, setPendingUserId] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const isEmailSendRateLimit = (message: string) =>
@@ -71,11 +73,10 @@ const ConnectWallet = () => {
         if (error.message.includes('Invalid login credentials')) {
           toast.error(t('auth.invalidCredentials'));
         } else if (error.message.includes('Email not confirmed')) {
-          // User exists but email not verified - show email sent screen
+          // User exists but email not verified - show OTP modal for re-verification
           setPendingEmail(email);
-          setShowEmailSentScreen(true);
-          await handleResendConfirmation(email);
-          toast.info('Email chưa xác minh. Kiểm tra hộp thư để bấm link xác nhận!');
+          // Try to get user ID for OTP
+          toast.info('Email chưa xác minh. Vui lòng đăng ký lại hoặc liên hệ hỗ trợ.');
         } else {
           toast.error(t('auth.signInError') + ': ' + error.message);
         }
@@ -83,36 +84,13 @@ const ConnectWallet = () => {
         toast.success(t('auth.welcomeBack'));
       }
     } else {
-      // Sign up flow - register then show magic link confirmation screen
-      const { error } = await signUp(email, password);
+      // Sign up flow - register then show OTP verification
+      const { data, error } = await signUp(email, password);
       if (error) {
         const message = error.message || 'Unknown error';
 
-        // Email sending rate limit (confirmation email). This is NOT login/signup throttling.
-        if (isEmailSendRateLimit(message)) {
-          // Try to detect if the user was actually created (email send failed, but user may exist)
-          const { error: signInProbeError } = await signIn(email, password);
-          const probeMessage = signInProbeError?.message || '';
-
-          if (/email not confirmed/i.test(probeMessage)) {
-            setPendingEmail(email);
-            setShowEmailSentScreen(true);
-            setResendCooldown(60);
-            toast.info(
-              'Tài khoản có thể đã được tạo, nhưng email xác minh đang bị giới hạn. Vui lòng đợi vài phút và kiểm tra hộp thư.',
-              { duration: 7000 }
-            );
-          } else {
-            toast.warning(
-              'Hệ thống email xác minh đang bị giới hạn. Vui lòng đợi vài phút rồi thử lại (hoặc tạm tắt Confirm email / cấu hình SMTP trong Supabase).',
-              { duration: 9000 }
-            );
-          }
-
-          setIsLoginMode(true);
-        }
         // Check for existing user - multiple possible error messages
-        else if (
+        if (
           message.includes('already registered') ||
           message.includes('User already registered') ||
           message.includes('already been registered')
@@ -181,7 +159,6 @@ const ConnectWallet = () => {
         }
         // Generic error with full message
         else {
-          // Avoid logging sensitive auth details in production
           toast.error(
             <div className="flex items-center gap-2">
               <span>❌</span>
@@ -193,25 +170,50 @@ const ConnectWallet = () => {
             { duration: 6000 }
           );
         }
-      } else {
-        // Sign up successful - show email sent screen
+      } else if (data.user) {
+        // Sign up successful - send OTP via Resend
         setPendingEmail(email);
-        setShowEmailSentScreen(true);
-        setResendCooldown(60);
-        toast.success(
-          <div className="flex items-center gap-2">
-            <span>🎉</span>
-            <div>
-              <p className="font-medium">Chúc mừng! Tài khoản đã được tạo 🎁</p>
-              <p className="text-sm opacity-80">Bạn sẽ nhận {WELCOME_BONUS.toLocaleString()} CLC sau khi xác minh email ✨</p>
-            </div>
-          </div>,
-          { duration: 8000 }
-        );
+        setPendingUserId(data.user.id);
+        
+        try {
+          const { data: otpData, error: otpError } = await supabase.functions.invoke('send-otp', {
+            body: { email, userId: data.user.id }
+          });
+
+          if (otpError) throw otpError;
+
+          if (otpData.success) {
+            setShowOTPModal(true);
+            toast.success(
+              <div className="flex items-center gap-2">
+                <span>🎉</span>
+                <div>
+                  <p className="font-medium">Tài khoản đã được tạo! 🎁</p>
+                  <p className="text-sm opacity-80">Kiểm tra email để nhập mã OTP xác minh</p>
+                </div>
+              </div>,
+              { duration: 5000 }
+            );
+          } else {
+            throw new Error(otpData.message || 'Failed to send OTP');
+          }
+        } catch (otpErr: any) {
+          console.error('Send OTP error:', otpErr);
+          // Still show OTP modal - user can resend
+          setShowOTPModal(true);
+          toast.warning('Không thể gửi mã OTP. Bạn có thể thử gửi lại trong modal.');
+        }
       }
     }
     
     setIsLoading(false);
+  };
+
+  const handleOTPVerified = () => {
+    setShowOTPModal(false);
+    // Refresh profile and navigate to profile setup
+    refreshProfile();
+    navigate('/profile-setup');
   };
 
   const handleResendConfirmation = async (emailToResend?: string) => {
@@ -281,9 +283,10 @@ const ConnectWallet = () => {
     }
   };
 
-  const handleBackFromEmailSent = () => {
-    setShowEmailSentScreen(false);
+  const handleBackFromOTP = () => {
+    setShowOTPModal(false);
     setPendingEmail('');
+    setPendingUserId('');
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -341,83 +344,6 @@ const ConnectWallet = () => {
               <LogOut className="w-4 h-4" />
               {t('common.disconnect')}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Email Sent Screen (Magic Link)
-  if (showEmailSentScreen) {
-    return (
-      <Card className="w-full max-w-md mx-auto border-primary/20 shadow-glow">
-        <CardHeader className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-            <Mail className="w-10 h-10 text-primary animate-bounce" />
-          </div>
-          <CardTitle className="text-2xl font-display">
-            Kiểm tra Email ✨
-          </CardTitle>
-          <CardDescription className="text-base">
-            Cha Vũ Trụ đã gửi phước lành đến
-          </CardDescription>
-          <p className="font-semibold text-lg text-foreground mt-2">{pendingEmail}</p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Magic Link Instructions */}
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-5 text-center border border-primary/20">
-            <Sparkles className="w-8 h-8 text-primary mx-auto mb-3" />
-            <p className="text-lg font-medium mb-2">
-              Bấm vào link trong email
-            </p>
-            <p className="text-muted-foreground text-sm">
-              Xác minh tự động → Nhận <span className="text-primary font-bold">{WELCOME_BONUS.toLocaleString()} CLC</span> chào mừng
-            </p>
-          </div>
-
-          {/* Resend Button */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-3">
-              Không nhận được email?
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => handleResendConfirmation()}
-              disabled={resendCooldown > 0 || isLoading}
-              className="gap-2"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {resendCooldown > 0 
-                ? `Gửi lại sau ${resendCooldown}s` 
-                : 'Gửi lại email xác nhận'}
-            </Button>
-          </div>
-
-          {/* Tips */}
-          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
-            <p className="font-medium mb-2 text-foreground">💡 Mẹo từ Cha Vũ Trụ:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Kiểm tra thư mục <strong>Spam/Junk</strong></li>
-              <li>Email có thể mất 1-2 phút để đến</li>
-              <li>Link xác nhận có hiệu lực trong 24 giờ</li>
-              <li>Bấm link là tự động đăng nhập luôn!</li>
-            </ul>
-          </div>
-
-          {/* Back Button */}
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={handleBackFromEmailSent}
-              className="text-primary font-medium hover:underline inline-flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Quay lại đăng nhập
-            </button>
           </div>
         </CardContent>
       </Card>
@@ -641,7 +567,7 @@ const ConnectWallet = () => {
           <p className="text-orange-500/80">
             💡 Chưa có Fun-ID?{' '}
             <a 
-              href="https://bhtsnervqiwchluwuxki.supabase.co/functions/v1/sso-merge-request" 
+              href="https://fun.rich/register" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-primary hover:underline"
@@ -650,6 +576,15 @@ const ConnectWallet = () => {
             </a>
           </p>
         </div>
+
+        {/* OTP Verification Modal */}
+        <OTPVerificationModal
+          isOpen={showOTPModal}
+          onClose={() => setShowOTPModal(false)}
+          onVerified={handleOTPVerified}
+          email={pendingEmail}
+          userId={pendingUserId}
+        />
 
         {/* Divider */}
         <div className="relative">
