@@ -43,7 +43,7 @@ const Navbar = () => {
   const { t } = useTranslation();
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check admin role
+  // Check admin role (including owner)
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!user?.id) {
@@ -51,6 +51,17 @@ const Navbar = () => {
         return;
       }
       try {
+        // Check if user is owner first
+        const { data: ownerData } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'owner'
+        });
+        if (ownerData === true) {
+          setIsAdmin(true);
+          return;
+        }
+        
+        // Check if user is admin
         const { data } = await supabase.rpc('has_role', {
           _user_id: user.id,
           _role: 'admin'
