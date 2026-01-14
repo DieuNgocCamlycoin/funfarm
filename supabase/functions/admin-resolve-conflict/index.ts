@@ -41,15 +41,14 @@ serve(async (req) => {
       );
     }
 
-    // Check admin role
+    // Check admin or owner role
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
+      .in('role', ['admin', 'owner']);
 
-    if (!roleData) {
+    if (!roleData || roleData.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
