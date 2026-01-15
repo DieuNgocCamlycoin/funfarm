@@ -285,10 +285,10 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
           
           userPostIds.length > 0
             ? supabase
-                .from('posts')
+                .from('post_shares')
                 .select('id', { count: 'exact', head: true })
-                .in('original_post_id', userPostIds)
-                .eq('post_type', 'share')
+                .in('post_id', userPostIds)
+                .neq('user_id', userId) // Exclude self-share per v3.0 reward logic
             : Promise.resolve({ count: 0 }),
           
           supabase
