@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Download, FileSpreadsheet, Loader2, Users } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Download, FileSpreadsheet, Loader2, CalendarIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface UserProfile {
   id: string;
@@ -32,6 +35,8 @@ export function AllUsersDailyStatsExport() {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   const getValidUserIds = async (): Promise<string[]> => {
     // Lấy active profiles (không bị ban)
@@ -55,18 +60,28 @@ export function AllUsersDailyStatsExport() {
 
   const fetchUserDailyStats = async (
     user: UserProfile, 
-    validUserIds: string[]
+    validUserIds: string[],
+    filterStartDate?: Date,
+    filterEndDate?: Date
   ): Promise<DailyStats[]> => {
     const userId = user.id;
     const stats: DailyStats[] = [];
     
+    // Build date filter strings
+    const startDateStr = filterStartDate ? format(filterStartDate, 'yyyy-MM-dd') : null;
+    const endDateStr = filterEndDate ? format(filterEndDate, 'yyyy-MM-dd') + 'T23:59:59' : null;
+    
     // Fetch user's posts (không phải share)
-    const { data: userPosts } = await supabase
+    let postsQuery = supabase
       .from('posts')
       .select('id, created_at')
       .eq('author_id', userId)
       .neq('post_type', 'share');
     
+    if (startDateStr) postsQuery = postsQuery.gte('created_at', startDateStr);
+    if (endDateStr) postsQuery = postsQuery.lte('created_at', endDateStr);
+    
+    const { data: userPosts } = await postsQuery;
     const userPostIds = userPosts?.map(p => p.id) || [];
     
     // Get all dates this user has activity
@@ -78,42 +93,62 @@ export function AllUsersDailyStatsExport() {
     });
 
     // Fetch reactions given
-    const { data: reactionsGiven } = await supabase
+    let reactionsGivenQuery = supabase
       .from('post_likes')
       .select('created_at')
       .eq('user_id', userId);
+    
+    if (startDateStr) reactionsGivenQuery = reactionsGivenQuery.gte('created_at', startDateStr);
+    if (endDateStr) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', endDateStr);
+    
+    const { data: reactionsGiven } = await reactionsGivenQuery;
     
     reactionsGiven?.forEach(r => {
       allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
     });
 
     // Fetch comments given
-    const { data: commentsGiven } = await supabase
+    let commentsGivenQuery = supabase
       .from('comments')
       .select('created_at')
       .eq('author_id', userId);
+    
+    if (startDateStr) commentsGivenQuery = commentsGivenQuery.gte('created_at', startDateStr);
+    if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
+    
+    const { data: commentsGiven } = await commentsGivenQuery;
     
     commentsGiven?.forEach(c => {
       allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
     });
 
     // Fetch shares given
-    const { data: sharesGiven } = await supabase
+    let sharesGivenQuery = supabase
       .from('posts')
       .select('created_at')
       .eq('author_id', userId)
       .eq('post_type', 'share');
+    
+    if (startDateStr) sharesGivenQuery = sharesGivenQuery.gte('created_at', startDateStr);
+    if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
+    
+    const { data: sharesGiven } = await sharesGivenQuery;
     
     sharesGiven?.forEach(s => {
       allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
     });
 
     // Fetch friends added
-    const { data: friendsAdded } = await supabase
+    let friendsAddedQuery = supabase
       .from('followers')
       .select('created_at')
       .eq('follower_id', userId)
       .eq('status', 'accepted');
+    
+    if (startDateStr) friendsAddedQuery = friendsAddedQuery.gte('created_at', startDateStr);
+    if (endDateStr) friendsAddedQuery = friendsAddedQuery.lte('created_at', endDateStr);
+    
+    const { data: friendsAdded } = await friendsAddedQuery;
     
     friendsAdded?.forEach(f => {
       allDates.add(format(new Date(f.created_at), 'yyyy-MM-dd'));
@@ -126,30 +161,45 @@ export function AllUsersDailyStatsExport() {
 
     if (userPostIds.length > 0 && validUserIds.length > 0) {
       // Reactions received (exclude self + invalid users)
-      const { data: rr } = await supabase
+      let rrQuery = supabase
         .from('post_likes')
         .select('created_at')
         .in('post_id', userPostIds)
         .neq('user_id', userId)
         .in('user_id', validUserIds);
+      
+      if (startDateStr) rrQuery = rrQuery.gte('created_at', startDateStr);
+      if (endDateStr) rrQuery = rrQuery.lte('created_at', endDateStr);
+      
+      const { data: rr } = await rrQuery;
       reactionsReceived = rr || [];
       
       // Comments received (exclude self + invalid users)
-      const { data: cr } = await supabase
+      let crQuery = supabase
         .from('comments')
         .select('created_at')
         .in('post_id', userPostIds)
         .neq('author_id', userId)
         .in('author_id', validUserIds);
+      
+      if (startDateStr) crQuery = crQuery.gte('created_at', startDateStr);
+      if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
+      
+      const { data: cr } = await crQuery;
       commentsReceived = cr || [];
       
       // Shares received (exclude self + invalid users)
-      const { data: sr } = await supabase
+      let srQuery = supabase
         .from('post_shares')
         .select('created_at')
         .in('post_id', userPostIds)
         .neq('user_id', userId)
         .in('user_id', validUserIds);
+      
+      if (startDateStr) srQuery = srQuery.gte('created_at', startDateStr);
+      if (endDateStr) srQuery = srQuery.lte('created_at', endDateStr);
+      
+      const { data: sr } = await srQuery;
       sharesReceived = sr || [];
     }
 
@@ -204,6 +254,11 @@ export function AllUsersDailyStatsExport() {
     return stats;
   };
 
+  const handleResetDates = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     setProgress(0);
@@ -235,7 +290,7 @@ export function AllUsersDailyStatsExport() {
         
         const batchPromises = batch.map(async (user) => {
           setCurrentUser(user.display_name || user.id);
-          return fetchUserDailyStats(user, validUserIds);
+          return fetchUserDailyStats(user, validUserIds, startDate, endDate);
         });
         
         const batchResults = await Promise.all(batchPromises);
@@ -245,7 +300,7 @@ export function AllUsersDailyStatsExport() {
       }
 
       if (allStats.length === 0) {
-        toast.error('Không có dữ liệu hoạt động nào');
+        toast.error('Không có dữ liệu hoạt động nào trong khoảng thời gian đã chọn');
         return;
       }
 
@@ -254,6 +309,11 @@ export function AllUsersDailyStatsExport() {
         if (b.date !== a.date) return b.date.localeCompare(a.date);
         return a.displayName.localeCompare(b.displayName);
       });
+
+      // Build date range info for header
+      const dateRangeInfo = startDate || endDate 
+        ? `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`
+        : '# Khoảng thời gian: Toàn bộ';
 
       // Generate CSV
       const headers = [
@@ -274,6 +334,7 @@ export function AllUsersDailyStatsExport() {
       const csvRows = [
         '# BÁO CÁO THỐNG KÊ CHI TIẾT THEO NGÀY - FUN FARM',
         `# Ngày xuất: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
+        dateRangeInfo,
         `# Tổng users: ${totalUsers}`,
         `# Tổng dòng dữ liệu: ${allStats.length}`,
         '',
@@ -358,13 +419,17 @@ export function AllUsersDailyStatsExport() {
         ].join(','));
       });
 
-      // Download file
+      // Download file with date range in filename
+      const filenameDatePart = startDate || endDate
+        ? `${startDate ? format(startDate, 'yyyyMMdd') : 'start'}-${endDate ? format(endDate, 'yyyyMMdd') : 'now'}`
+        : format(new Date(), 'yyyy-MM-dd-HHmm');
+      
       const csvContent = csvRows.join('\n');
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `fun-farm-daily-stats-${format(new Date(), 'yyyy-MM-dd-HHmm')}.csv`;
+      link.download = `fun-farm-daily-stats-${filenameDatePart}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -397,6 +462,90 @@ export function AllUsersDailyStatsExport() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Date Range Filter */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Khoảng thời gian:</label>
+          <div className="flex flex-wrap gap-3 items-end">
+            {/* Start Date Picker */}
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Từ ngày</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[160px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, 'dd/MM/yyyy') : 'Chọn ngày'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    disabled={(date) => date > new Date() || (endDate ? date > endDate : false)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* End Date Picker */}
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Đến ngày</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[160px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, 'dd/MM/yyyy') : 'Chọn ngày'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    disabled={(date) => date > new Date() || (startDate ? date < startDate : false)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Reset Button */}
+            {(startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetDates}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Reset
+              </Button>
+            )}
+          </div>
+          
+          {/* Selected Date Range Info */}
+          {(startDate || endDate) && (
+            <p className="text-sm text-green-600 font-medium">
+              ✅ Đã chọn: {startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - {endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}
+            </p>
+          )}
+        </div>
+
         {isExporting && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
