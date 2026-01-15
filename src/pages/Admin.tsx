@@ -24,6 +24,7 @@ import {
   Ban,
   CalendarIcon,
   FileText,
+  FileSpreadsheet,
   Heart,
   MessageCircle,
   Share2,
@@ -49,6 +50,7 @@ import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
+import { AllUsersDailyStatsExport } from "@/components/admin/AllUsersDailyStatsExport";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 import { GitMerge, Send } from "lucide-react";
@@ -717,6 +719,10 @@ const Admin = () => {
               <FileText className="h-4 w-4 text-teal-500" />
               <span className="text-teal-500 font-medium">Báo cáo User</span>
             </TabsTrigger>
+            <TabsTrigger value="daily-stats-export" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <FileSpreadsheet className="h-4 w-4 text-green-500" />
+              <span className="text-green-500 font-medium">📊 Daily Stats</span>
+            </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
@@ -731,6 +737,11 @@ const Admin = () => {
           {/* User Daily Reward Report Tab */}
           <TabsContent value="user-report" className="mt-4">
             <UserDailyRewardExport />
+          </TabsContent>
+
+          {/* All Users Daily Stats Export Tab */}
+          <TabsContent value="daily-stats-export" className="mt-4">
+            <AllUsersDailyStatsExport />
           </TabsContent>
 
           {/* User Verification Tab */}
