@@ -263,6 +263,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
                 .from('post_likes')
                 .select('id', { count: 'exact', head: true })
                 .in('post_id', userPostIds)
+                .neq('user_id', userId) // Exclude self-likes per v3.0 reward logic
             : Promise.resolve({ count: 0 }),
           
           supabase
@@ -275,6 +276,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
                 .from('comments')
                 .select('id', { count: 'exact', head: true })
                 .in('post_id', userPostIds)
+                .neq('author_id', userId) // Exclude self-comments per v3.0 reward logic
             : Promise.resolve({ count: 0 }),
           
           supabase
