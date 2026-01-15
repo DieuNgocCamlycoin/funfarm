@@ -11,11 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LocationPicker from "@/components/map/LocationPicker";
+import PaymentMethodSelector from "@/components/marketplace/PaymentMethodSelector";
+import PaymentQRDisplay from "@/components/marketplace/PaymentQRDisplay";
+import PaymentProofUpload from "@/components/marketplace/PaymentProofUpload";
+import { PaymentMethod } from "@/types/marketplace";
 import { 
   ShoppingCart, 
   Package, 
@@ -24,7 +27,8 @@ import {
   Sparkles,
   Loader2,
   CheckCircle2,
-  MapPin
+  MapPin,
+  ArrowLeft
 } from "lucide-react";
 import camlyIcon from "@/assets/camly_coin.png";
 
@@ -47,6 +51,8 @@ const DELIVERY_CONFIG: Record<string, { label: string; icon: typeof Package }> =
   farm_visit: { label: "Đến vườn trải nghiệm", icon: TreeDeciduous },
 };
 
+type Step = 'order' | 'payment-qr' | 'upload-proof' | 'success';
+
 export default function BuyProductModal({
   open,
   onOpenChange,
@@ -62,13 +68,19 @@ export default function BuyProductModal({
   const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Form state
   const [quantity, setQuantity] = useState<string>("1");
   const [deliveryOption, setDeliveryOption] = useState<string>(deliveryOptions[0] || "self_pickup");
   const [deliveryAddress, setDeliveryAddress] = useState<string>("");
   const [deliveryLat, setDeliveryLat] = useState<number | null>(null);
   const [deliveryLng, setDeliveryLng] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('camly');
+  
+  // Flow state
+  const [step, setStep] = useState<Step>('order');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
   const quantityNum = parseFloat(quantity) || 0;
   const totalCamly = Math.ceil(quantityNum * priceCamly);
@@ -77,6 +89,16 @@ export default function BuyProductModal({
   const hasEnoughBalance = userBalance >= totalCamly;
 
   const formatNumber = (num: number) => new Intl.NumberFormat('vi-VN').format(num);
+
+  const resetModal = () => {
+    setStep('order');
+    setQuantity("1");
+    setDeliveryAddress("");
+    setDeliveryLat(null);
+    setDeliveryLng(null);
+    setPaymentMethod('camly');
+    setCreatedOrderId(null);
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -97,7 +119,8 @@ export default function BuyProductModal({
       return;
     }
 
-    if (!hasEnoughBalance) {
+    // For CAMLY payment, check balance
+    if (paymentMethod === 'camly' && !hasEnoughBalance) {
       toast({
         title: "Không đủ CAMLY",
         description: `Bạn cần ${formatNumber(totalCamly)} CAMLY nhưng chỉ có ${formatNumber(userBalance)} CAMLY`,
@@ -117,40 +140,79 @@ export default function BuyProductModal({
 
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.rpc('process_order', {
-        p_buyer_id: user.id,
-        p_seller_id: sellerId,
-        p_post_id: postId,
-        p_product_name: productName,
-        p_quantity_kg: quantityNum,
-        p_price_per_kg_camly: priceCamly,
-        p_price_per_kg_vnd: priceVnd || 0,
-        p_delivery_option: deliveryOption,
-        p_delivery_address: deliveryOption === "nationwide" ? deliveryAddress : locationAddress || null,
-        p_delivery_lat: deliveryOption === "nationwide" ? deliveryLat : null,
-        p_delivery_lng: deliveryOption === "nationwide" ? deliveryLng : null,
-      });
+      if (paymentMethod === 'camly') {
+        // Direct CAMLY payment - use existing RPC
+        const { data, error } = await supabase.rpc('process_order', {
+          p_buyer_id: user.id,
+          p_seller_id: sellerId,
+          p_post_id: postId,
+          p_product_name: productName,
+          p_quantity_kg: quantityNum,
+          p_price_per_kg_camly: priceCamly,
+          p_price_per_kg_vnd: priceVnd || 0,
+          p_delivery_option: deliveryOption,
+          p_delivery_address: deliveryOption === "nationwide" ? deliveryAddress : locationAddress || null,
+          p_delivery_lat: deliveryOption === "nationwide" ? deliveryLat : null,
+          p_delivery_lng: deliveryOption === "nationwide" ? deliveryLng : null,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setIsSuccess(true);
-      await refreshProfile();
-      
-      toast({
-        title: "🎉 Chúc mừng! Đặt hàng thành công!",
-        description: `Bạn đã trừ ${formatNumber(totalCamly)} CAMLY – Phước lành đang trên đường đến!`,
-      });
+        setStep('success');
+        await refreshProfile();
+        
+        toast({
+          title: "🎉 Chúc mừng! Đặt hàng thành công!",
+          description: `Bạn đã trừ ${formatNumber(totalCamly)} CAMLY – Phước lành đang trên đường đến!`,
+        });
 
-      // Redirect to feed after success
-      setTimeout(() => {
-        onOpenChange(false);
-        setIsSuccess(false);
-        setQuantity("1");
-        setDeliveryAddress("");
-        setDeliveryLat(null);
-        setDeliveryLng(null);
-        navigate('/feed');
-      }, 2500);
+        // Redirect after success
+        setTimeout(() => {
+          onOpenChange(false);
+          resetModal();
+          navigate('/feed');
+        }, 2500);
+
+      } else {
+        // Bank/Momo/ZaloPay/Crypto - Create pending order
+        const { data, error } = await supabase
+          .from('orders')
+          .insert({
+            buyer_id: user.id,
+            seller_id: sellerId,
+            post_id: postId,
+            product_name: productName,
+            quantity_kg: quantityNum,
+            price_per_kg_camly: priceCamly,
+            price_per_kg_vnd: priceVnd || 0,
+            total_camly: totalCamly,
+            total_vnd: totalVnd,
+            delivery_option: deliveryOption,
+            delivery_address: deliveryOption === "nationwide" ? deliveryAddress : locationAddress || null,
+            delivery_lat: deliveryOption === "nationwide" ? deliveryLat : null,
+            delivery_lng: deliveryOption === "nationwide" ? deliveryLng : null,
+            status: 'pending',
+            payment_method: paymentMethod,
+            payment_status: 'pending',
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+
+        setCreatedOrderId(data.id);
+        
+        if (paymentMethod === 'crypto') {
+          // For crypto, we'd integrate MetaMask here
+          toast({
+            title: "Tính năng đang phát triển",
+            description: "Thanh toán Crypto sẽ sớm được hỗ trợ!",
+          });
+        } else {
+          // Show QR code for bank/momo/zalopay
+          setStep('payment-qr');
+        }
+      }
 
     } catch (error: any) {
       console.error("Order error:", error);
@@ -164,38 +226,119 @@ export default function BuyProductModal({
     }
   };
 
-  if (isSuccess) {
+  const handlePaymentDone = () => {
+    setStep('upload-proof');
+  };
+
+  const handleProofUploaded = () => {
+    setStep('success');
+    toast({
+      title: "✅ Đã gửi xác nhận thanh toán!",
+      description: "Người bán sẽ kiểm tra và xác nhận đơn hàng của bạn.",
+    });
+
+    setTimeout(() => {
+      onOpenChange(false);
+      resetModal();
+    }, 2500);
+  };
+
+  // Success step
+  if (step === 'success') {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={(val) => { if (!val) resetModal(); onOpenChange(val); }}>
         <DialogContent className="sm:max-w-md">
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-bounce">
               <CheckCircle2 className="w-12 h-12 text-green-600" />
             </div>
-            <h3 className="text-2xl font-bold text-green-600">Đặt hàng thành công!</h3>
+            <h3 className="text-2xl font-bold text-green-600">
+              {paymentMethod === 'camly' ? 'Đặt hàng thành công!' : 'Đã gửi xác nhận!'}
+            </h3>
             <p className="text-muted-foreground text-center">
-              Đơn hàng của bạn đã được gửi đến người bán
+              {paymentMethod === 'camly' 
+                ? 'Đơn hàng của bạn đã được gửi đến người bán'
+                : 'Người bán sẽ kiểm tra và xác nhận thanh toán'
+              }
             </p>
-            <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-full">
-              <img src={camlyIcon} alt="CAMLY" className="w-5 h-5" />
-              <span className="font-bold text-yellow-700">-{formatNumber(totalCamly)} CAMLY</span>
-            </div>
+            {paymentMethod === 'camly' && (
+              <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-full">
+                <img src={camlyIcon} alt="CAMLY" className="w-5 h-5" />
+                <span className="font-bold text-yellow-700">-{formatNumber(totalCamly)} CAMLY</span>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
     );
   }
 
+  // Payment QR step
+  if (step === 'payment-qr' && createdOrderId) {
+    return (
+      <Dialog open={open} onOpenChange={(val) => { if (!val) resetModal(); onOpenChange(val); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 -ml-2"
+                onClick={() => setStep('order')}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              Thanh toán đơn hàng
+            </DialogTitle>
+          </DialogHeader>
+          <PaymentQRDisplay
+            paymentMethod={paymentMethod}
+            orderId={createdOrderId}
+            amount={totalVnd}
+            sellerInfo={{
+              // TODO: Fetch seller's bank info from profile
+              bankName: 'Vietcombank',
+              accountNumber: '1234567890',
+              accountName: 'NGUYEN VAN A',
+              momoPhone: '0912345678',
+              zaloPayPhone: '0912345678',
+            }}
+            onPaymentDone={handlePaymentDone}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Upload proof step
+  if (step === 'upload-proof' && createdOrderId) {
+    return (
+      <Dialog open={open} onOpenChange={(val) => { if (!val) resetModal(); onOpenChange(val); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận thanh toán</DialogTitle>
+          </DialogHeader>
+          <PaymentProofUpload
+            orderId={createdOrderId}
+            onUploadSuccess={handleProofUploaded}
+            onCancel={() => setStep('payment-qr')}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Main order form
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={open} onOpenChange={(val) => { if (!val) resetModal(); onOpenChange(val); }}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <ShoppingCart className="w-6 h-6 text-green-600" />
             Mua {productName}
           </DialogTitle>
           <DialogDescription>
-            Nhập số lượng và chọn cách nhận hàng
+            Nhập số lượng và chọn cách thanh toán
           </DialogDescription>
         </DialogHeader>
 
@@ -266,16 +409,26 @@ export default function BuyProductModal({
             )}
           </div>
 
-          {/* Balance check */}
-          <div className={`flex items-center justify-between p-3 rounded-lg ${hasEnoughBalance ? 'bg-green-50' : 'bg-red-50'}`}>
-            <span className="text-sm">Số dư của bạn:</span>
-            <div className="flex items-center gap-2">
-              <img src={camlyIcon} alt="CAMLY" className="w-5 h-5" />
-              <span className={`font-bold ${hasEnoughBalance ? 'text-green-600' : 'text-red-600'}`}>
-                {formatNumber(userBalance)}
-              </span>
+          {/* Payment method selector */}
+          <PaymentMethodSelector
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+            userBalance={userBalance}
+            totalCamly={totalCamly}
+          />
+
+          {/* Balance check - only show for CAMLY */}
+          {paymentMethod === 'camly' && (
+            <div className={`flex items-center justify-between p-3 rounded-lg ${hasEnoughBalance ? 'bg-green-50' : 'bg-red-50'}`}>
+              <span className="text-sm">Số dư của bạn:</span>
+              <div className="flex items-center gap-2">
+                <img src={camlyIcon} alt="CAMLY" className="w-5 h-5" />
+                <span className={`font-bold ${hasEnoughBalance ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatNumber(userBalance)}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Delivery options */}
           <div className="space-y-2">
@@ -319,7 +472,7 @@ export default function BuyProductModal({
           {/* Submit button */}
           <Button
             onClick={handleSubmit}
-            disabled={isProcessing || !hasEnoughBalance || quantityNum <= 0}
+            disabled={isProcessing || (paymentMethod === 'camly' && !hasEnoughBalance) || quantityNum <= 0}
             className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-lg py-6"
           >
             {isProcessing ? (
@@ -330,7 +483,7 @@ export default function BuyProductModal({
             ) : (
               <>
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                Đặt hàng ngay
+                {paymentMethod === 'camly' ? 'Đặt hàng ngay' : 'Tiếp tục thanh toán'}
                 <Sparkles className="w-4 h-4 ml-2" />
               </>
             )}
