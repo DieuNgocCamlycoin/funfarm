@@ -13,6 +13,7 @@ import { AngelProvider } from "@/components/angel";
 import Welcome from "./pages/Welcome";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
+import Marketplace from "./pages/Marketplace";
 import UserProfile from "./pages/UserProfile";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -63,6 +64,7 @@ const App = () => (
                   <Route path="/wallet" element={<Wallet />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/post/:postId" element={<PostDetail />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/angel-ai" element={<AngelAI />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
