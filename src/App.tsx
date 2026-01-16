@@ -31,6 +31,8 @@ import Notifications from "./pages/Notifications";
 import PostDetail from "./pages/PostDetail";
 import AngelAI from "./pages/AngelAI";
 import NotFound from "./pages/NotFound";
+import MyOrders from "./pages/MyOrders";
+import SellerDashboard from "./pages/SellerDashboard";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +68,8 @@ const App = () => (
                   <Route path="/post/:postId" element={<PostDetail />} />
                   <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/angel-ai" element={<AngelAI />} />
+                  <Route path="/my-orders" element={<MyOrders />} />
+                  <Route path="/seller" element={<SellerDashboard />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

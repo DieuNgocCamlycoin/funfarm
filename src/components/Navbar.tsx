@@ -220,6 +220,16 @@ const Navbar = () => {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link to="/my-orders" className="cursor-pointer">
+                        📦 Đơn hàng của tôi
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/seller" className="cursor-pointer">
+                        🏪 Quản lý bán hàng
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link to="/reward" className="cursor-pointer">
                         🎁 {t('nav.reward')}
                       </Link>

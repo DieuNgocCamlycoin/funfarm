@@ -79,6 +79,53 @@ export interface MarketplaceProduct {
   is_saved?: boolean;
 }
 
+// Order interface for order management
+export interface Order {
+  id: string;
+  post_id: string;
+  buyer_id: string;
+  seller_id: string;
+  product_name: string;
+  quantity_kg: number;
+  price_per_kg_camly: number;
+  price_per_kg_vnd: number | null;
+  total_camly: number;
+  total_vnd: number | null;
+  delivery_option: string;
+  delivery_address: string | null;
+  delivery_lat: number | null;
+  delivery_lng: number | null;
+  payment_method: string | null;
+  payment_status: string | null;
+  payment_proof_url: string | null;
+  payment_confirmed_at: string | null;
+  payment_confirmed_by: string | null;
+  status: OrderStatus;
+  buyer_note: string | null;
+  seller_note: string | null;
+  shipper_id: string | null;
+  cancelled_by: string | null;
+  cancelled_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  buyer?: {
+    id: string;
+    display_name: string;
+    avatar_url: string;
+    phone: string | null;
+  };
+  seller?: {
+    id: string;
+    display_name: string;
+    avatar_url: string;
+    phone: string | null;
+  };
+  product?: {
+    images: string[];
+  };
+}
+
 export interface PaymentMethodInfo {
   id: PaymentMethod;
   name: string;
@@ -153,3 +200,13 @@ export const SORT_OPTIONS = [
   { value: 'nearest', label: 'Gần nhất' },
   { value: 'rating', label: 'Đánh giá cao' },
 ];
+
+export const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: string }> = {
+  pending: { label: 'Chờ xác nhận', color: 'bg-yellow-500', icon: '⏳' },
+  confirmed: { label: 'Đã xác nhận', color: 'bg-blue-500', icon: '✅' },
+  preparing: { label: 'Đang chuẩn bị', color: 'bg-orange-500', icon: '📦' },
+  ready: { label: 'Sẵn sàng giao', color: 'bg-cyan-500', icon: '🚀' },
+  delivering: { label: 'Đang giao', color: 'bg-purple-500', icon: '🚚' },
+  delivered: { label: 'Đã giao', color: 'bg-green-500', icon: '🎉' },
+  cancelled: { label: 'Đã hủy', color: 'bg-red-500', icon: '❌' },
+};
