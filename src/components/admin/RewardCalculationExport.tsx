@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, RefreshCw, Loader2, AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react";
+import { Download, RefreshCw, Loader2, AlertTriangle, CheckCircle2, RotateCcw, Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -50,19 +50,36 @@ interface UserRewardCalculation {
   created_at: string;
 }
 
+const CACHE_KEY = 'reward_calculation_cache_v3';
+
 export function RewardCalculationExport() {
   const [users, setUsers] = useState<UserRewardCalculation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
-  const [initialLoaded, setInitialLoaded] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Load from cache on mount
   useEffect(() => {
-    if (!initialLoaded) {
-      fetchCalculations();
-      setInitialLoaded(true);
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        setUsers(data);
+        setLastUpdated(new Date(timestamp));
+      } catch (e) {
+        console.error('Error loading cache:', e);
+        localStorage.removeItem(CACHE_KEY);
+      }
     }
-  }, [initialLoaded]);
+  }, []);
+
+  const clearCache = () => {
+    localStorage.removeItem(CACHE_KEY);
+    setUsers([]);
+    setLastUpdated(null);
+    toast.success('Đã xóa cache');
+  };
 
   const resetSingleUser = async (userId: string, calculatedTotal: number) => {
     setResettingUserId(userId);
@@ -177,8 +194,11 @@ export function RewardCalculationExport() {
         return total;
       };
 
-      // Get existing user IDs
-      const { data: existingUsers } = await supabase.from('profiles').select('id');
+      // Get existing user IDs - filter out banned users
+      const { data: existingUsers } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('banned', false);
       const existingUserIds = new Set((existingUsers || []).map(u => u.id));
 
       // Calculate rewards for each user
@@ -355,6 +375,15 @@ export function RewardCalculationExport() {
       );
 
       setUsers(calculations);
+      const now = new Date();
+      setLastUpdated(now);
+      
+      // Save to cache
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: calculations,
+        timestamp: now.toISOString()
+      }));
+      
       toast.success(`Đã tải ${calculations.length} users (Reward System v3.0)`);
     } catch (error) {
       console.error('Error fetching calculations:', error);
@@ -479,12 +508,13 @@ export function RewardCalculationExport() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            📊 Bảng Tính Điểm Thưởng v3.0 (Daily Cap: {formatNumber(DAILY_REWARD_CAP)} CLC)
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button onClick={fetchCalculations} disabled={loading} variant="outline">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              📊 Bảng Tính Điểm Thưởng v3.0 (Daily Cap: {formatNumber(DAILY_REWARD_CAP)} CLC)
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button onClick={fetchCalculations} disabled={loading} variant="outline">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Tải dữ liệu
             </Button>
@@ -522,8 +552,18 @@ export function RewardCalculationExport() {
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
+              </AlertDialog>
+              <Button onClick={clearCache} variant="ghost" size="icon" title="Xóa cache">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
+          {lastUpdated && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>Cập nhật lúc: {lastUpdated.toLocaleTimeString('vi-VN')} - {lastUpdated.toLocaleDateString('vi-VN')}</span>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
