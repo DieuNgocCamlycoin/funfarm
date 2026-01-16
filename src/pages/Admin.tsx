@@ -51,6 +51,7 @@ import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
 import { AllUsersDailyStatsExport } from "@/components/admin/AllUsersDailyStatsExport";
+import { UserDailyActivityStats } from "@/components/admin/UserDailyActivityStats";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 import { GitMerge, Send } from "lucide-react";
@@ -723,6 +724,10 @@ const Admin = () => {
               <FileSpreadsheet className="h-4 w-4 text-green-500" />
               <span className="text-green-500 font-medium">📊 Daily Stats</span>
             </TabsTrigger>
+            <TabsTrigger value="user-activity-search" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Search className="h-4 w-4 text-cyan-500" />
+              <span className="text-cyan-500 font-medium">🔍 Tra cứu User</span>
+            </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
@@ -742,6 +747,11 @@ const Admin = () => {
           {/* All Users Daily Stats Export Tab */}
           <TabsContent value="daily-stats-export" className="mt-4">
             <AllUsersDailyStatsExport />
+          </TabsContent>
+
+          {/* User Activity Search Tab */}
+          <TabsContent value="user-activity-search" className="mt-4">
+            <UserDailyActivityStats />
           </TabsContent>
 
           {/* User Verification Tab */}
