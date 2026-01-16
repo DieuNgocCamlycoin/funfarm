@@ -211,12 +211,15 @@ export function RewardCalculationExport() {
             rewardsByDate.set(date, current + amount);
           };
 
+          // Dynamic cutoff - calculate to current time
+          const cutoffDate = new Date().toISOString();
+          
           // Get ALL posts
           const { data: allPosts } = await supabase
             .from('posts')
             .select('id, content, images, video_url, created_at, post_type')
             .eq('author_id', profile.id)
-            .lte('created_at', '2025-12-31T23:59:59Z')
+            .lte('created_at', cutoffDate)
             .order('created_at', { ascending: true });
 
           // Quality posts only: >100 chars + media = 10,000 CLC (includes 'post' and 'product', excludes 'share')
@@ -248,7 +251,7 @@ export function RewardCalculationExport() {
               .select('user_id, post_id, created_at')
               .in('post_id', allPostIds)
               .neq('user_id', profile.id)
-              .lte('created_at', '2025-12-31T23:59:59Z')
+              .lte('created_at', cutoffDate)
               .order('created_at', { ascending: true });
 
             const validLikes = (likesData || []).filter(l => existingUserIds.has(l.user_id));
@@ -259,7 +262,7 @@ export function RewardCalculationExport() {
               .select('author_id, post_id, content, created_at')
               .in('post_id', allPostIds)
               .neq('author_id', profile.id)
-              .lte('created_at', '2025-12-31T23:59:59Z')
+              .lte('created_at', cutoffDate)
               .order('created_at', { ascending: true });
 
             const validQualityComments = (commentsData || []).filter(c => 
@@ -296,7 +299,7 @@ export function RewardCalculationExport() {
               .select('user_id, post_id, created_at')
               .in('post_id', allPostIds)
               .neq('user_id', profile.id)
-              .lte('created_at', '2025-12-31T23:59:59Z')
+              .lte('created_at', cutoffDate)
               .order('created_at', { ascending: true });
 
             const validShares = (sharesData || []).filter(s => existingUserIds.has(s.user_id));
@@ -314,7 +317,7 @@ export function RewardCalculationExport() {
             .select('follower_id, following_id, created_at')
             .or(`follower_id.eq.${profile.id},following_id.eq.${profile.id}`)
             .eq('status', 'accepted')
-            .lte('created_at', '2025-12-31T23:59:59Z')
+            .lte('created_at', cutoffDate)
             .order('created_at', { ascending: true });
           
           const validFriendships = (friendshipsData || []).filter(f => {

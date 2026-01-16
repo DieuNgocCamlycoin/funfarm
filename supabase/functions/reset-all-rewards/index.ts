@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Reward System v3.0 Constants
-const CUTOFF_DATE = '2025-12-31T23:59:59Z';
+// Reward System v3.0 Constants - Dynamic cutoff to current time
+const CUTOFF_DATE = new Date().toISOString();
 const MAX_POSTS_PER_DAY = 10;
 const MAX_INTERACTIONS_PER_DAY = 50;
 const MAX_SHARES_PER_DAY = 5;
