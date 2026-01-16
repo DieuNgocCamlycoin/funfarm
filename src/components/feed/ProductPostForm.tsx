@@ -18,11 +18,14 @@ import {
   Camera,
   X,
   ImagePlus,
-  MapPinned
+  MapPinned,
+  Tag
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToR2 } from "@/lib/r2Upload";
 import { toast } from "sonner";
+import { PRODUCT_CATEGORIES, ProductCategory } from "@/types/marketplace";
+import { cn } from "@/lib/utils";
 
 interface ProductPostFormProps {
   userId: string;
@@ -72,6 +75,7 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSavedLocation, setHasSavedLocation] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null);
 
   // Load saved location from profile
   useEffect(() => {
@@ -196,6 +200,8 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         commitments: selectedCommitments,
         images: uploadedUrls.length > 0 ? uploadedUrls : null,
         hashtags: selectedHashtags,
+        category: selectedCategory,
+        product_status: 'active',
       });
 
       if (error) throw error;
@@ -282,6 +288,32 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Category Picker */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <Tag className="h-4 w-4 text-orange-500" />
+          Danh mục sản phẩm
+        </Label>
+        <div className="grid grid-cols-4 gap-2">
+          {PRODUCT_CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={cn(
+                "p-2 rounded-lg border text-center transition-all hover:scale-105",
+                selectedCategory === cat.id 
+                  ? "border-primary bg-primary/10 shadow-sm" 
+                  : "border-gray-200 hover:border-primary/50"
+              )}
+            >
+              <span className="text-2xl block">{cat.icon}</span>
+              <p className="text-xs mt-1 text-muted-foreground">{cat.nameVi}</p>
+            </button>
+          ))}
         </div>
       </div>
 

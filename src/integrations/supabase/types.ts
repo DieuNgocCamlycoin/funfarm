@@ -383,6 +383,163 @@ export type Database = {
           },
         ]
       }
+      livestream_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          livestream_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          livestream_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          livestream_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_comments_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestream_likes: {
+        Row: {
+          created_at: string
+          id: string
+          livestream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          livestream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          livestream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_likes_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestream_shares: {
+        Row: {
+          created_at: string
+          id: string
+          livestream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          livestream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          livestream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_shares_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestreams: {
+        Row: {
+          comments_count: number
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          is_rewarded: boolean
+          likes_count: number
+          reward_amount: number | null
+          shares_count: number
+          started_at: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          is_rewarded?: boolean
+          likes_count?: number
+          reward_amount?: number | null
+          shares_count?: number
+          started_at?: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          comments_count?: number
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          is_rewarded?: boolean
+          likes_count?: number
+          reward_amount?: number | null
+          shares_count?: number
+          started_at?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "livestreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "livestreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merge_conflicts: {
         Row: {
           conflict_details: Json | null
@@ -1356,6 +1513,67 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_logs: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reference_id: string | null
+          reference_user_id: string | null
+          revoked_at: string | null
+          reward_date: string
+          reward_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reference_id?: string | null
+          reference_user_id?: string | null
+          revoked_at?: string | null
+          reward_date?: string
+          reward_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reference_id?: string | null
+          reference_user_id?: string | null
+          revoked_at?: string | null
+          reward_date?: string
+          reward_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "reward_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_products: {
         Row: {
           created_at: string | null
@@ -1663,6 +1881,10 @@ export type Database = {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
       }
+      check_daily_reward_cap: {
+        Args: { p_requested_amount: number; p_user_id: string }
+        Returns: number
+      }
       check_spam_behavior: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
@@ -1732,6 +1954,16 @@ export type Database = {
       is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_user_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_wallet_blacklisted: { Args: { p_wallet: string }; Returns: boolean }
+      log_reward: {
+        Args: {
+          p_amount: number
+          p_reference_id?: string
+          p_reference_user_id?: string
+          p_reward_type: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       process_order: {
         Args: {
           p_buyer_id: string
