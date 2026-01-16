@@ -96,8 +96,8 @@ async function processUser(
     walletBonus = WALLET_BONUS;
   }
 
-  // 3. Posts - ONLY quality posts (>100 chars + media) = 10,000 CLC
-  const userPosts = allPostsData.filter(p => p.author_id === userId && p.post_type === 'post');
+  // 3. Posts - ONLY quality posts (>100 chars + media) = 10,000 CLC (includes 'post' and 'product', excludes 'share')
+  const userPosts = allPostsData.filter(p => p.author_id === userId && (p.post_type === 'post' || p.post_type === 'product'));
   
   const qualityPosts = userPosts.filter(p => {
     const hasContent = (p.content?.length || 0) > 100;
