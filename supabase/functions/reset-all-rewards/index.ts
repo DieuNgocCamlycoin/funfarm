@@ -112,11 +112,11 @@ async function processUser(
     addRewardForDate(date, QUALITY_POST_REWARD);
   }
 
-  // 4. Get ALL posts by user (original + shared) for interaction rewards
-  const allUserPosts = allPostsData.filter(p => p.author_id === userId);
-  const allUserPostIds = new Set(allUserPosts.map(p => p.id));
+  // 4. ONLY quality posts are eligible for interaction rewards
+  // Interactions on invalid posts (short content, no media, share posts) are NOT rewarded
+  const qualityPostIds = new Set(rewardableQualityPosts.map(p => p.id));
 
-  if (allUserPostIds.size > 0) {
+  if (qualityPostIds.size > 0) {
     interface Interaction {
       type: 'like' | 'comment' | 'share';
       user_id: string;
@@ -126,9 +126,9 @@ async function processUser(
     }
     const allInteractions: Interaction[] = [];
 
-    // Likes received on ANY of user's posts (original + shared)
+    // Likes received on QUALITY posts only
     for (const like of allLikesData) {
-      if (allUserPostIds.has(like.post_id) && like.user_id !== userId && existingUserIds.has(like.user_id)) {
+      if (qualityPostIds.has(like.post_id) && like.user_id !== userId && existingUserIds.has(like.user_id)) {
         allInteractions.push({
           type: 'like',
           user_id: like.user_id,
@@ -138,9 +138,9 @@ async function processUser(
       }
     }
 
-    // Comments received - ONLY quality comments (>20 chars)
+    // Comments received on QUALITY posts - ONLY quality comments (>20 chars)
     for (const comment of allCommentsData) {
-      if (allUserPostIds.has(comment.post_id) && comment.author_id !== userId && existingUserIds.has(comment.author_id)) {
+      if (qualityPostIds.has(comment.post_id) && comment.author_id !== userId && existingUserIds.has(comment.author_id)) {
         const contentLength = comment.content?.length || 0;
         if (contentLength > 20) {
           allInteractions.push({
@@ -168,10 +168,10 @@ async function processUser(
       }
     }
 
-    // Shares received - limit 5/day
+    // Shares received on QUALITY posts only - limit 5/day
     const sharesReceived: Interaction[] = [];
     for (const share of allSharesData) {
-      if (allUserPostIds.has(share.post_id) && share.user_id !== userId && existingUserIds.has(share.user_id)) {
+      if (qualityPostIds.has(share.post_id) && share.user_id !== userId && existingUserIds.has(share.user_id)) {
         sharesReceived.push({
           type: 'share',
           user_id: share.user_id,

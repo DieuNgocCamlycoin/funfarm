@@ -237,30 +237,31 @@ export function RewardCalculationExport() {
             addRewardForDate(post.created_at.split('T')[0], QUALITY_POST_REWARD);
           }
 
-          // Get ALL post IDs (original + shared) for interaction rewards
-          const allPostIds = (allPosts || []).map(p => p.id);
+          // ONLY quality post IDs are eligible for interaction rewards
+          // Interactions on invalid posts (short content, no media, share posts) are NOT rewarded
+          const qualityPostIds = rewardableQualityPosts.map(p => p.id);
           
           let likesReceived = 0;
           let qualityComments = 0;
           let sharesReceived = 0;
 
-          if (allPostIds.length > 0) {
-            // Likes received
+          if (qualityPostIds.length > 0) {
+            // Likes received on QUALITY posts only
             const { data: likesData } = await supabase
               .from('post_likes')
               .select('user_id, post_id, created_at')
-              .in('post_id', allPostIds)
+              .in('post_id', qualityPostIds)
               .neq('user_id', profile.id)
               .lte('created_at', cutoffDate)
               .order('created_at', { ascending: true });
 
             const validLikes = (likesData || []).filter(l => existingUserIds.has(l.user_id));
 
-            // Quality comments (>20 chars)
+            // Quality comments (>20 chars) on QUALITY posts only
             const { data: commentsData } = await supabase
               .from('comments')
               .select('author_id, post_id, content, created_at')
-              .in('post_id', allPostIds)
+              .in('post_id', qualityPostIds)
               .neq('author_id', profile.id)
               .lte('created_at', cutoffDate)
               .order('created_at', { ascending: true });
@@ -293,11 +294,11 @@ export function RewardCalculationExport() {
               }
             }
 
-            // Shares received - limit 5/day
+            // Shares received on QUALITY posts only - limit 5/day
             const { data: sharesData } = await supabase
               .from('post_shares')
               .select('user_id, post_id, created_at')
-              .in('post_id', allPostIds)
+              .in('post_id', qualityPostIds)
               .neq('user_id', profile.id)
               .lte('created_at', cutoffDate)
               .order('created_at', { ascending: true });
