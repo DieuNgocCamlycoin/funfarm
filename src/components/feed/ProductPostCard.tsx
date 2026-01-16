@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { 
   Leaf, 
   Heart, 
@@ -11,7 +12,8 @@ import {
   ShoppingCart,
   BadgeCheck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Store
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -202,17 +204,28 @@ export default function ProductPostCard({
         </div>
       )}
 
-      {/* Buy button */}
-      {priceCamly && (
-        <Button
-          onClick={onBuyClick}
-          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-lg py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
-        >
-          <ShoppingCart className="h-5 w-5 mr-2" />
-          Mua ngay
-          <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
-        </Button>
-      )}
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        {priceCamly && (
+          <Button
+            onClick={onBuyClick}
+            className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-lg py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
+          >
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            Mua ngay
+            <Sparkles className="h-4 w-4 ml-2 animate-pulse" />
+          </Button>
+        )}
+      </div>
+
+      {/* Link to Marketplace */}
+      <Link 
+        to={`/marketplace?search=${encodeURIComponent(productName)}`}
+        className="flex items-center justify-center gap-2 mt-3 text-sm text-green-700 hover:text-green-800 hover:underline transition-colors"
+      >
+        <Store className="h-4 w-4" />
+        Xem trong Chợ Nông Sản
+      </Link>
     </Card>
   );
 }

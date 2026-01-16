@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Zap, BookOpen, FileText, ChevronDown, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { supabase } from "@/integrations/supabase/client";
 
 // Platform logos
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
@@ -39,6 +40,22 @@ const platforms: Platform[] = [
 
 const EcosystemSidebar = () => {
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [productCount, setProductCount] = useState<number>(0);
+
+  // Fetch product count
+  useEffect(() => {
+    const fetchProductCount = async () => {
+      const { count } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_product_post', true)
+        .eq('product_status', 'active');
+      
+      setProductCount(count || 0);
+    };
+    
+    fetchProductCount();
+  }, []);
 
   return (
     <div
@@ -92,7 +109,7 @@ const EcosystemSidebar = () => {
           </span>
         </Link>
 
-        {/* Marketplace Button */}
+        {/* Marketplace Button with product count */}
         <Link
           to="/marketplace"
           onClick={() => window.scrollTo(0, 0)}
@@ -105,15 +122,28 @@ const EcosystemSidebar = () => {
           }}
         >
           <ShoppingBag className="w-6 h-6 text-amber-300" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.8))" }} />
-          <span
-            className="text-base font-bold"
-            style={{
-              color: "#ffd700",
-              textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(255,215,0,0.5)",
-            }}
-          >
-            🛒 Chợ Nông Sản
-          </span>
+          <div className="flex-1">
+            <span
+              className="text-base font-bold block"
+              style={{
+                color: "#ffd700",
+                textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(255,215,0,0.5)",
+              }}
+            >
+              🛒 Chợ Nông Sản
+            </span>
+            {productCount > 0 && (
+              <span
+                className="text-xs"
+                style={{
+                  color: "rgba(255,255,255,0.9)",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                }}
+              >
+                {productCount} sản phẩm đang bán
+              </span>
+            )}
+          </div>
         </Link>
 
         {/* About FUN FARM Dropdown */}

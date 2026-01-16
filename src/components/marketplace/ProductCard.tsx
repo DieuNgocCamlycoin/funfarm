@@ -186,6 +186,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <ShoppingCart className="w-4 h-4" />
           Mua ngay
         </Button>
+
+        {/* Link to original post */}
+        <Link 
+          to={`/post/${product.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="block text-center text-xs text-muted-foreground hover:text-primary mt-2 transition-colors"
+        >
+          Xem bài viết gốc →
+        </Link>
       </CardContent>
     </Card>
   );
