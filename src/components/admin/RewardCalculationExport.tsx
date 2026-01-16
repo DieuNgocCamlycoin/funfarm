@@ -219,11 +219,12 @@ export function RewardCalculationExport() {
             .lte('created_at', '2025-12-31T23:59:59Z')
             .order('created_at', { ascending: true });
 
-          // Quality posts only: >100 chars + media = 10,000 CLC
+          // Quality posts only: >100 chars + media = 10,000 CLC (includes 'post' and 'product', excludes 'share')
           const qualityPostsData = (allPosts || []).filter(p => {
             const hasContent = (p.content?.length || 0) > 100;
             const hasMedia = (p.images && p.images.length > 0) || p.video_url;
-            return hasContent && hasMedia && p.post_type === 'post';
+            const isOriginalContent = p.post_type === 'post' || p.post_type === 'product';
+            return hasContent && hasMedia && isOriginalContent;
           });
 
           const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
