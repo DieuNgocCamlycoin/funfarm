@@ -5,11 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, User, Calendar, FileSpreadsheet, Download, X, Coins } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Coins, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface UserSearchResult {
   id: string;
@@ -81,6 +85,15 @@ export function UserDailyActivityStats() {
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTimestamp, setSearchTimestamp] = useState<Date | null>(null);
+  
+  // Date filter states
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  
+  // Export all users states
+  const [isExportingAll, setIsExportingAll] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportCurrentUser, setExportCurrentUser] = useState('');
 
   // Search users by name or ID
   const handleSearch = async () => {
@@ -156,6 +169,232 @@ export function UserDailyActivityStats() {
     return Math.min(count, limit) * rate;
   };
 
+  // Fetch user stats with optional date filter
+  const fetchUserStats = async (
+    userId: string, 
+    validUserIds: Set<string>,
+    filterStartDate?: Date,
+    filterEndDate?: Date
+  ): Promise<DailyActivityRow[]> => {
+    const validUserIdArray = Array.from(validUserIds);
+    
+    // Build date filter strings
+    const startDateStr = filterStartDate ? format(filterStartDate, 'yyyy-MM-dd') : null;
+    const endDateStr = filterEndDate ? format(filterEndDate, 'yyyy-MM-dd') + 'T23:59:59' : null;
+    
+    // Fetch user's posts (không phải share)
+    let postsQuery = supabase
+      .from('posts')
+      .select('id, created_at')
+      .eq('author_id', userId)
+      .neq('post_type', 'share')
+      .order('created_at', { ascending: true });
+    
+    if (startDateStr) postsQuery = postsQuery.gte('created_at', startDateStr);
+    if (endDateStr) postsQuery = postsQuery.lte('created_at', endDateStr);
+
+    const { data: userPosts } = await postsQuery;
+    const userPostIds = userPosts?.map(p => p.id) || [];
+    
+    // Collect all dates
+    const allDates = new Set<string>();
+    
+    userPosts?.forEach(p => {
+      allDates.add(format(new Date(p.created_at), 'yyyy-MM-dd'));
+    });
+
+    // Fetch reactions given
+    let reactionsGivenQuery = supabase
+      .from('post_likes')
+      .select('created_at')
+      .eq('user_id', userId);
+    
+    if (startDateStr) reactionsGivenQuery = reactionsGivenQuery.gte('created_at', startDateStr);
+    if (endDateStr) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', endDateStr);
+    
+    const { data: reactionsGiven } = await reactionsGivenQuery;
+    
+    reactionsGiven?.forEach(r => {
+      allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
+    });
+
+    // Fetch comments given
+    let commentsGivenQuery = supabase
+      .from('comments')
+      .select('created_at')
+      .eq('author_id', userId);
+    
+    if (startDateStr) commentsGivenQuery = commentsGivenQuery.gte('created_at', startDateStr);
+    if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
+    
+    const { data: commentsGiven } = await commentsGivenQuery;
+    
+    commentsGiven?.forEach(c => {
+      allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
+    });
+
+    // Fetch shares given
+    let sharesGivenQuery = supabase
+      .from('posts')
+      .select('created_at')
+      .eq('author_id', userId)
+      .eq('post_type', 'share');
+    
+    if (startDateStr) sharesGivenQuery = sharesGivenQuery.gte('created_at', startDateStr);
+    if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
+    
+    const { data: sharesGiven } = await sharesGivenQuery;
+    
+    sharesGiven?.forEach(s => {
+      allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
+    });
+
+    // Fetch friends added
+    let friendsAddedQuery = supabase
+      .from('followers')
+      .select('created_at')
+      .eq('follower_id', userId)
+      .eq('status', 'accepted');
+    
+    if (startDateStr) friendsAddedQuery = friendsAddedQuery.gte('created_at', startDateStr);
+    if (endDateStr) friendsAddedQuery = friendsAddedQuery.lte('created_at', endDateStr);
+    
+    const { data: friendsAdded } = await friendsAddedQuery;
+    
+    friendsAdded?.forEach(f => {
+      allDates.add(format(new Date(f.created_at), 'yyyy-MM-dd'));
+    });
+
+    // Fetch received metrics (excluding self and invalid users)
+    let reactionsReceived: { created_at: string }[] = [];
+    let commentsReceived: { created_at: string }[] = [];
+    let sharesReceived: { created_at: string }[] = [];
+
+    if (userPostIds.length > 0 && validUserIdArray.length > 0) {
+      // Reactions received
+      let rrQuery = supabase
+        .from('post_likes')
+        .select('created_at')
+        .in('post_id', userPostIds)
+        .neq('user_id', userId)
+        .in('user_id', validUserIdArray);
+      
+      if (startDateStr) rrQuery = rrQuery.gte('created_at', startDateStr);
+      if (endDateStr) rrQuery = rrQuery.lte('created_at', endDateStr);
+      
+      const { data: rr } = await rrQuery;
+      reactionsReceived = rr || [];
+      
+      // Comments received
+      let crQuery = supabase
+        .from('comments')
+        .select('created_at')
+        .in('post_id', userPostIds)
+        .neq('author_id', userId)
+        .in('author_id', validUserIdArray);
+      
+      if (startDateStr) crQuery = crQuery.gte('created_at', startDateStr);
+      if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
+      
+      const { data: cr } = await crQuery;
+      commentsReceived = cr || [];
+      
+      // Shares received
+      let srQuery = supabase
+        .from('post_shares')
+        .select('created_at')
+        .in('post_id', userPostIds)
+        .neq('user_id', userId)
+        .in('user_id', validUserIdArray);
+      
+      if (startDateStr) srQuery = srQuery.gte('created_at', startDateStr);
+      if (endDateStr) srQuery = srQuery.lte('created_at', endDateStr);
+      
+      const { data: sr } = await srQuery;
+      sharesReceived = sr || [];
+    }
+
+    reactionsReceived.forEach(r => {
+      allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
+    });
+    commentsReceived.forEach(c => {
+      allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
+    });
+    sharesReceived.forEach(s => {
+      allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
+    });
+
+    // Calculate stats per date
+    const sortedDates = Array.from(allDates).sort().reverse(); // Newest first
+    
+    const stats: DailyActivityRow[] = sortedDates.map(date => {
+      // Count activities for this date
+      const postsCreated = userPosts?.filter(p => 
+        format(new Date(p.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const rGiven = reactionsGiven?.filter(r => 
+        format(new Date(r.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const rReceived = reactionsReceived.filter(r => 
+        format(new Date(r.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const cGiven = commentsGiven?.filter(c => 
+        format(new Date(c.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const cReceived = commentsReceived.filter(c => 
+        format(new Date(c.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const sGiven = sharesGiven?.filter(s => 
+        format(new Date(s.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const sReceived = sharesReceived.filter(s => 
+        format(new Date(s.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+      const fAdded = friendsAdded?.filter(f => 
+        format(new Date(f.created_at), 'yyyy-MM-dd') === date
+      ).length || 0;
+
+      // Calculate rewards with limits
+      const postReward = calculateReward(postsCreated, REWARD_RATES.post, DAILY_LIMITS.post);
+      const reactGivenReward = calculateReward(rGiven, REWARD_RATES.reaction, DAILY_LIMITS.reactionGiven);
+      const reactReceivedReward = calculateReward(rReceived, REWARD_RATES.reaction, DAILY_LIMITS.reactionReceived);
+      const cmtGivenReward = calculateReward(cGiven, REWARD_RATES.comment, DAILY_LIMITS.commentGiven);
+      const cmtReceivedReward = calculateReward(cReceived, REWARD_RATES.comment, DAILY_LIMITS.commentReceived);
+      const shareGivenReward = calculateReward(sGiven, REWARD_RATES.share, DAILY_LIMITS.shareGiven);
+      const shareReceivedReward = calculateReward(sReceived, REWARD_RATES.share, DAILY_LIMITS.shareReceived);
+      const friendReward = calculateReward(fAdded, REWARD_RATES.friend, DAILY_LIMITS.friend);
+
+      // Calculate daily total with cap
+      const dailyTotalBeforeCap = postReward + reactGivenReward + reactReceivedReward + 
+        cmtGivenReward + cmtReceivedReward + shareGivenReward + shareReceivedReward + friendReward;
+      const dailyTotal = Math.min(dailyTotalBeforeCap, DAILY_CAP);
+
+      return {
+        date,
+        postsCreated,
+        reactionsGiven: rGiven,
+        reactionsReceived: rReceived,
+        commentsGiven: cGiven,
+        commentsReceived: cReceived,
+        sharesGiven: sGiven,
+        sharesReceived: sReceived,
+        friendsAdded: fAdded,
+        postReward,
+        reactGivenReward,
+        reactReceivedReward,
+        cmtGivenReward,
+        cmtReceivedReward,
+        shareGivenReward,
+        shareReceivedReward,
+        friendReward,
+        dailyTotalBeforeCap,
+        dailyTotal
+      };
+    });
+
+    return stats;
+  };
+
   // Fetch daily stats for selected user
   const handleSelectUser = async (user: UserSearchResult) => {
     setSelectedUser(user);
@@ -165,184 +404,11 @@ export function UserDailyActivityStats() {
 
     try {
       const validUserIds = await getValidUserIds();
-      const validUserIdArray = Array.from(validUserIds);
-      const userId = user.id;
-      
-      // Fetch user's posts (không phải share)
-      const { data: userPosts } = await supabase
-        .from('posts')
-        .select('id, created_at')
-        .eq('author_id', userId)
-        .neq('post_type', 'share')
-        .order('created_at', { ascending: true });
-
-      const userPostIds = userPosts?.map(p => p.id) || [];
-      
-      // Collect all dates
-      const allDates = new Set<string>();
-      
-      userPosts?.forEach(p => {
-        allDates.add(format(new Date(p.created_at), 'yyyy-MM-dd'));
-      });
-
-      // Fetch reactions given
-      const { data: reactionsGiven } = await supabase
-        .from('post_likes')
-        .select('created_at')
-        .eq('user_id', userId);
-      
-      reactionsGiven?.forEach(r => {
-        allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
-      });
-
-      // Fetch comments given
-      const { data: commentsGiven } = await supabase
-        .from('comments')
-        .select('created_at')
-        .eq('author_id', userId);
-      
-      commentsGiven?.forEach(c => {
-        allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
-      });
-
-      // Fetch shares given
-      const { data: sharesGiven } = await supabase
-        .from('posts')
-        .select('created_at')
-        .eq('author_id', userId)
-        .eq('post_type', 'share');
-      
-      sharesGiven?.forEach(s => {
-        allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
-      });
-
-      // Fetch friends added
-      const { data: friendsAdded } = await supabase
-        .from('followers')
-        .select('created_at')
-        .eq('follower_id', userId)
-        .eq('status', 'accepted');
-      
-      friendsAdded?.forEach(f => {
-        allDates.add(format(new Date(f.created_at), 'yyyy-MM-dd'));
-      });
-
-      // Fetch received metrics (excluding self and invalid users)
-      let reactionsReceived: { created_at: string }[] = [];
-      let commentsReceived: { created_at: string }[] = [];
-      let sharesReceived: { created_at: string }[] = [];
-
-      if (userPostIds.length > 0 && validUserIdArray.length > 0) {
-        // Reactions received
-        const { data: rr } = await supabase
-          .from('post_likes')
-          .select('created_at')
-          .in('post_id', userPostIds)
-          .neq('user_id', userId)
-          .in('user_id', validUserIdArray);
-        reactionsReceived = rr || [];
-        
-        // Comments received
-        const { data: cr } = await supabase
-          .from('comments')
-          .select('created_at')
-          .in('post_id', userPostIds)
-          .neq('author_id', userId)
-          .in('author_id', validUserIdArray);
-        commentsReceived = cr || [];
-        
-        // Shares received
-        const { data: sr } = await supabase
-          .from('post_shares')
-          .select('created_at')
-          .in('post_id', userPostIds)
-          .neq('user_id', userId)
-          .in('user_id', validUserIdArray);
-        sharesReceived = sr || [];
-      }
-
-      reactionsReceived.forEach(r => {
-        allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
-      });
-      commentsReceived.forEach(c => {
-        allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
-      });
-      sharesReceived.forEach(s => {
-        allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
-      });
-
-      // Calculate stats per date
-      const sortedDates = Array.from(allDates).sort().reverse(); // Newest first
-      
-      const stats: DailyActivityRow[] = sortedDates.map(date => {
-        // Count activities for this date
-        const postsCreated = userPosts?.filter(p => 
-          format(new Date(p.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const rGiven = reactionsGiven?.filter(r => 
-          format(new Date(r.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const rReceived = reactionsReceived.filter(r => 
-          format(new Date(r.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const cGiven = commentsGiven?.filter(c => 
-          format(new Date(c.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const cReceived = commentsReceived.filter(c => 
-          format(new Date(c.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const sGiven = sharesGiven?.filter(s => 
-          format(new Date(s.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const sReceived = sharesReceived.filter(s => 
-          format(new Date(s.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-        const fAdded = friendsAdded?.filter(f => 
-          format(new Date(f.created_at), 'yyyy-MM-dd') === date
-        ).length || 0;
-
-        // Calculate rewards with limits
-        const postReward = calculateReward(postsCreated, REWARD_RATES.post, DAILY_LIMITS.post);
-        const reactGivenReward = calculateReward(rGiven, REWARD_RATES.reaction, DAILY_LIMITS.reactionGiven);
-        const reactReceivedReward = calculateReward(rReceived, REWARD_RATES.reaction, DAILY_LIMITS.reactionReceived);
-        const cmtGivenReward = calculateReward(cGiven, REWARD_RATES.comment, DAILY_LIMITS.commentGiven);
-        const cmtReceivedReward = calculateReward(cReceived, REWARD_RATES.comment, DAILY_LIMITS.commentReceived);
-        const shareGivenReward = calculateReward(sGiven, REWARD_RATES.share, DAILY_LIMITS.shareGiven);
-        const shareReceivedReward = calculateReward(sReceived, REWARD_RATES.share, DAILY_LIMITS.shareReceived);
-        const friendReward = calculateReward(fAdded, REWARD_RATES.friend, DAILY_LIMITS.friend);
-
-        // Calculate daily total with cap
-        const dailyTotalBeforeCap = postReward + reactGivenReward + reactReceivedReward + 
-          cmtGivenReward + cmtReceivedReward + shareGivenReward + shareReceivedReward + friendReward;
-        const dailyTotal = Math.min(dailyTotalBeforeCap, DAILY_CAP);
-
-        return {
-          date,
-          postsCreated,
-          reactionsGiven: rGiven,
-          reactionsReceived: rReceived,
-          commentsGiven: cGiven,
-          commentsReceived: cReceived,
-          sharesGiven: sGiven,
-          sharesReceived: sReceived,
-          friendsAdded: fAdded,
-          postReward,
-          reactGivenReward,
-          reactReceivedReward,
-          cmtGivenReward,
-          cmtReceivedReward,
-          shareGivenReward,
-          shareReceivedReward,
-          friendReward,
-          dailyTotalBeforeCap,
-          dailyTotal
-        };
-      });
-
+      const stats = await fetchUserStats(user.id, validUserIds, startDate, endDate);
       setActivityData(stats);
       
       if (stats.length === 0) {
-        toast.info('User chưa có hoạt động nào trên hệ thống');
+        toast.info('User chưa có hoạt động nào trong khoảng thời gian đã chọn');
       }
     } catch (err: any) {
       console.error('Load stats error:', err);
@@ -370,18 +436,23 @@ export function UserDailyActivityStats() {
     shareGivenReward: acc.shareGivenReward + row.shareGivenReward,
     shareReceivedReward: acc.shareReceivedReward + row.shareReceivedReward,
     friendReward: acc.friendReward + row.friendReward,
-    grandTotal: acc.grandTotal + row.dailyTotal
+    grandTotal: acc.grandTotal + row.dailyTotal,
+    cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_CAP ? 1 : 0)
   }), { 
     posts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, cmtReceived: 0, 
     shareGiven: 0, shareReceived: 0, friends: 0,
     postReward: 0, reactGivenReward: 0, reactReceivedReward: 0, 
     cmtGivenReward: 0, cmtReceivedReward: 0, shareGivenReward: 0, 
-    shareReceivedReward: 0, friendReward: 0, grandTotal: 0
+    shareReceivedReward: 0, friendReward: 0, grandTotal: 0, cappedDays: 0
   });
 
-  // Export to CSV
+  // Export to CSV for single user
   const handleExportCSV = () => {
     if (!selectedUser || activityData.length === 0) return;
+
+    const dateRangeStr = startDate || endDate 
+      ? `${startDate ? format(startDate, 'yyyyMMdd') : 'start'}-${endDate ? format(endDate, 'yyyyMMdd') : 'now'}`
+      : 'all';
 
     const headers = [
       'Ngày', 
@@ -400,8 +471,10 @@ export function UserDailyActivityStats() {
       `# THỐNG KÊ HOẠT ĐỘNG VÀ THƯỞNG THEO NGÀY - ${selectedUser.display_name || 'Chưa đặt tên'}`,
       `# User ID: ${selectedUser.id}`,
       `# Email: ${selectedUser.email || 'N/A'}`,
+      `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`,
       `# Tính đến: ${searchTimestamp ? format(searchTimestamp, 'HH:mm:ss dd/MM/yyyy', { locale: vi }) : ''}`,
       `# Daily Cap: ${DAILY_CAP.toLocaleString()} CLC`,
+      `# Số ngày bị CAP: ${totals.cappedDays}`,
       '',
       headers.join(','),
       ...activityData.map(row => [
@@ -438,13 +511,238 @@ export function UserDailyActivityStats() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `user-activity-reward-${selectedUser.id.slice(0, 8)}-${format(new Date(), 'yyyyMMdd-HHmm')}.csv`;
+    link.download = `user-activity-reward-${selectedUser.id.slice(0, 8)}-${dateRangeStr}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
     toast.success('Đã xuất file CSV!');
+  };
+
+  // Export all users
+  const handleExportAllUsers = async () => {
+    if (!startDate && !endDate) {
+      toast.error('Vui lòng chọn ít nhất 1 mốc thời gian (Từ ngày hoặc Đến ngày)');
+      return;
+    }
+
+    setIsExportingAll(true);
+    setExportProgress(0);
+
+    try {
+      // Get all active users
+      const { data: allUsers, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, email, created_at')
+        .eq('banned', false)
+        .order('display_name');
+
+      if (error) throw error;
+      if (!allUsers || allUsers.length === 0) {
+        toast.error('Không có user nào để export');
+        return;
+      }
+
+      const validUserIds = await getValidUserIds();
+      const totalUsers = allUsers.length;
+
+      // Collect all user summaries
+      interface UserSummary {
+        userId: string;
+        displayName: string;
+        email: string;
+        posts: number;
+        reactGiven: number;
+        reactReceived: number;
+        cmtGiven: number;
+        cmtReceived: number;
+        shareGiven: number;
+        shareReceived: number;
+        friends: number;
+        postReward: number;
+        reactGivenReward: number;
+        reactReceivedReward: number;
+        cmtGivenReward: number;
+        cmtReceivedReward: number;
+        shareGivenReward: number;
+        shareReceivedReward: number;
+        friendReward: number;
+        totalReward: number;
+        cappedDays: number;
+        activeDays: number;
+      }
+
+      const allUsersSummary: UserSummary[] = [];
+
+      // Process users in batches
+      const batchSize = 3;
+      for (let i = 0; i < allUsers.length; i += batchSize) {
+        const batch = allUsers.slice(i, i + batchSize);
+
+        const batchPromises = batch.map(async (user) => {
+          setExportCurrentUser(user.display_name || user.id.slice(0, 8));
+          const stats = await fetchUserStats(user.id, validUserIds, startDate, endDate);
+
+          // Calculate summary
+          const summary = stats.reduce((acc, row) => ({
+            posts: acc.posts + row.postsCreated,
+            reactGiven: acc.reactGiven + row.reactionsGiven,
+            reactReceived: acc.reactReceived + row.reactionsReceived,
+            cmtGiven: acc.cmtGiven + row.commentsGiven,
+            cmtReceived: acc.cmtReceived + row.commentsReceived,
+            shareGiven: acc.shareGiven + row.sharesGiven,
+            shareReceived: acc.shareReceived + row.sharesReceived,
+            friends: acc.friends + row.friendsAdded,
+            postReward: acc.postReward + row.postReward,
+            reactGivenReward: acc.reactGivenReward + row.reactGivenReward,
+            reactReceivedReward: acc.reactReceivedReward + row.reactReceivedReward,
+            cmtGivenReward: acc.cmtGivenReward + row.cmtGivenReward,
+            cmtReceivedReward: acc.cmtReceivedReward + row.cmtReceivedReward,
+            shareGivenReward: acc.shareGivenReward + row.shareGivenReward,
+            shareReceivedReward: acc.shareReceivedReward + row.shareReceivedReward,
+            friendReward: acc.friendReward + row.friendReward,
+            totalReward: acc.totalReward + row.dailyTotal,
+            cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_CAP ? 1 : 0),
+            activeDays: acc.activeDays + 1
+          }), {
+            posts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, cmtReceived: 0,
+            shareGiven: 0, shareReceived: 0, friends: 0,
+            postReward: 0, reactGivenReward: 0, reactReceivedReward: 0,
+            cmtGivenReward: 0, cmtReceivedReward: 0, shareGivenReward: 0,
+            shareReceivedReward: 0, friendReward: 0, totalReward: 0, cappedDays: 0, activeDays: 0
+          });
+
+          return {
+            userId: user.id,
+            displayName: user.display_name || 'Chưa đặt tên',
+            email: user.email || '',
+            ...summary
+          } as UserSummary;
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        allUsersSummary.push(...batchResults);
+
+        setExportProgress(Math.round(((i + batchSize) / totalUsers) * 100));
+      }
+
+      // Filter out users with no activity
+      const activeUsersSummary = allUsersSummary.filter(u => u.activeDays > 0);
+
+      if (activeUsersSummary.length === 0) {
+        toast.error('Không có user nào có hoạt động trong khoảng thời gian đã chọn');
+        return;
+      }
+
+      // Sort by total reward descending
+      activeUsersSummary.sort((a, b) => b.totalReward - a.totalReward);
+
+      // Generate CSV
+      const dateRangeStr = `${startDate ? format(startDate, 'yyyyMMdd') : 'start'}-${endDate ? format(endDate, 'yyyyMMdd') : 'now'}`;
+
+      const headers = [
+        'User ID', 'Tên hiển thị', 'Email',
+        'Bài đăng', 'Thưởng BD',
+        'Like cho', 'Thưởng LC',
+        'Like nhận', 'Thưởng LN',
+        'Cmt cho', 'Thưởng CC',
+        'Cmt nhận', 'Thưởng CN',
+        'Share cho', 'Thưởng SC',
+        'Share nhận', 'Thưởng SN',
+        'Bạn mới', 'Thưởng BM',
+        'TỔNG THƯỞNG', 'Số ngày CAP', 'Số ngày HĐ'
+      ];
+
+      const csvRows = [
+        '# BÁO CÁO TỔNG HỢP THƯỞNG TẤT CẢ USERS - FUN FARM v3.0',
+        `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`,
+        `# Ngày xuất: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
+        `# Tổng users có hoạt động: ${activeUsersSummary.length}/${totalUsers}`,
+        `# Daily Cap: ${DAILY_CAP.toLocaleString()} CLC`,
+        '',
+        '# * Đã loại trừ: self-interactions, users bị ban, users bị xóa',
+        '',
+        headers.join(','),
+        ...activeUsersSummary.map(u => [
+          u.userId,
+          `"${u.displayName.replace(/"/g, '""')}"`,
+          `"${u.email.replace(/"/g, '""')}"`,
+          u.posts, u.postReward,
+          u.reactGiven, u.reactGivenReward,
+          u.reactReceived, u.reactReceivedReward,
+          u.cmtGiven, u.cmtGivenReward,
+          u.cmtReceived, u.cmtReceivedReward,
+          u.shareGiven, u.shareGivenReward,
+          u.shareReceived, u.shareReceivedReward,
+          u.friends, u.friendReward,
+          u.totalReward, u.cappedDays, u.activeDays
+        ].join(','))
+      ];
+
+      // Add grand totals
+      const grandTotals = activeUsersSummary.reduce((acc, u) => ({
+        posts: acc.posts + u.posts,
+        postReward: acc.postReward + u.postReward,
+        reactGiven: acc.reactGiven + u.reactGiven,
+        reactGivenReward: acc.reactGivenReward + u.reactGivenReward,
+        reactReceived: acc.reactReceived + u.reactReceived,
+        reactReceivedReward: acc.reactReceivedReward + u.reactReceivedReward,
+        cmtGiven: acc.cmtGiven + u.cmtGiven,
+        cmtGivenReward: acc.cmtGivenReward + u.cmtGivenReward,
+        cmtReceived: acc.cmtReceived + u.cmtReceived,
+        cmtReceivedReward: acc.cmtReceivedReward + u.cmtReceivedReward,
+        shareGiven: acc.shareGiven + u.shareGiven,
+        shareGivenReward: acc.shareGivenReward + u.shareGivenReward,
+        shareReceived: acc.shareReceived + u.shareReceived,
+        shareReceivedReward: acc.shareReceivedReward + u.shareReceivedReward,
+        friends: acc.friends + u.friends,
+        friendReward: acc.friendReward + u.friendReward,
+        totalReward: acc.totalReward + u.totalReward,
+        cappedDays: acc.cappedDays + u.cappedDays
+      }), {
+        posts: 0, postReward: 0, reactGiven: 0, reactGivenReward: 0,
+        reactReceived: 0, reactReceivedReward: 0, cmtGiven: 0, cmtGivenReward: 0,
+        cmtReceived: 0, cmtReceivedReward: 0, shareGiven: 0, shareGivenReward: 0,
+        shareReceived: 0, shareReceivedReward: 0, friends: 0, friendReward: 0,
+        totalReward: 0, cappedDays: 0
+      });
+
+      csvRows.push('');
+      csvRows.push([
+        'TỔNG CỘNG', '', '',
+        grandTotals.posts, grandTotals.postReward,
+        grandTotals.reactGiven, grandTotals.reactGivenReward,
+        grandTotals.reactReceived, grandTotals.reactReceivedReward,
+        grandTotals.cmtGiven, grandTotals.cmtGivenReward,
+        grandTotals.cmtReceived, grandTotals.cmtReceivedReward,
+        grandTotals.shareGiven, grandTotals.shareGivenReward,
+        grandTotals.shareReceived, grandTotals.shareReceivedReward,
+        grandTotals.friends, grandTotals.friendReward,
+        grandTotals.totalReward, grandTotals.cappedDays, ''
+      ].join(','));
+
+      // Download
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `fun-farm-all-users-reward-${dateRangeStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`✅ Đã xuất báo cáo cho ${activeUsersSummary.length} users!`);
+    } catch (err: any) {
+      console.error('Export all error:', err);
+      toast.error('Lỗi xuất dữ liệu: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsExportingAll(false);
+      setExportProgress(0);
+      setExportCurrentUser('');
+    }
   };
 
   const handleClear = () => {
@@ -454,22 +752,126 @@ export function UserDailyActivityStats() {
     setSearchQuery('');
   };
 
+  const handleResetDates = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Search className="h-5 w-5 text-cyan-500" />
-          Tra cứu Hoạt Động User
+          <FileSpreadsheet className="h-5 w-5 text-cyan-500" />
+          📊 Tra cứu & Báo cáo User
         </CardTitle>
         <CardDescription>
-          Tìm kiếm user và xem bảng thống kê hoạt động + thưởng CLC theo ngày từ khi tham gia nền tảng.
+          Tìm kiếm user hoặc xuất báo cáo tất cả users với công thức Reward System v3.0.
+          <br />
+          <span className="text-amber-600 font-medium">
+            Đã loại trừ: self-interactions, users bị ban, users bị xóa.
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Date Filter */}
+        <div className="flex flex-wrap gap-3 items-end p-3 bg-muted/30 rounded-lg border">
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Từ ngày</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[140px] justify-start text-left font-normal",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, 'dd/MM/yyyy') : 'Chọn'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  disabled={(date) => date > new Date() || (endDate ? date > endDate : false)}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Đến ngày</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[140px] justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, 'dd/MM/yyyy') : 'Chọn'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  disabled={(date) => date > new Date() || (startDate ? date < startDate : false)}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {(startDate || endDate) && (
+            <Button variant="ghost" size="sm" onClick={handleResetDates}>
+              <X className="h-4 w-4 mr-1" />
+              Xóa filter
+            </Button>
+          )}
+
+          <div className="flex-1" />
+
+          <Button 
+            onClick={handleExportAllUsers} 
+            disabled={isExportingAll}
+            variant="default"
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {isExportingAll ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Users className="h-4 w-4 mr-2" />
+            )}
+            {isExportingAll ? 'Đang xuất...' : 'Xuất Excel tất cả users'}
+          </Button>
+        </div>
+
+        {/* Export Progress */}
+        {isExportingAll && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                Đang xử lý: {exportCurrentUser}
+              </span>
+              <span className="text-sm text-blue-600 dark:text-blue-400">{exportProgress}%</span>
+            </div>
+            <Progress value={exportProgress} className="h-2" />
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="flex gap-2">
           <Input
-            placeholder="Nhập tên hoặc ID user..."
+            placeholder="Nhập tên hoặc ID user để tra cứu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -539,8 +941,12 @@ export function UserDailyActivityStats() {
                     Bảng thống kê của "{selectedUser.display_name || 'Chưa đặt tên'}"
                   </h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Tính đến {searchTimestamp && format(searchTimestamp, "HH'h'mm'p'ss's' 'ngày' dd/MM/yyyy", { locale: vi })}
+                    <CalendarIcon className="h-4 w-4" />
+                    {startDate || endDate ? (
+                      <>Từ {startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} đến {endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}</>
+                    ) : (
+                      <>Tính đến {searchTimestamp && format(searchTimestamp, "HH'h'mm'p'ss's' 'ngày' dd/MM/yyyy", { locale: vi })}</>
+                    )}
                   </p>
                 </div>
               </div>
@@ -573,7 +979,10 @@ export function UserDailyActivityStats() {
                   </div>
                   <div className="text-right text-sm text-muted-foreground">
                     <p>Từ {activityData.length} ngày hoạt động</p>
-                    <p className="text-xs">Daily cap: {DAILY_CAP.toLocaleString()} CLC</p>
+                    <p className="text-xs">
+                      {totals.cappedDays > 0 && <span className="text-red-500">{totals.cappedDays} ngày bị CAP • </span>}
+                      Daily cap: {DAILY_CAP.toLocaleString()} CLC
+                    </p>
                   </div>
                 </div>
 
@@ -714,8 +1123,8 @@ export function UserDailyActivityStats() {
               </>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>User chưa có hoạt động nào trên hệ thống</p>
+                <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>User chưa có hoạt động nào trong khoảng thời gian đã chọn</p>
               </div>
             )}
           </div>
