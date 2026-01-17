@@ -49,8 +49,6 @@ import { MergeConflictsTab } from "@/components/admin/MergeConflictsTab";
 import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
-import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
-import { AllUsersDailyStatsExport } from "@/components/admin/AllUsersDailyStatsExport";
 import { UserDailyActivityStats } from "@/components/admin/UserDailyActivityStats";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
@@ -716,17 +714,9 @@ const Admin = () => {
               <AlertTriangle className="h-4 w-4 text-orange-500" />
               <span className="text-orange-500 font-medium">AI Review</span>
             </TabsTrigger>
-            <TabsTrigger value="user-report" className="flex items-center gap-1.5 px-3 py-2 text-xs">
-              <FileText className="h-4 w-4 text-teal-500" />
-              <span className="text-teal-500 font-medium">Báo cáo User</span>
-            </TabsTrigger>
-            <TabsTrigger value="daily-stats-export" className="flex items-center gap-1.5 px-3 py-2 text-xs">
-              <FileSpreadsheet className="h-4 w-4 text-green-500" />
-              <span className="text-green-500 font-medium">📊 Daily Stats</span>
-            </TabsTrigger>
             <TabsTrigger value="user-activity-search" className="flex items-center gap-1.5 px-3 py-2 text-xs">
-              <Search className="h-4 w-4 text-cyan-500" />
-              <span className="text-cyan-500 font-medium">🔍 Tra cứu User</span>
+              <FileSpreadsheet className="h-4 w-4 text-cyan-500" />
+              <span className="text-cyan-500 font-medium">📊 Tra cứu & Báo cáo</span>
             </TabsTrigger>
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
@@ -739,17 +729,7 @@ const Admin = () => {
             <RewardCalculationExport />
           </TabsContent>
 
-          {/* User Daily Reward Report Tab */}
-          <TabsContent value="user-report" className="mt-4">
-            <UserDailyRewardExport />
-          </TabsContent>
-
-          {/* All Users Daily Stats Export Tab */}
-          <TabsContent value="daily-stats-export" className="mt-4">
-            <AllUsersDailyStatsExport />
-          </TabsContent>
-
-          {/* User Activity Search Tab */}
+          {/* User Activity Search & Report Tab */}
           <TabsContent value="user-activity-search" className="mt-4">
             <UserDailyActivityStats />
           </TabsContent>
