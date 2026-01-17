@@ -14,6 +14,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { 
+  QUALITY_POST_REWARD, 
+  LIKE_REWARD, 
+  QUALITY_COMMENT_REWARD, 
+  SHARE_REWARD, 
+  FRIENDSHIP_REWARD,
+  MAX_POSTS_PER_DAY,
+  MAX_INTERACTIONS_PER_DAY,
+  MAX_SHARES_PER_DAY,
+  MAX_FRIENDSHIPS_PER_DAY,
+  DAILY_REWARD_CAP
+} from '@/lib/constants';
 
 interface UserSearchResult {
   id: string;
@@ -26,21 +38,18 @@ interface UserSearchResult {
 interface DailyActivityRow {
   date: string;
   // Activity counts
-  postsCreated: number;
-  reactionsGiven: number;
-  reactionsReceived: number;
-  commentsGiven: number;
-  commentsReceived: number;
-  sharesGiven: number;
-  sharesReceived: number;
+  qualityPostsCreated: number;      // Quality posts only
+  reactionsGiven: number;           // Display only, no reward
+  reactionsReceived: number;        // From quality posts
+  commentsGiven: number;            // Display only, no reward
+  qualityCommentsReceived: number;  // >20 chars from quality posts
+  sharesGiven: number;              // Display only, no reward
+  sharesReceived: number;           // From quality posts
   friendsAdded: number;
-  // Rewards (after applying limits)
+  // Rewards (only received, no given rewards in v3.0)
   postReward: number;
-  reactGivenReward: number;
   reactReceivedReward: number;
-  cmtGivenReward: number;
   cmtReceivedReward: number;
-  shareGivenReward: number;
   shareReceivedReward: number;
   friendReward: number;
   // Daily totals
@@ -48,33 +57,42 @@ interface DailyActivityRow {
   dailyTotal: number;
 }
 
-// Reward rates v3.0
+// Reward rates v3.0 - Only "received" interactions
 const REWARD_RATES = {
-  post: 10000,
-  reaction: 1000,
-  comment: 2000,
-  share: 10000,
-  friend: 10000
+  qualityPost: QUALITY_POST_REWARD,      // 10,000 CLC - >100 chars + media
+  likeReceived: LIKE_REWARD,             // 1,000 CLC
+  qualityCommentReceived: QUALITY_COMMENT_REWARD, // 2,000 CLC - >20 chars
+  shareReceived: SHARE_REWARD,           // 10,000 CLC
+  friend: FRIENDSHIP_REWARD              // 10,000 CLC
 };
 
 // Daily limits v3.0
 const DAILY_LIMITS = {
-  post: 10,
-  reactionGiven: 50,
-  reactionReceived: 50,
-  commentGiven: 50,
-  commentReceived: 50,
-  shareGiven: 5,
-  shareReceived: 5,
-  friend: 10
+  qualityPost: MAX_POSTS_PER_DAY,           // 10
+  interactionsReceived: MAX_INTERACTIONS_PER_DAY, // 50 (likes + comments combined)
+  shareReceived: MAX_SHARES_PER_DAY,        // 5
+  friend: MAX_FRIENDSHIPS_PER_DAY           // 10
 };
 
-const DAILY_CAP = 500000;
+const DAILY_CAP = DAILY_REWARD_CAP; // 500,000 CLC
 
 // Format CLC number
 const formatCLC = (amount: number): string => {
   if (amount === 0) return '-';
   return amount.toLocaleString('vi-VN');
+};
+
+// Check if post is a quality post: >100 chars + has media + original content
+const isQualityPost = (post: { content: string | null; images: string[] | null; video_url: string | null; post_type: string }): boolean => {
+  const hasContent = (post.content?.length || 0) > 100;
+  const hasMedia = (post.images && post.images.length > 0) || !!post.video_url;
+  const isOriginalContent = post.post_type === 'post' || post.post_type === 'product';
+  return hasContent && hasMedia && isOriginalContent;
+};
+
+// Check if comment is quality: >20 chars
+const isQualityComment = (comment: { content: string | null }): boolean => {
+  return (comment.content?.length || 0) > 20;
 };
 
 export function UserDailyActivityStats() {
@@ -108,14 +126,12 @@ export function UserDailyActivityStats() {
     setActivityData([]);
 
     try {
-      // Search by ID (UUID) or by name
       let query = supabase
         .from('profiles')
         .select('id, display_name, avatar_url, email, created_at')
         .eq('banned', false)
         .limit(10);
 
-      // Check if it's a UUID pattern
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchQuery.trim());
 
       if (isUUID) {
@@ -164,20 +180,14 @@ export function UserDailyActivityStats() {
     return validIds;
   };
 
-  // Calculate reward with daily limit
-  const calculateReward = (count: number, rate: number, limit: number): number => {
-    return Math.min(count, limit) * rate;
-  };
-
   // Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
-  // Vietnam is UTC+7
   const toVietnamDate = (utcTimestamp: string): string => {
     const date = new Date(utcTimestamp);
     const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
     return format(vietnamTime, 'yyyy-MM-dd');
   };
 
-  // Fetch user stats with optional date filter
+  // Fetch user stats with v3.0 logic
   const fetchUserStats = async (
     userId: string, 
     validUserIds: Set<string>,
@@ -187,48 +197,50 @@ export function UserDailyActivityStats() {
     const validUserIdArray = Array.from(validUserIds);
     
     // Build date filter strings - convert Vietnam date to UTC for database query
-    // Start of day in VN (00:00) = previous day 17:00 UTC
-    // End of day in VN (23:59:59) = current day 16:59:59 UTC
     let startDateStr: string | null = null;
     let endDateStr: string | null = null;
     
     if (filterStartDate) {
-      // filterStartDate is midnight VN time, convert to UTC by subtracting 7 hours
       const startUTC = new Date(filterStartDate.getTime() - 7 * 60 * 60 * 1000);
       startDateStr = startUTC.toISOString();
     }
     
     if (filterEndDate) {
-      // End of day in VN is 23:59:59.999, convert to UTC
       const endVN = new Date(filterEndDate);
       endVN.setHours(23, 59, 59, 999);
       const endUTC = new Date(endVN.getTime() - 7 * 60 * 60 * 1000);
       endDateStr = endUTC.toISOString();
     }
     
-    // Fetch user's posts (không phải share)
-    let postsQuery = supabase
+    // ========================================
+    // STEP 1: Fetch ALL posts (with content info for quality check)
+    // ========================================
+    let allPostsQuery = supabase
       .from('posts')
-      .select('id, created_at')
+      .select('id, content, images, video_url, created_at, post_type')
       .eq('author_id', userId)
-      .neq('post_type', 'share')
       .order('created_at', { ascending: true })
       .limit(50000);
     
-    if (startDateStr) postsQuery = postsQuery.gte('created_at', startDateStr);
-    if (endDateStr) postsQuery = postsQuery.lte('created_at', endDateStr);
+    if (startDateStr) allPostsQuery = allPostsQuery.gte('created_at', startDateStr);
+    if (endDateStr) allPostsQuery = allPostsQuery.lte('created_at', endDateStr);
 
-    const { data: userPosts } = await postsQuery;
-    const userPostIds = userPosts?.map(p => p.id) || [];
+    const { data: allPosts } = await allPostsQuery;
     
-    // Collect all dates (in Vietnam timezone)
+    // Filter quality posts only
+    const qualityPosts = (allPosts || []).filter(p => isQualityPost(p));
+    const qualityPostIds = qualityPosts.map(p => p.id);
+    
+    // Collect all dates
     const allDates = new Set<string>();
     
-    userPosts?.forEach(p => {
+    qualityPosts.forEach(p => {
       allDates.add(toVietnamDate(p.created_at));
     });
 
-    // Fetch reactions given
+    // ========================================
+    // STEP 2: Fetch reactions/comments/shares GIVEN (for display only, no reward)
+    // ========================================
     let reactionsGivenQuery = supabase
       .from('post_likes')
       .select('created_at')
@@ -244,7 +256,6 @@ export function UserDailyActivityStats() {
       allDates.add(toVietnamDate(r.created_at));
     });
 
-    // Fetch comments given
     let commentsGivenQuery = supabase
       .from('comments')
       .select('created_at')
@@ -260,7 +271,6 @@ export function UserDailyActivityStats() {
       allDates.add(toVietnamDate(c.created_at));
     });
 
-    // Fetch shares given
     let sharesGivenQuery = supabase
       .from('posts')
       .select('created_at')
@@ -277,7 +287,9 @@ export function UserDailyActivityStats() {
       allDates.add(toVietnamDate(s.created_at));
     });
 
-    // Fetch friends added
+    // ========================================
+    // STEP 3: Fetch friends added
+    // ========================================
     let friendsAddedQuery = supabase
       .from('followers')
       .select('created_at')
@@ -294,17 +306,19 @@ export function UserDailyActivityStats() {
       allDates.add(toVietnamDate(f.created_at));
     });
 
-    // Fetch received metrics (excluding self and invalid users)
+    // ========================================
+    // STEP 4: Fetch RECEIVED metrics (ONLY from quality posts)
+    // ========================================
     let reactionsReceived: { created_at: string }[] = [];
-    let commentsReceived: { created_at: string }[] = [];
+    let qualityCommentsReceived: { created_at: string; content: string | null }[] = [];
     let sharesReceived: { created_at: string }[] = [];
 
-    if (userPostIds.length > 0 && validUserIdArray.length > 0) {
-      // Reactions received
+    if (qualityPostIds.length > 0 && validUserIdArray.length > 0) {
+      // Reactions received from quality posts
       let rrQuery = supabase
         .from('post_likes')
         .select('created_at')
-        .in('post_id', userPostIds)
+        .in('post_id', qualityPostIds)
         .neq('user_id', userId)
         .in('user_id', validUserIdArray)
         .limit(50000);
@@ -315,11 +329,11 @@ export function UserDailyActivityStats() {
       const { data: rr } = await rrQuery;
       reactionsReceived = rr || [];
       
-      // Comments received
+      // Comments received from quality posts - fetch with content for quality check
       let crQuery = supabase
         .from('comments')
-        .select('created_at')
-        .in('post_id', userPostIds)
+        .select('created_at, content')
+        .in('post_id', qualityPostIds)
         .neq('author_id', userId)
         .in('author_id', validUserIdArray)
         .limit(50000);
@@ -328,13 +342,14 @@ export function UserDailyActivityStats() {
       if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
       
       const { data: cr } = await crQuery;
-      commentsReceived = cr || [];
+      // Filter only quality comments (>20 chars)
+      qualityCommentsReceived = (cr || []).filter(c => isQualityComment(c));
       
-      // Shares received
+      // Shares received from quality posts
       let srQuery = supabase
         .from('post_shares')
         .select('created_at')
-        .in('post_id', userPostIds)
+        .in('post_id', qualityPostIds)
         .neq('user_id', userId)
         .in('user_id', validUserIdArray)
         .limit(50000);
@@ -349,74 +364,78 @@ export function UserDailyActivityStats() {
     reactionsReceived.forEach(r => {
       allDates.add(toVietnamDate(r.created_at));
     });
-    commentsReceived.forEach(c => {
+    qualityCommentsReceived.forEach(c => {
       allDates.add(toVietnamDate(c.created_at));
     });
     sharesReceived.forEach(s => {
       allDates.add(toVietnamDate(s.created_at));
     });
 
-    // Calculate stats per date (using Vietnam timezone)
-    const sortedDates = Array.from(allDates).sort().reverse(); // Newest first
+    // ========================================
+    // STEP 5: Calculate stats per date with v3.0 rules
+    // ========================================
+    const sortedDates = Array.from(allDates).sort().reverse();
     
     const stats: DailyActivityRow[] = sortedDates.map(date => {
-      // Count activities for this date (using Vietnam timezone)
-      const postsCreated = userPosts?.filter(p => 
-        toVietnamDate(p.created_at) === date
-      ).length || 0;
-      const rGiven = reactionsGiven?.filter(r => 
-        toVietnamDate(r.created_at) === date
-      ).length || 0;
-      const rReceived = reactionsReceived.filter(r => 
-        toVietnamDate(r.created_at) === date
-      ).length || 0;
-      const cGiven = commentsGiven?.filter(c => 
-        toVietnamDate(c.created_at) === date
-      ).length || 0;
-      const cReceived = commentsReceived.filter(c => 
-        toVietnamDate(c.created_at) === date
-      ).length || 0;
-      const sGiven = sharesGiven?.filter(s => 
-        toVietnamDate(s.created_at) === date
-      ).length || 0;
-      const sReceived = sharesReceived.filter(s => 
-        toVietnamDate(s.created_at) === date
-      ).length || 0;
-      const fAdded = friendsAdded?.filter(f => 
-        toVietnamDate(f.created_at) === date
-      ).length || 0;
+      // Count activities for this date
+      const qPosts = qualityPosts.filter(p => toVietnamDate(p.created_at) === date).length;
+      const rGiven = reactionsGiven?.filter(r => toVietnamDate(r.created_at) === date).length || 0;
+      const rReceived = reactionsReceived.filter(r => toVietnamDate(r.created_at) === date).length;
+      const cGiven = commentsGiven?.filter(c => toVietnamDate(c.created_at) === date).length || 0;
+      const qcReceived = qualityCommentsReceived.filter(c => toVietnamDate(c.created_at) === date).length;
+      const sGiven = sharesGiven?.filter(s => toVietnamDate(s.created_at) === date).length || 0;
+      const sReceived = sharesReceived.filter(s => toVietnamDate(s.created_at) === date).length;
+      const fAdded = friendsAdded?.filter(f => toVietnamDate(f.created_at) === date).length || 0;
 
-      // Calculate rewards with limits
-      const postReward = calculateReward(postsCreated, REWARD_RATES.post, DAILY_LIMITS.post);
-      const reactGivenReward = calculateReward(rGiven, REWARD_RATES.reaction, DAILY_LIMITS.reactionGiven);
-      const reactReceivedReward = calculateReward(rReceived, REWARD_RATES.reaction, DAILY_LIMITS.reactionReceived);
-      const cmtGivenReward = calculateReward(cGiven, REWARD_RATES.comment, DAILY_LIMITS.commentGiven);
-      const cmtReceivedReward = calculateReward(cReceived, REWARD_RATES.comment, DAILY_LIMITS.commentReceived);
-      const shareGivenReward = calculateReward(sGiven, REWARD_RATES.share, DAILY_LIMITS.shareGiven);
-      const shareReceivedReward = calculateReward(sReceived, REWARD_RATES.share, DAILY_LIMITS.shareReceived);
-      const friendReward = calculateReward(fAdded, REWARD_RATES.friend, DAILY_LIMITS.friend);
+      // ========================================
+      // V3.0 REWARD CALCULATION
+      // ========================================
+      
+      // Quality Post reward: 10,000 * min(count, 10)
+      const postReward = Math.min(qPosts, DAILY_LIMITS.qualityPost) * REWARD_RATES.qualityPost;
+      
+      // Interactions received: Likes + Quality Comments share limit of 50
+      const totalInteractionsReceived = rReceived + qcReceived;
+      const cappedInteractions = Math.min(totalInteractionsReceived, DAILY_LIMITS.interactionsReceived);
+      
+      // Distribute capped interactions proportionally to likes and comments
+      let reactReceivedReward = 0;
+      let cmtReceivedReward = 0;
+      
+      if (totalInteractionsReceived > 0) {
+        const likeRatio = rReceived / totalInteractionsReceived;
+        const commentRatio = qcReceived / totalInteractionsReceived;
+        
+        const cappedLikes = Math.floor(cappedInteractions * likeRatio);
+        const cappedComments = Math.ceil(cappedInteractions * commentRatio);
+        
+        reactReceivedReward = cappedLikes * REWARD_RATES.likeReceived;
+        cmtReceivedReward = cappedComments * REWARD_RATES.qualityCommentReceived;
+      }
+      
+      // Share received reward: 10,000 * min(count, 5)
+      const shareReceivedReward = Math.min(sReceived, DAILY_LIMITS.shareReceived) * REWARD_RATES.shareReceived;
+      
+      // Friend reward: 10,000 * min(count, 10)
+      const friendReward = Math.min(fAdded, DAILY_LIMITS.friend) * REWARD_RATES.friend;
 
-      // Calculate daily total with cap
-      const dailyTotalBeforeCap = postReward + reactGivenReward + reactReceivedReward + 
-        cmtGivenReward + cmtReceivedReward + shareGivenReward + shareReceivedReward + friendReward;
+      // Daily total with cap
+      const dailyTotalBeforeCap = postReward + reactReceivedReward + cmtReceivedReward + shareReceivedReward + friendReward;
       const dailyTotal = Math.min(dailyTotalBeforeCap, DAILY_CAP);
 
       return {
         date,
-        postsCreated,
+        qualityPostsCreated: qPosts,
         reactionsGiven: rGiven,
         reactionsReceived: rReceived,
         commentsGiven: cGiven,
-        commentsReceived: cReceived,
+        qualityCommentsReceived: qcReceived,
         sharesGiven: sGiven,
         sharesReceived: sReceived,
         friendsAdded: fAdded,
         postReward,
-        reactGivenReward,
         reactReceivedReward,
-        cmtGivenReward,
         cmtReceivedReward,
-        shareGivenReward,
         shareReceivedReward,
         friendReward,
         dailyTotalBeforeCap,
@@ -452,20 +471,17 @@ export function UserDailyActivityStats() {
 
   // Calculate totals
   const totals = activityData.reduce((acc, row) => ({
-    posts: acc.posts + row.postsCreated,
+    posts: acc.posts + row.qualityPostsCreated,
     reactGiven: acc.reactGiven + row.reactionsGiven,
     reactReceived: acc.reactReceived + row.reactionsReceived,
     cmtGiven: acc.cmtGiven + row.commentsGiven,
-    cmtReceived: acc.cmtReceived + row.commentsReceived,
+    cmtReceived: acc.cmtReceived + row.qualityCommentsReceived,
     shareGiven: acc.shareGiven + row.sharesGiven,
     shareReceived: acc.shareReceived + row.sharesReceived,
     friends: acc.friends + row.friendsAdded,
     postReward: acc.postReward + row.postReward,
-    reactGivenReward: acc.reactGivenReward + row.reactGivenReward,
     reactReceivedReward: acc.reactReceivedReward + row.reactReceivedReward,
-    cmtGivenReward: acc.cmtGivenReward + row.cmtGivenReward,
     cmtReceivedReward: acc.cmtReceivedReward + row.cmtReceivedReward,
-    shareGivenReward: acc.shareGivenReward + row.shareGivenReward,
     shareReceivedReward: acc.shareReceivedReward + row.shareReceivedReward,
     friendReward: acc.friendReward + row.friendReward,
     grandTotal: acc.grandTotal + row.dailyTotal,
@@ -473,8 +489,7 @@ export function UserDailyActivityStats() {
   }), { 
     posts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, cmtReceived: 0, 
     shareGiven: 0, shareReceived: 0, friends: 0,
-    postReward: 0, reactGivenReward: 0, reactReceivedReward: 0, 
-    cmtGivenReward: 0, cmtReceivedReward: 0, shareGivenReward: 0, 
+    postReward: 0, reactReceivedReward: 0, cmtReceivedReward: 0, 
     shareReceivedReward: 0, friendReward: 0, grandTotal: 0, cappedDays: 0
   });
 
@@ -488,12 +503,12 @@ export function UserDailyActivityStats() {
 
     const headers = [
       'Ngày', 
-      'Bài đăng', 'Thưởng bài đăng',
-      'Like cho', 'Thưởng like cho',
+      'Bài CL', 'Thưởng bài CL',
+      'Like cho', // No reward
       'Like nhận', 'Thưởng like nhận',
-      'Cmt cho', 'Thưởng cmt cho',
-      'Cmt nhận', 'Thưởng cmt nhận',
-      'Share cho', 'Thưởng share cho',
+      'Cmt cho', // No reward
+      'Cmt CL nhận', 'Thưởng cmt CL nhận',
+      'Share cho', // No reward
       'Share nhận', 'Thưởng share nhận',
       'Bạn mới', 'Thưởng bạn mới',
       'Tổng thưởng ngày', 'Có bị CAP'
@@ -505,18 +520,19 @@ export function UserDailyActivityStats() {
       `# Email: ${selectedUser.email || 'N/A'}`,
       `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`,
       `# Tính đến: ${searchTimestamp ? format(searchTimestamp, 'HH:mm:ss dd/MM/yyyy', { locale: vi }) : ''}`,
+      `# REWARD SYSTEM v3.0 - Chỉ tính thưởng NHẬN (không tính cho)`,
       `# Daily Cap: ${DAILY_CAP.toLocaleString()} CLC`,
       `# Số ngày bị CAP: ${totals.cappedDays}`,
       '',
       headers.join(','),
       ...activityData.map(row => [
         row.date,
-        row.postsCreated, row.postReward,
-        row.reactionsGiven, row.reactGivenReward,
+        row.qualityPostsCreated, row.postReward,
+        row.reactionsGiven, // No reward column
         row.reactionsReceived, row.reactReceivedReward,
-        row.commentsGiven, row.cmtGivenReward,
-        row.commentsReceived, row.cmtReceivedReward,
-        row.sharesGiven, row.shareGivenReward,
+        row.commentsGiven, // No reward column
+        row.qualityCommentsReceived, row.cmtReceivedReward,
+        row.sharesGiven, // No reward column
         row.sharesReceived, row.shareReceivedReward,
         row.friendsAdded, row.friendReward,
         row.dailyTotal, row.dailyTotalBeforeCap > DAILY_CAP ? 'YES' : 'NO'
@@ -528,11 +544,11 @@ export function UserDailyActivityStats() {
     rows.push([
       'TỔNG',
       totals.posts, totals.postReward,
-      totals.reactGiven, totals.reactGivenReward,
+      totals.reactGiven,
       totals.reactReceived, totals.reactReceivedReward,
-      totals.cmtGiven, totals.cmtGivenReward,
+      totals.cmtGiven,
       totals.cmtReceived, totals.cmtReceivedReward,
-      totals.shareGiven, totals.shareGivenReward,
+      totals.shareGiven,
       totals.shareReceived, totals.shareReceivedReward,
       totals.friends, totals.friendReward,
       totals.grandTotal, ''
@@ -543,7 +559,7 @@ export function UserDailyActivityStats() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `user-activity-reward-${selectedUser.id.slice(0, 8)}-${dateRangeStr}.csv`;
+    link.download = `user-activity-reward-v3-${selectedUser.id.slice(0, 8)}-${dateRangeStr}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -563,7 +579,6 @@ export function UserDailyActivityStats() {
     setExportProgress(0);
 
     try {
-      // Get all active users
       const { data: allUsers, error } = await supabase
         .from('profiles')
         .select('id, display_name, email, created_at')
@@ -579,25 +594,21 @@ export function UserDailyActivityStats() {
       const validUserIds = await getValidUserIds();
       const totalUsers = allUsers.length;
 
-      // Collect all user summaries
       interface UserSummary {
         userId: string;
         displayName: string;
         email: string;
-        posts: number;
+        qualityPosts: number;
         reactGiven: number;
         reactReceived: number;
         cmtGiven: number;
-        cmtReceived: number;
+        qualityCmtReceived: number;
         shareGiven: number;
         shareReceived: number;
         friends: number;
         postReward: number;
-        reactGivenReward: number;
         reactReceivedReward: number;
-        cmtGivenReward: number;
         cmtReceivedReward: number;
-        shareGivenReward: number;
         shareReceivedReward: number;
         friendReward: number;
         totalReward: number;
@@ -607,7 +618,6 @@ export function UserDailyActivityStats() {
 
       const allUsersSummary: UserSummary[] = [];
 
-      // Process users in batches
       const batchSize = 3;
       for (let i = 0; i < allUsers.length; i += batchSize) {
         const batch = allUsers.slice(i, i + batchSize);
@@ -616,32 +626,27 @@ export function UserDailyActivityStats() {
           setExportCurrentUser(user.display_name || user.id.slice(0, 8));
           const stats = await fetchUserStats(user.id, validUserIds, startDate, endDate);
 
-          // Calculate summary
           const summary = stats.reduce((acc, row) => ({
-            posts: acc.posts + row.postsCreated,
+            qualityPosts: acc.qualityPosts + row.qualityPostsCreated,
             reactGiven: acc.reactGiven + row.reactionsGiven,
             reactReceived: acc.reactReceived + row.reactionsReceived,
             cmtGiven: acc.cmtGiven + row.commentsGiven,
-            cmtReceived: acc.cmtReceived + row.commentsReceived,
+            qualityCmtReceived: acc.qualityCmtReceived + row.qualityCommentsReceived,
             shareGiven: acc.shareGiven + row.sharesGiven,
             shareReceived: acc.shareReceived + row.sharesReceived,
             friends: acc.friends + row.friendsAdded,
             postReward: acc.postReward + row.postReward,
-            reactGivenReward: acc.reactGivenReward + row.reactGivenReward,
             reactReceivedReward: acc.reactReceivedReward + row.reactReceivedReward,
-            cmtGivenReward: acc.cmtGivenReward + row.cmtGivenReward,
             cmtReceivedReward: acc.cmtReceivedReward + row.cmtReceivedReward,
-            shareGivenReward: acc.shareGivenReward + row.shareGivenReward,
             shareReceivedReward: acc.shareReceivedReward + row.shareReceivedReward,
             friendReward: acc.friendReward + row.friendReward,
             totalReward: acc.totalReward + row.dailyTotal,
             cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_CAP ? 1 : 0),
             activeDays: acc.activeDays + 1
           }), {
-            posts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, cmtReceived: 0,
+            qualityPosts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, qualityCmtReceived: 0,
             shareGiven: 0, shareReceived: 0, friends: 0,
-            postReward: 0, reactGivenReward: 0, reactReceivedReward: 0,
-            cmtGivenReward: 0, cmtReceivedReward: 0, shareGivenReward: 0,
+            postReward: 0, reactReceivedReward: 0, cmtReceivedReward: 0,
             shareReceivedReward: 0, friendReward: 0, totalReward: 0, cappedDays: 0, activeDays: 0
           });
 
@@ -659,7 +664,6 @@ export function UserDailyActivityStats() {
         setExportProgress(Math.round(((i + batchSize) / totalUsers) * 100));
       }
 
-      // Filter out users with no activity
       const activeUsersSummary = allUsersSummary.filter(u => u.activeDays > 0);
 
       if (activeUsersSummary.length === 0) {
@@ -667,32 +671,33 @@ export function UserDailyActivityStats() {
         return;
       }
 
-      // Sort by total reward descending
       activeUsersSummary.sort((a, b) => b.totalReward - a.totalReward);
 
-      // Generate CSV
       const dateRangeStr = `${startDate ? format(startDate, 'yyyyMMdd') : 'start'}-${endDate ? format(endDate, 'yyyyMMdd') : 'now'}`;
 
       const headers = [
         'User ID', 'Tên hiển thị', 'Email',
-        'Bài đăng', 'Thưởng BD',
-        'Like cho', 'Thưởng LC',
+        'Bài CL', 'Thưởng bài CL',
+        'Like cho', // No reward
         'Like nhận', 'Thưởng LN',
-        'Cmt cho', 'Thưởng CC',
-        'Cmt nhận', 'Thưởng CN',
-        'Share cho', 'Thưởng SC',
+        'Cmt cho', // No reward
+        'Cmt CL nhận', 'Thưởng CmtCL',
+        'Share cho', // No reward
         'Share nhận', 'Thưởng SN',
         'Bạn mới', 'Thưởng BM',
         'TỔNG THƯỞNG', 'Số ngày CAP', 'Số ngày HĐ'
       ];
 
       const csvRows = [
-        '# BÁO CÁO TỔNG HỢP THƯỞNG TẤT CẢ USERS - FUN FARM v3.0',
+        '# BÁO CÁO TỔNG HỢP THƯỞNG TẤT CẢ USERS - FUN FARM REWARD SYSTEM v3.0',
         `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`,
         `# Ngày xuất: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
         `# Tổng users có hoạt động: ${activeUsersSummary.length}/${totalUsers}`,
         `# Daily Cap: ${DAILY_CAP.toLocaleString()} CLC`,
         '',
+        '# * V3.0: Chỉ tính thưởng NHẬN (không tính cho)',
+        '# * Bài CL = Bài chất lượng (>100 ký tự + media)',
+        '# * Cmt CL = Comment chất lượng (>20 ký tự)',
         '# * Đã loại trừ: self-interactions, users bị ban, users bị xóa',
         '',
         headers.join(','),
@@ -700,12 +705,12 @@ export function UserDailyActivityStats() {
           u.userId,
           `"${u.displayName.replace(/"/g, '""')}"`,
           `"${u.email.replace(/"/g, '""')}"`,
-          u.posts, u.postReward,
-          u.reactGiven, u.reactGivenReward,
+          u.qualityPosts, u.postReward,
+          u.reactGiven, // No reward
           u.reactReceived, u.reactReceivedReward,
-          u.cmtGiven, u.cmtGivenReward,
-          u.cmtReceived, u.cmtReceivedReward,
-          u.shareGiven, u.shareGivenReward,
+          u.cmtGiven, // No reward
+          u.qualityCmtReceived, u.cmtReceivedReward,
+          u.shareGiven, // No reward
           u.shareReceived, u.shareReceivedReward,
           u.friends, u.friendReward,
           u.totalReward, u.cappedDays, u.activeDays
@@ -714,18 +719,15 @@ export function UserDailyActivityStats() {
 
       // Add grand totals
       const grandTotals = activeUsersSummary.reduce((acc, u) => ({
-        posts: acc.posts + u.posts,
+        qualityPosts: acc.qualityPosts + u.qualityPosts,
         postReward: acc.postReward + u.postReward,
         reactGiven: acc.reactGiven + u.reactGiven,
-        reactGivenReward: acc.reactGivenReward + u.reactGivenReward,
         reactReceived: acc.reactReceived + u.reactReceived,
         reactReceivedReward: acc.reactReceivedReward + u.reactReceivedReward,
         cmtGiven: acc.cmtGiven + u.cmtGiven,
-        cmtGivenReward: acc.cmtGivenReward + u.cmtGivenReward,
-        cmtReceived: acc.cmtReceived + u.cmtReceived,
+        qualityCmtReceived: acc.qualityCmtReceived + u.qualityCmtReceived,
         cmtReceivedReward: acc.cmtReceivedReward + u.cmtReceivedReward,
         shareGiven: acc.shareGiven + u.shareGiven,
-        shareGivenReward: acc.shareGivenReward + u.shareGivenReward,
         shareReceived: acc.shareReceived + u.shareReceived,
         shareReceivedReward: acc.shareReceivedReward + u.shareReceivedReward,
         friends: acc.friends + u.friends,
@@ -733,9 +735,9 @@ export function UserDailyActivityStats() {
         totalReward: acc.totalReward + u.totalReward,
         cappedDays: acc.cappedDays + u.cappedDays
       }), {
-        posts: 0, postReward: 0, reactGiven: 0, reactGivenReward: 0,
-        reactReceived: 0, reactReceivedReward: 0, cmtGiven: 0, cmtGivenReward: 0,
-        cmtReceived: 0, cmtReceivedReward: 0, shareGiven: 0, shareGivenReward: 0,
+        qualityPosts: 0, postReward: 0, reactGiven: 0,
+        reactReceived: 0, reactReceivedReward: 0, cmtGiven: 0,
+        qualityCmtReceived: 0, cmtReceivedReward: 0, shareGiven: 0,
         shareReceived: 0, shareReceivedReward: 0, friends: 0, friendReward: 0,
         totalReward: 0, cappedDays: 0
       });
@@ -743,30 +745,29 @@ export function UserDailyActivityStats() {
       csvRows.push('');
       csvRows.push([
         'TỔNG CỘNG', '', '',
-        grandTotals.posts, grandTotals.postReward,
-        grandTotals.reactGiven, grandTotals.reactGivenReward,
+        grandTotals.qualityPosts, grandTotals.postReward,
+        grandTotals.reactGiven,
         grandTotals.reactReceived, grandTotals.reactReceivedReward,
-        grandTotals.cmtGiven, grandTotals.cmtGivenReward,
-        grandTotals.cmtReceived, grandTotals.cmtReceivedReward,
-        grandTotals.shareGiven, grandTotals.shareGivenReward,
+        grandTotals.cmtGiven,
+        grandTotals.qualityCmtReceived, grandTotals.cmtReceivedReward,
+        grandTotals.shareGiven,
         grandTotals.shareReceived, grandTotals.shareReceivedReward,
         grandTotals.friends, grandTotals.friendReward,
         grandTotals.totalReward, grandTotals.cappedDays, ''
       ].join(','));
 
-      // Download
       const csvContent = csvRows.join('\n');
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `fun-farm-all-users-reward-${dateRangeStr}.csv`;
+      link.download = `fun-farm-all-users-reward-v3-${dateRangeStr}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`✅ Đã xuất báo cáo cho ${activeUsersSummary.length} users!`);
+      toast.success(`✅ Đã xuất báo cáo v3.0 cho ${activeUsersSummary.length} users!`);
     } catch (err: any) {
       console.error('Export all error:', err);
       toast.error('Lỗi xuất dữ liệu: ' + (err.message || 'Unknown error'));
@@ -797,10 +798,10 @@ export function UserDailyActivityStats() {
           📊 Tra cứu & Báo cáo User
         </CardTitle>
         <CardDescription>
-          Tìm kiếm user hoặc xuất báo cáo tất cả users với công thức Reward System v3.0.
+          Tìm kiếm user hoặc xuất báo cáo tất cả users với công thức <strong>Reward System v3.0</strong>.
           <br />
           <span className="text-amber-600 font-medium">
-            Đã loại trừ: self-interactions, users bị ban, users bị xóa.
+            V3.0: Chỉ tính thưởng NHẬN • Bài CL &gt;100 ký tự + media • Cmt CL &gt;20 ký tự
           </span>
         </CardDescription>
       </CardHeader>
@@ -900,48 +901,40 @@ export function UserDailyActivityStats() {
           </div>
         )}
 
-        {/* Search Bar */}
+        {/* Search Section */}
         <div className="flex gap-2">
           <Input
-            placeholder="Nhập tên hoặc ID user để tra cứu..."
+            placeholder="Nhập tên hoặc ID user..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="flex-1"
           />
           <Button onClick={handleSearch} disabled={isSearching}>
-            {isSearching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            <span className="ml-2 hidden sm:inline">Tìm kiếm</span>
+            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
 
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <div className="border rounded-lg p-2 space-y-1 bg-muted/30">
-            <p className="text-sm text-muted-foreground px-2">Chọn user để xem thống kê:</p>
+          <div className="border rounded-lg p-2 space-y-1">
+            <p className="text-xs text-muted-foreground px-2">Chọn user để xem chi tiết:</p>
             {searchResults.map((user) => (
               <button
                 key={user.id}
                 onClick={() => handleSelectUser(user)}
-                className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors text-left"
+                className="w-full flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors text-left"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar_url || undefined} />
+                  <AvatarImage src={user.avatar_url || ''} />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{user.display_name || 'Chưa đặt tên'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email || user.id}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  Tham gia: {format(new Date(user.created_at), 'dd/MM/yyyy')}
-                </span>
               </button>
             ))}
           </div>
@@ -949,215 +942,156 @@ export function UserDailyActivityStats() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="flex items-center justify-center py-8 gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-muted-foreground">Đang tải dữ liệu...</span>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>Đang tải dữ liệu...</span>
           </div>
         )}
 
-        {/* Stats Table */}
+        {/* Selected User Info */}
         {selectedUser && !isLoading && (
           <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={selectedUser.avatar_url || undefined} />
+                  <AvatarImage src={selectedUser.avatar_url || ''} />
                   <AvatarFallback>
                     <User className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <FileSpreadsheet className="h-5 w-5 text-green-500" />
-                    Bảng thống kê của "{selectedUser.display_name || 'Chưa đặt tên'}"
-                  </h3>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <CalendarIcon className="h-4 w-4" />
-                    {startDate || endDate ? (
-                      <>Từ {startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} đến {endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}</>
-                    ) : (
-                      <>Tính đến {searchTimestamp && format(searchTimestamp, "HH'h'mm'p'ss's' 'ngày' dd/MM/yyyy", { locale: vi })}</>
-                    )}
-                  </p>
+                  <p className="font-semibold">{selectedUser.display_name || 'Chưa đặt tên'}</p>
+                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  <p className="text-xs text-muted-foreground">ID: {selectedUser.id.slice(0, 8)}...</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 {activityData.length > 0 && (
                   <Button variant="outline" size="sm" onClick={handleExportCSV}>
                     <Download className="h-4 w-4 mr-1" />
-                    Export CSV
+                    Xuất CSV
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={handleClear}>
-                  <X className="h-4 w-4 mr-1" />
-                  Đóng
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
-            {activityData.length > 0 ? (
-              <>
-                {/* Grand Total Banner */}
-                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Coins className="h-8 w-8 text-amber-500" />
-                    <div>
-                      <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">Tổng thưởng tích lũy</p>
-                      <p className="text-2xl font-bold text-amber-600 dark:text-amber-300">
-                        {totals.grandTotal.toLocaleString('vi-VN')} CLC
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right text-sm text-muted-foreground">
-                    <p>Từ {activityData.length} ngày hoạt động</p>
-                    <p className="text-xs">
-                      {totals.cappedDays > 0 && <span className="text-red-500">{totals.cappedDays} ngày bị CAP • </span>}
-                      Daily cap: {DAILY_CAP.toLocaleString()} CLC
-                    </p>
-                  </div>
+            {/* Summary Stats */}
+            {activityData.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-600">{totals.posts}</p>
+                  <p className="text-xs text-muted-foreground">Bài CL</p>
                 </div>
-
-                {/* Table with sticky header */}
-                <div className="relative overflow-hidden rounded-md border">
-                  <div className="max-h-[500px] overflow-auto">
-                    <Table>
-                      <TableHeader className="sticky top-0 z-20 bg-background">
-                        {/* Header Row */}
-                        <TableRow className="bg-slate-100 dark:bg-slate-800">
-                          <TableHead className="w-[100px] font-bold">Ngày</TableHead>
-                          <TableHead className="text-center font-bold">Bài đăng</TableHead>
-                          <TableHead className="text-center font-bold text-blue-500">Like cho</TableHead>
-                          <TableHead className="text-center font-bold text-blue-600">Like nhận</TableHead>
-                          <TableHead className="text-center font-bold text-green-500">Cmt cho</TableHead>
-                          <TableHead className="text-center font-bold text-green-600">Cmt nhận</TableHead>
-                          <TableHead className="text-center font-bold text-purple-500">Share cho</TableHead>
-                          <TableHead className="text-center font-bold text-purple-600">Share nhận</TableHead>
-                          <TableHead className="text-center font-bold text-pink-500">Bạn mới</TableHead>
-                          <TableHead className="text-center font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">Tổng thưởng</TableHead>
-                        </TableRow>
-                        {/* Totals Row (sticky) */}
-                        <TableRow className="bg-blue-50 dark:bg-blue-900/30 border-b-2 border-blue-200 dark:border-blue-700">
-                          <TableCell className="font-bold text-blue-700 dark:text-blue-300">TỔNG</TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.posts}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.postReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.reactGiven}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.reactGivenReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.reactReceived}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.reactReceivedReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.cmtGiven}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.cmtGivenReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.cmtReceived}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.cmtReceivedReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.shareGiven}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.shareGivenReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.shareReceived}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.shareReceivedReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="font-bold">{totals.friends}</div>
-                            <div className="text-xs text-green-600">{formatCLC(totals.friendReward)}</div>
-                          </TableCell>
-                          <TableCell className="text-center bg-amber-100 dark:bg-amber-900/50">
-                            <div className="font-bold text-amber-700 dark:text-amber-300">
-                              {formatCLC(totals.grandTotal)} CLC
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {activityData.map((row) => (
-                          <TableRow key={row.date} className="hover:bg-muted/50">
-                            <TableCell className="font-medium">
-                              {format(new Date(row.date), 'dd/MM/yyyy')}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.postsCreated || '-'}</div>
-                              {row.postReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.postReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.reactionsGiven || '-'}</div>
-                              {row.reactGivenReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.reactGivenReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.reactionsReceived || '-'}</div>
-                              {row.reactReceivedReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.reactReceivedReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.commentsGiven || '-'}</div>
-                              {row.cmtGivenReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.cmtGivenReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.commentsReceived || '-'}</div>
-                              {row.cmtReceivedReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.cmtReceivedReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.sharesGiven || '-'}</div>
-                              {row.shareGivenReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.shareGivenReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.sharesReceived || '-'}</div>
-                              {row.shareReceivedReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.shareReceivedReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="font-medium">{row.friendsAdded || '-'}</div>
-                              {row.friendReward > 0 && (
-                                <div className="text-xs text-green-600">{formatCLC(row.friendReward)}</div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center bg-amber-50 dark:bg-amber-900/20">
-                              <div className="font-bold text-amber-700 dark:text-amber-300">
-                                {formatCLC(row.dailyTotal)}
-                              </div>
-                              {row.dailyTotalBeforeCap > DAILY_CAP && (
-                                <Badge variant="destructive" className="text-[10px] px-1 py-0 mt-0.5">
-                                  CAP
-                                </Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                <div className="p-3 bg-pink-50 dark:bg-pink-950/30 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-pink-600">{totals.reactReceived}</p>
+                  <p className="text-xs text-muted-foreground">Like nhận</p>
                 </div>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Hiển thị {activityData.length} ngày hoạt động • Đã loại trừ self-interactions và users không hợp lệ • Daily cap: {DAILY_CAP.toLocaleString()} CLC
-                </p>
-              </>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>User chưa có hoạt động nào trong khoảng thời gian đã chọn</p>
+                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-green-600">{totals.cmtReceived}</p>
+                  <p className="text-xs text-muted-foreground">Cmt CL nhận</p>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-amber-600">{formatCLC(totals.grandTotal)}</p>
+                  <p className="text-xs text-muted-foreground">Tổng CLC</p>
+                </div>
               </div>
+            )}
+
+            {/* Timestamp and Cap info */}
+            {searchTimestamp && activityData.length > 0 && (
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <span>
+                  📅 Dữ liệu tính đến: {format(searchTimestamp, 'HH:mm:ss dd/MM/yyyy', { locale: vi })}
+                </span>
+                <span>
+                  🏆 Daily Cap: {DAILY_CAP.toLocaleString()} CLC
+                </span>
+                {totals.cappedDays > 0 && (
+                  <Badge variant="destructive">
+                    {totals.cappedDays} ngày bị CAP
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Activity Table */}
+            {activityData.length > 0 && (
+              <div className="border rounded-lg overflow-auto max-h-[500px]">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                      <TableHead className="sticky left-0 bg-background z-20 min-w-[100px]">Ngày</TableHead>
+                      <TableHead className="text-center">Bài CL</TableHead>
+                      <TableHead className="text-right text-blue-600">Thưởng BD</TableHead>
+                      <TableHead className="text-center text-muted-foreground">Like cho</TableHead>
+                      <TableHead className="text-center">Like nhận</TableHead>
+                      <TableHead className="text-right text-pink-600">Thưởng LN</TableHead>
+                      <TableHead className="text-center text-muted-foreground">Cmt cho</TableHead>
+                      <TableHead className="text-center">Cmt CL nhận</TableHead>
+                      <TableHead className="text-right text-green-600">Thưởng CmtCL</TableHead>
+                      <TableHead className="text-center text-muted-foreground">Share cho</TableHead>
+                      <TableHead className="text-center">Share nhận</TableHead>
+                      <TableHead className="text-right text-purple-600">Thưởng SN</TableHead>
+                      <TableHead className="text-center">Bạn mới</TableHead>
+                      <TableHead className="text-right text-orange-600">Thưởng BM</TableHead>
+                      <TableHead className="text-right font-bold">Tổng ngày</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activityData.map((row) => (
+                      <TableRow key={row.date} className={row.dailyTotalBeforeCap > DAILY_CAP ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
+                        <TableCell className="sticky left-0 bg-background font-medium">
+                          {format(new Date(row.date), 'dd/MM/yyyy')}
+                          {row.dailyTotalBeforeCap > DAILY_CAP && (
+                            <Badge variant="outline" className="ml-1 text-xs">CAP</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">{row.qualityPostsCreated || '-'}</TableCell>
+                        <TableCell className="text-right text-blue-600">{formatCLC(row.postReward)}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.reactionsGiven || '-'}</TableCell>
+                        <TableCell className="text-center">{row.reactionsReceived || '-'}</TableCell>
+                        <TableCell className="text-right text-pink-600">{formatCLC(row.reactReceivedReward)}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.commentsGiven || '-'}</TableCell>
+                        <TableCell className="text-center">{row.qualityCommentsReceived || '-'}</TableCell>
+                        <TableCell className="text-right text-green-600">{formatCLC(row.cmtReceivedReward)}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.sharesGiven || '-'}</TableCell>
+                        <TableCell className="text-center">{row.sharesReceived || '-'}</TableCell>
+                        <TableCell className="text-right text-purple-600">{formatCLC(row.shareReceivedReward)}</TableCell>
+                        <TableCell className="text-center">{row.friendsAdded || '-'}</TableCell>
+                        <TableCell className="text-right text-orange-600">{formatCLC(row.friendReward)}</TableCell>
+                        <TableCell className="text-right font-bold">{formatCLC(row.dailyTotal)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Totals Row */}
+                    <TableRow className="bg-muted/50 font-semibold sticky bottom-0">
+                      <TableCell className="sticky left-0 bg-muted/50">TỔNG</TableCell>
+                      <TableCell className="text-center">{totals.posts}</TableCell>
+                      <TableCell className="text-right text-blue-600">{formatCLC(totals.postReward)}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.reactGiven}</TableCell>
+                      <TableCell className="text-center">{totals.reactReceived}</TableCell>
+                      <TableCell className="text-right text-pink-600">{formatCLC(totals.reactReceivedReward)}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.cmtGiven}</TableCell>
+                      <TableCell className="text-center">{totals.cmtReceived}</TableCell>
+                      <TableCell className="text-right text-green-600">{formatCLC(totals.cmtReceivedReward)}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.shareGiven}</TableCell>
+                      <TableCell className="text-center">{totals.shareReceived}</TableCell>
+                      <TableCell className="text-right text-purple-600">{formatCLC(totals.shareReceivedReward)}</TableCell>
+                      <TableCell className="text-center">{totals.friends}</TableCell>
+                      <TableCell className="text-right text-orange-600">{formatCLC(totals.friendReward)}</TableCell>
+                      <TableCell className="text-right font-bold text-primary">{formatCLC(totals.grandTotal)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {activityData.length === 0 && !isLoading && (
+              <p className="text-center py-8 text-muted-foreground">
+                User chưa có hoạt động nào trong khoảng thời gian đã chọn
+              </p>
             )}
           </div>
         )}
