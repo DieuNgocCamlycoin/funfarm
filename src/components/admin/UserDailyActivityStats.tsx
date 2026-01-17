@@ -169,6 +169,14 @@ export function UserDailyActivityStats() {
     return Math.min(count, limit) * rate;
   };
 
+  // Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
+  // Vietnam is UTC+7
+  const toVietnamDate = (utcTimestamp: string): string => {
+    const date = new Date(utcTimestamp);
+    const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    return format(vietnamTime, 'yyyy-MM-dd');
+  };
+
   // Fetch user stats with optional date filter
   const fetchUserStats = async (
     userId: string, 
@@ -178,9 +186,25 @@ export function UserDailyActivityStats() {
   ): Promise<DailyActivityRow[]> => {
     const validUserIdArray = Array.from(validUserIds);
     
-    // Build date filter strings
-    const startDateStr = filterStartDate ? format(filterStartDate, 'yyyy-MM-dd') : null;
-    const endDateStr = filterEndDate ? format(filterEndDate, 'yyyy-MM-dd') + 'T23:59:59' : null;
+    // Build date filter strings - convert Vietnam date to UTC for database query
+    // Start of day in VN (00:00) = previous day 17:00 UTC
+    // End of day in VN (23:59:59) = current day 16:59:59 UTC
+    let startDateStr: string | null = null;
+    let endDateStr: string | null = null;
+    
+    if (filterStartDate) {
+      // filterStartDate is midnight VN time, convert to UTC by subtracting 7 hours
+      const startUTC = new Date(filterStartDate.getTime() - 7 * 60 * 60 * 1000);
+      startDateStr = startUTC.toISOString();
+    }
+    
+    if (filterEndDate) {
+      // End of day in VN is 23:59:59.999, convert to UTC
+      const endVN = new Date(filterEndDate);
+      endVN.setHours(23, 59, 59, 999);
+      const endUTC = new Date(endVN.getTime() - 7 * 60 * 60 * 1000);
+      endDateStr = endUTC.toISOString();
+    }
     
     // Fetch user's posts (không phải share)
     let postsQuery = supabase
@@ -188,7 +212,8 @@ export function UserDailyActivityStats() {
       .select('id, created_at')
       .eq('author_id', userId)
       .neq('post_type', 'share')
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .limit(50000);
     
     if (startDateStr) postsQuery = postsQuery.gte('created_at', startDateStr);
     if (endDateStr) postsQuery = postsQuery.lte('created_at', endDateStr);
@@ -196,18 +221,19 @@ export function UserDailyActivityStats() {
     const { data: userPosts } = await postsQuery;
     const userPostIds = userPosts?.map(p => p.id) || [];
     
-    // Collect all dates
+    // Collect all dates (in Vietnam timezone)
     const allDates = new Set<string>();
     
     userPosts?.forEach(p => {
-      allDates.add(format(new Date(p.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(p.created_at));
     });
 
     // Fetch reactions given
     let reactionsGivenQuery = supabase
       .from('post_likes')
       .select('created_at')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .limit(50000);
     
     if (startDateStr) reactionsGivenQuery = reactionsGivenQuery.gte('created_at', startDateStr);
     if (endDateStr) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', endDateStr);
@@ -215,14 +241,15 @@ export function UserDailyActivityStats() {
     const { data: reactionsGiven } = await reactionsGivenQuery;
     
     reactionsGiven?.forEach(r => {
-      allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(r.created_at));
     });
 
     // Fetch comments given
     let commentsGivenQuery = supabase
       .from('comments')
       .select('created_at')
-      .eq('author_id', userId);
+      .eq('author_id', userId)
+      .limit(50000);
     
     if (startDateStr) commentsGivenQuery = commentsGivenQuery.gte('created_at', startDateStr);
     if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
@@ -230,7 +257,7 @@ export function UserDailyActivityStats() {
     const { data: commentsGiven } = await commentsGivenQuery;
     
     commentsGiven?.forEach(c => {
-      allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(c.created_at));
     });
 
     // Fetch shares given
@@ -238,7 +265,8 @@ export function UserDailyActivityStats() {
       .from('posts')
       .select('created_at')
       .eq('author_id', userId)
-      .eq('post_type', 'share');
+      .eq('post_type', 'share')
+      .limit(50000);
     
     if (startDateStr) sharesGivenQuery = sharesGivenQuery.gte('created_at', startDateStr);
     if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
@@ -246,7 +274,7 @@ export function UserDailyActivityStats() {
     const { data: sharesGiven } = await sharesGivenQuery;
     
     sharesGiven?.forEach(s => {
-      allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(s.created_at));
     });
 
     // Fetch friends added
@@ -254,7 +282,8 @@ export function UserDailyActivityStats() {
       .from('followers')
       .select('created_at')
       .eq('follower_id', userId)
-      .eq('status', 'accepted');
+      .eq('status', 'accepted')
+      .limit(50000);
     
     if (startDateStr) friendsAddedQuery = friendsAddedQuery.gte('created_at', startDateStr);
     if (endDateStr) friendsAddedQuery = friendsAddedQuery.lte('created_at', endDateStr);
@@ -262,7 +291,7 @@ export function UserDailyActivityStats() {
     const { data: friendsAdded } = await friendsAddedQuery;
     
     friendsAdded?.forEach(f => {
-      allDates.add(format(new Date(f.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(f.created_at));
     });
 
     // Fetch received metrics (excluding self and invalid users)
@@ -277,7 +306,8 @@ export function UserDailyActivityStats() {
         .select('created_at')
         .in('post_id', userPostIds)
         .neq('user_id', userId)
-        .in('user_id', validUserIdArray);
+        .in('user_id', validUserIdArray)
+        .limit(50000);
       
       if (startDateStr) rrQuery = rrQuery.gte('created_at', startDateStr);
       if (endDateStr) rrQuery = rrQuery.lte('created_at', endDateStr);
@@ -291,7 +321,8 @@ export function UserDailyActivityStats() {
         .select('created_at')
         .in('post_id', userPostIds)
         .neq('author_id', userId)
-        .in('author_id', validUserIdArray);
+        .in('author_id', validUserIdArray)
+        .limit(50000);
       
       if (startDateStr) crQuery = crQuery.gte('created_at', startDateStr);
       if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
@@ -305,7 +336,8 @@ export function UserDailyActivityStats() {
         .select('created_at')
         .in('post_id', userPostIds)
         .neq('user_id', userId)
-        .in('user_id', validUserIdArray);
+        .in('user_id', validUserIdArray)
+        .limit(50000);
       
       if (startDateStr) srQuery = srQuery.gte('created_at', startDateStr);
       if (endDateStr) srQuery = srQuery.lte('created_at', endDateStr);
@@ -315,43 +347,43 @@ export function UserDailyActivityStats() {
     }
 
     reactionsReceived.forEach(r => {
-      allDates.add(format(new Date(r.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(r.created_at));
     });
     commentsReceived.forEach(c => {
-      allDates.add(format(new Date(c.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(c.created_at));
     });
     sharesReceived.forEach(s => {
-      allDates.add(format(new Date(s.created_at), 'yyyy-MM-dd'));
+      allDates.add(toVietnamDate(s.created_at));
     });
 
-    // Calculate stats per date
+    // Calculate stats per date (using Vietnam timezone)
     const sortedDates = Array.from(allDates).sort().reverse(); // Newest first
     
     const stats: DailyActivityRow[] = sortedDates.map(date => {
-      // Count activities for this date
+      // Count activities for this date (using Vietnam timezone)
       const postsCreated = userPosts?.filter(p => 
-        format(new Date(p.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(p.created_at) === date
       ).length || 0;
       const rGiven = reactionsGiven?.filter(r => 
-        format(new Date(r.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(r.created_at) === date
       ).length || 0;
       const rReceived = reactionsReceived.filter(r => 
-        format(new Date(r.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(r.created_at) === date
       ).length || 0;
       const cGiven = commentsGiven?.filter(c => 
-        format(new Date(c.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(c.created_at) === date
       ).length || 0;
       const cReceived = commentsReceived.filter(c => 
-        format(new Date(c.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(c.created_at) === date
       ).length || 0;
       const sGiven = sharesGiven?.filter(s => 
-        format(new Date(s.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(s.created_at) === date
       ).length || 0;
       const sReceived = sharesReceived.filter(s => 
-        format(new Date(s.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(s.created_at) === date
       ).length || 0;
       const fAdded = friendsAdded?.filter(f => 
-        format(new Date(f.created_at), 'yyyy-MM-dd') === date
+        toVietnamDate(f.created_at) === date
       ).length || 0;
 
       // Calculate rewards with limits
