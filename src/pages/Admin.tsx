@@ -1,4 +1,11 @@
 import { useState, useEffect } from "react";
+import { 
+  QUALITY_POST_REWARD, 
+  LIKE_REWARD, 
+  QUALITY_COMMENT_REWARD, 
+  SHARE_REWARD, 
+  FRIENDSHIP_REWARD 
+} from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -433,11 +440,11 @@ const Admin = () => {
   };
 
   const getActionReward = (actionType: string) => {
-    if (actionType.includes('like_received')) return 10000;
-    if (actionType.includes('comment')) return 5000;
-    if (actionType.includes('share')) return 20000;
-    if (actionType.includes('post')) return 10000;
-    if (actionType.includes('friendship')) return 10000;
+    if (actionType.includes('like_received')) return LIKE_REWARD;           // 1,000
+    if (actionType.includes('comment')) return QUALITY_COMMENT_REWARD;      // 2,000
+    if (actionType.includes('share')) return SHARE_REWARD;                  // 10,000
+    if (actionType.includes('post')) return QUALITY_POST_REWARD;            // 10,000
+    if (actionType.includes('friendship')) return FRIENDSHIP_REWARD;        // 10,000
     return 0;
   };
 
