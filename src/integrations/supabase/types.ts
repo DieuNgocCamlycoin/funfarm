@@ -383,6 +383,163 @@ export type Database = {
           },
         ]
       }
+      livestream_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          livestream_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          livestream_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          livestream_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_comments_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestream_likes: {
+        Row: {
+          created_at: string
+          id: string
+          livestream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          livestream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          livestream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_likes_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestream_shares: {
+        Row: {
+          created_at: string
+          id: string
+          livestream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          livestream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          livestream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestream_shares_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      livestreams: {
+        Row: {
+          comments_count: number
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          is_rewarded: boolean
+          likes_count: number
+          reward_amount: number | null
+          shares_count: number
+          started_at: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          is_rewarded?: boolean
+          likes_count?: number
+          reward_amount?: number | null
+          shares_count?: number
+          started_at?: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          comments_count?: number
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          is_rewarded?: boolean
+          likes_count?: number
+          reward_amount?: number | null
+          shares_count?: number
+          started_at?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "livestreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "livestreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "livestreams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merge_conflicts: {
         Row: {
           conflict_details: Json | null
@@ -604,18 +761,27 @@ export type Database = {
       orders: {
         Row: {
           buyer_id: string
+          buyer_note: string | null
+          cancelled_by: string | null
+          cancelled_reason: string | null
           created_at: string
           delivery_address: string | null
           delivery_lat: number | null
           delivery_lng: number | null
           delivery_option: string
           id: string
+          payment_confirmed_at: string | null
+          payment_confirmed_by: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_status: string | null
           post_id: string
           price_per_kg_camly: number
           price_per_kg_vnd: number | null
           product_name: string
           quantity_kg: number
           seller_id: string
+          seller_note: string | null
           shipper_id: string | null
           status: string
           total_camly: number
@@ -624,18 +790,27 @@ export type Database = {
         }
         Insert: {
           buyer_id: string
+          buyer_note?: string | null
+          cancelled_by?: string | null
+          cancelled_reason?: string | null
           created_at?: string
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
           delivery_option: string
           id?: string
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_status?: string | null
           post_id: string
           price_per_kg_camly: number
           price_per_kg_vnd?: number | null
           product_name: string
           quantity_kg: number
           seller_id: string
+          seller_note?: string | null
           shipper_id?: string | null
           status?: string
           total_camly: number
@@ -644,18 +819,27 @@ export type Database = {
         }
         Update: {
           buyer_id?: string
+          buyer_note?: string | null
+          cancelled_by?: string | null
+          cancelled_reason?: string | null
           created_at?: string
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
           delivery_option?: string
           id?: string
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_status?: string | null
           post_id?: string
           price_per_kg_camly?: number
           price_per_kg_vnd?: number | null
           product_name?: string
           quantity_kg?: number
           seller_id?: string
+          seller_note?: string | null
           shipper_id?: string | null
           status?: string
           total_camly?: number
@@ -663,6 +847,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_payment_confirmed_by_fkey"
+            columns: ["payment_confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "orders_payment_confirmed_by_fkey"
+            columns: ["payment_confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_payment_confirmed_by_fkey"
+            columns: ["payment_confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_post_id_fkey"
             columns: ["post_id"]
@@ -736,6 +962,7 @@ export type Database = {
       posts: {
         Row: {
           author_id: string
+          category: string | null
           comments_count: number
           commitments: string[] | null
           content: string | null
@@ -756,6 +983,7 @@ export type Database = {
           price_camly: number | null
           price_vnd: number | null
           product_name: string | null
+          product_status: string | null
           quantity_kg: number | null
           receiver_approved: boolean | null
           receiver_wallet: string | null
@@ -767,6 +995,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          category?: string | null
           comments_count?: number
           commitments?: string[] | null
           content?: string | null
@@ -787,6 +1016,7 @@ export type Database = {
           price_camly?: number | null
           price_vnd?: number | null
           product_name?: string | null
+          product_status?: string | null
           quantity_kg?: number | null
           receiver_approved?: boolean | null
           receiver_wallet?: string | null
@@ -798,6 +1028,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          category?: string | null
           comments_count?: number
           commitments?: string[] | null
           content?: string | null
@@ -818,6 +1049,7 @@ export type Database = {
           price_camly?: number | null
           price_vnd?: number | null
           product_name?: string | null
+          product_status?: string | null
           quantity_kg?: number | null
           receiver_approved?: boolean | null
           receiver_wallet?: string | null
@@ -854,6 +1086,99 @@ export type Database = {
             columns: ["original_post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          images: string[] | null
+          order_id: string
+          post_id: string
+          rating: number
+          reviewer_id: string
+          seller_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          images?: string[] | null
+          order_id: string
+          post_id: string
+          rating: number
+          reviewer_id: string
+          seller_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          images?: string[] | null
+          order_id?: string
+          post_id?: string
+          rating?: number
+          reviewer_id?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1188,6 +1513,117 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_logs: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reference_id: string | null
+          reference_user_id: string | null
+          revoked_at: string | null
+          reward_date: string
+          reward_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reference_id?: string | null
+          reference_user_id?: string | null
+          revoked_at?: string | null
+          reward_date?: string
+          reward_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reference_id?: string | null
+          reference_user_id?: string | null
+          revoked_at?: string | null
+          reward_date?: string
+          reward_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "reward_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_products: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_products_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "saved_products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipper_locations: {
         Row: {
           id: string
@@ -1445,6 +1881,10 @@ export type Database = {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
       }
+      check_daily_reward_cap: {
+        Args: { p_requested_amount: number; p_user_id: string }
+        Returns: number
+      }
       check_spam_behavior: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: boolean
@@ -1514,6 +1954,16 @@ export type Database = {
       is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_user_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_wallet_blacklisted: { Args: { p_wallet: string }; Returns: boolean }
+      log_reward: {
+        Args: {
+          p_amount: number
+          p_reference_id?: string
+          p_reference_user_id?: string
+          p_reward_type: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       process_order: {
         Args: {
           p_buyer_id: string
