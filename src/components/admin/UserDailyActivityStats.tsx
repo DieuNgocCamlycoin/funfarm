@@ -85,7 +85,10 @@ const formatCLC = (amount: number): string => {
 // Check if post is a quality post: >100 chars + has media + original content
 const isQualityPost = (post: { content: string | null; images: string[] | null; video_url: string | null; post_type: string }): boolean => {
   const hasContent = (post.content?.length || 0) > 100;
-  const hasMedia = (post.images && post.images.length > 0) || !!post.video_url;
+  // Fix: video_url could be empty string '', must check for non-empty
+  const hasImages = post.images && Array.isArray(post.images) && post.images.length > 0;
+  const hasVideo = post.video_url !== null && post.video_url !== undefined && post.video_url.trim() !== '';
+  const hasMedia = hasImages || hasVideo;
   const isOriginalContent = post.post_type === 'post' || post.post_type === 'product';
   return hasContent && hasMedia && isOriginalContent;
 };
