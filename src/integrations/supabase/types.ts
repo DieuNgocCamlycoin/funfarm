@@ -765,6 +765,9 @@ export type Database = {
           cancelled_by: string | null
           cancelled_reason: string | null
           created_at: string
+          crypto_amount: number | null
+          crypto_currency: string | null
+          crypto_tx_hash: string | null
           delivery_address: string | null
           delivery_lat: number | null
           delivery_lng: number | null
@@ -794,6 +797,9 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          crypto_amount?: number | null
+          crypto_currency?: string | null
+          crypto_tx_hash?: string | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
@@ -823,6 +829,9 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          crypto_amount?: number | null
+          crypto_currency?: string | null
+          crypto_tx_hash?: string | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null

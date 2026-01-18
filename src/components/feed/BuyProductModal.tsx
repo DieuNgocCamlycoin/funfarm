@@ -19,6 +19,8 @@ import PaymentMethodSelector from "@/components/marketplace/PaymentMethodSelecto
 import PaymentQRDisplay from "@/components/marketplace/PaymentQRDisplay";
 import PaymentProofUpload from "@/components/marketplace/PaymentProofUpload";
 import { PaymentMethod } from "@/types/marketplace";
+import { useMetaMask, TOKEN_ADDRESSES } from "@/hooks/useMetaMask";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   ShoppingCart, 
   Package, 
@@ -29,7 +31,11 @@ import {
   CheckCircle2,
   MapPin,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  Wallet,
+  ExternalLink,
+  AlertTriangle,
+  Bitcoin
 } from "lucide-react";
 import camlyIcon from "@/assets/camly_coin.png";
 
@@ -40,6 +46,7 @@ interface SellerPaymentInfo {
   momo_phone: string | null;
   zalopay_phone: string | null;
   display_name: string | null;
+  wallet_address: string | null;
 }
 
 interface BuyProductModalProps {
@@ -61,7 +68,16 @@ const DELIVERY_CONFIG: Record<string, { label: string; icon: typeof Package }> =
   farm_visit: { label: "Đến vườn trải nghiệm", icon: TreeDeciduous },
 };
 
-type Step = 'order' | 'payment-qr' | 'upload-proof' | 'success';
+// Crypto exchange rates (VND per crypto) - can be fetched from API later
+const CRYPTO_RATES = {
+  BNB: 15000000, // ~15M VND per BNB
+  USDT: 25500,   // ~25.5K VND per USDT
+  BTCB: 2500000000, // ~2.5B VND per BTCB
+};
+
+type CryptoType = 'BNB' | 'USDT' | 'BTCB';
+
+type Step = 'order' | 'payment-qr' | 'crypto-payment' | 'upload-proof' | 'success';
 
 export default function BuyProductModal({
   open,
@@ -78,6 +94,7 @@ export default function BuyProductModal({
   const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const metamask = useMetaMask();
   
   // Form state
   const [quantity, setQuantity] = useState<string>("1");
@@ -92,6 +109,10 @@ export default function BuyProductModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   
+  // Crypto payment state
+  const [cryptoType, setCryptoType] = useState<CryptoType>('USDT');
+  const [cryptoTxHash, setCryptoTxHash] = useState<string | null>(null);
+  
   // Seller payment info
   const [sellerPaymentInfo, setSellerPaymentInfo] = useState<SellerPaymentInfo | null>(null);
   const [loadingSellerInfo, setLoadingSellerInfo] = useState(false);
@@ -104,12 +125,12 @@ export default function BuyProductModal({
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('bank_name, bank_account_number, bank_account_name, momo_phone, zalopay_phone, display_name')
+          .select('bank_name, bank_account_number, bank_account_name, momo_phone, zalopay_phone, display_name, wallet_address')
           .eq('id', sellerId)
           .single();
 
         if (error) throw error;
-        setSellerPaymentInfo(data);
+        setSellerPaymentInfo(data as SellerPaymentInfo);
       } catch (error) {
         console.error('Error fetching seller payment info:', error);
       } finally {
@@ -128,6 +149,18 @@ export default function BuyProductModal({
 
   const formatNumber = (num: number) => new Intl.NumberFormat('vi-VN').format(num);
 
+  // Calculate crypto amount based on VND
+  const getCryptoAmount = (vnd: number, crypto: CryptoType): string => {
+    const rate = CRYPTO_RATES[crypto];
+    const amount = vnd / rate;
+    // Return with appropriate precision
+    if (crypto === 'BTCB') return amount.toFixed(8);
+    if (crypto === 'BNB') return amount.toFixed(6);
+    return amount.toFixed(2); // USDT
+  };
+
+  const cryptoAmount = getCryptoAmount(totalVnd || totalCamly * 25.5, cryptoType);
+
   const resetModal = () => {
     setStep('order');
     setQuantity("1");
@@ -136,6 +169,8 @@ export default function BuyProductModal({
     setDeliveryLng(null);
     setPaymentMethod('camly');
     setCreatedOrderId(null);
+    setCryptoType('USDT');
+    setCryptoTxHash(null);
   };
 
   const handleSubmit = async () => {
@@ -241,11 +276,16 @@ export default function BuyProductModal({
         setCreatedOrderId(data.id);
         
         if (paymentMethod === 'crypto') {
-          // For crypto, we'd integrate MetaMask here
-          toast({
-            title: "Tính năng đang phát triển",
-            description: "Thanh toán Crypto sẽ sớm được hỗ trợ!",
-          });
+          // Check if seller has wallet address
+          if (!sellerPaymentInfo?.wallet_address) {
+            toast({
+              title: "Người bán chưa có ví",
+              description: "Người bán chưa kết nối ví crypto. Vui lòng chọn phương thức khác.",
+              variant: "destructive",
+            });
+            return;
+          }
+          setStep('crypto-payment');
         } else {
           // Show QR code for bank/momo/zalopay
           setStep('payment-qr');
@@ -281,6 +321,65 @@ export default function BuyProductModal({
     }, 2500);
   };
 
+  // Handle crypto payment via MetaMask
+  const handleCryptoPayment = async () => {
+    if (!metamask.isConnected || !sellerPaymentInfo?.wallet_address || !createdOrderId) return;
+    
+    setIsProcessing(true);
+    let txHash: string | null = null;
+    
+    try {
+      const sellerWallet = sellerPaymentInfo.wallet_address;
+      
+      // Send transaction based on selected crypto type
+      if (cryptoType === 'BNB') {
+        txHash = await metamask.sendBNB(sellerWallet, cryptoAmount);
+      } else if (cryptoType === 'USDT') {
+        txHash = await metamask.sendUSDT(sellerWallet, cryptoAmount);
+      } else if (cryptoType === 'BTCB') {
+        txHash = await metamask.sendBTCB(sellerWallet, cryptoAmount);
+      }
+      
+      if (!txHash) throw new Error('Giao dịch thất bại');
+      
+      // Update order with tx hash
+      await supabase
+        .from('orders')
+        .update({
+          payment_status: 'completed',
+          payment_confirmed_at: new Date().toISOString(),
+          crypto_tx_hash: txHash,
+          crypto_currency: cryptoType,
+          crypto_amount: parseFloat(cryptoAmount),
+        })
+        .eq('id', createdOrderId);
+      
+      setCryptoTxHash(txHash);
+      setStep('success');
+      
+      toast({
+        title: "🎉 Thanh toán crypto thành công!",
+        description: `TX: ${txHash.slice(0, 10)}...${txHash.slice(-8)}`,
+      });
+      
+      setTimeout(() => {
+        onOpenChange(false);
+        resetModal();
+        navigate('/my-orders');
+      }, 2500);
+      
+    } catch (error: any) {
+      console.error("Crypto payment error:", error);
+      toast({
+        title: "Giao dịch thất bại",
+        description: error.message || "Có lỗi xảy ra khi thanh toán crypto",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Success step
   if (step === 'success') {
     return (
@@ -291,11 +390,14 @@ export default function BuyProductModal({
               <CheckCircle2 className="w-12 h-12 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-green-600">
-              {paymentMethod === 'camly' ? 'Đặt hàng thành công!' : 'Đã gửi xác nhận!'}
+              {paymentMethod === 'camly' ? 'Đặt hàng thành công!' : 
+               paymentMethod === 'crypto' ? 'Thanh toán Crypto thành công!' : 'Đã gửi xác nhận!'}
             </h3>
             <p className="text-muted-foreground text-center">
               {paymentMethod === 'camly' 
                 ? 'Đơn hàng của bạn đã được gửi đến người bán'
+                : paymentMethod === 'crypto'
+                ? 'Giao dịch đã được xác nhận trên blockchain'
                 : 'Người bán sẽ kiểm tra và xác nhận thanh toán'
               }
             </p>
@@ -303,6 +405,183 @@ export default function BuyProductModal({
               <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-full">
                 <img src={camlyIcon} alt="CAMLY" className="w-5 h-5" />
                 <span className="font-bold text-yellow-700">-{formatNumber(totalCamly)} CAMLY</span>
+              </div>
+            )}
+            {paymentMethod === 'crypto' && cryptoTxHash && (
+              <div className="space-y-2 text-center">
+                <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full">
+                  <Bitcoin className="w-5 h-5 text-orange-600" />
+                  <span className="font-bold text-orange-700">-{cryptoAmount} {cryptoType}</span>
+                </div>
+                <a 
+                  href={`https://bscscan.com/tx/${cryptoTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  Xem trên BscScan <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Crypto payment step
+  if (step === 'crypto-payment' && createdOrderId && sellerPaymentInfo?.wallet_address) {
+    const sellerWallet = sellerPaymentInfo.wallet_address;
+    
+    return (
+      <Dialog open={open} onOpenChange={(val) => { if (!val) resetModal(); onOpenChange(val); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 -ml-2"
+                onClick={() => setStep('order')}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              Thanh toán Crypto
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Warning about on-chain transaction */}
+            <Alert className="border-yellow-500/30 bg-yellow-500/10">
+              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+              <AlertDescription className="text-sm">
+                Giao dịch on-chain trên BSC Network. Cần MetaMask và BNB cho gas fee.
+              </AlertDescription>
+            </Alert>
+            
+            {/* MetaMask not installed */}
+            {!metamask.isInstalled && (
+              <div className="text-center py-6 space-y-4">
+                <Wallet className="w-16 h-16 text-muted-foreground mx-auto" />
+                <p className="text-muted-foreground">MetaMask chưa được cài đặt</p>
+                <Button asChild variant="outline">
+                  <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer">
+                    Cài đặt MetaMask
+                  </a>
+                </Button>
+              </div>
+            )}
+            
+            {/* Connect MetaMask button */}
+            {metamask.isInstalled && !metamask.isConnected && (
+              <Button 
+                onClick={metamask.connect} 
+                disabled={metamask.isConnecting}
+                className="w-full bg-orange-500 hover:bg-orange-600"
+              >
+                {metamask.isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang kết nối...
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Kết nối MetaMask
+                  </>
+                )}
+              </Button>
+            )}
+            
+            {/* Connected - show payment interface */}
+            {metamask.isConnected && (
+              <div className="space-y-4">
+                {/* Your wallet */}
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                  <Label className="text-xs text-muted-foreground">Ví của bạn (BSC)</Label>
+                  <p className="font-mono text-sm">
+                    {metamask.address?.slice(0, 10)}...{metamask.address?.slice(-8)}
+                  </p>
+                </div>
+                
+                {/* Seller wallet */}
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-1">
+                  <Label className="text-xs text-green-600">Ví người bán (BSC)</Label>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-sm flex-1">
+                      {sellerWallet.slice(0, 10)}...{sellerWallet.slice(-8)}
+                    </p>
+                    <a 
+                      href={`https://bscscan.com/address/${sellerWallet}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+                
+                {/* Crypto type selector */}
+                <div className="space-y-2">
+                  <Label>Chọn loại tiền</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['BNB', 'USDT', 'BTCB'] as CryptoType[]).map((crypto) => {
+                      const balance = crypto === 'BNB' ? metamask.bnbBalance :
+                                     crypto === 'USDT' ? metamask.usdtBalance : metamask.btcbBalance;
+                      return (
+                        <button
+                          key={crypto}
+                          onClick={() => setCryptoType(crypto)}
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            cryptoType === crypto 
+                              ? 'border-primary bg-primary/10' 
+                              : 'border-muted hover:border-muted-foreground/50'
+                          }`}
+                        >
+                          <div className="font-bold">{crypto}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {parseFloat(balance).toFixed(4)}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Amount to pay */}
+                <div className="p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Tổng tiền:</span>
+                    <span className="font-medium">{formatNumber(totalVnd || totalCamly * 25.5)} VNĐ</span>
+                  </div>
+                  <div className="flex justify-between items-center text-lg">
+                    <span className="font-bold">Thanh toán:</span>
+                    <span className="font-bold text-orange-600">{cryptoAmount} {cryptoType}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    * Tỷ giá tham khảo, có thể dao động
+                  </p>
+                </div>
+                
+                {/* Confirm button */}
+                <Button
+                  onClick={handleCryptoPayment}
+                  disabled={isProcessing}
+                  className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang xử lý giao dịch...
+                    </>
+                  ) : (
+                    <>
+                      <Bitcoin className="w-4 h-4 mr-2" />
+                      Xác nhận thanh toán {cryptoType}
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </div>
