@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -28,9 +28,19 @@ import {
   Loader2,
   CheckCircle2,
   MapPin,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle
 } from "lucide-react";
 import camlyIcon from "@/assets/camly_coin.png";
+
+interface SellerPaymentInfo {
+  bank_name: string | null;
+  bank_account_number: string | null;
+  bank_account_name: string | null;
+  momo_phone: string | null;
+  zalopay_phone: string | null;
+  display_name: string | null;
+}
 
 interface BuyProductModalProps {
   open: boolean;
@@ -81,6 +91,34 @@ export default function BuyProductModal({
   const [step, setStep] = useState<Step>('order');
   const [isProcessing, setIsProcessing] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  
+  // Seller payment info
+  const [sellerPaymentInfo, setSellerPaymentInfo] = useState<SellerPaymentInfo | null>(null);
+  const [loadingSellerInfo, setLoadingSellerInfo] = useState(false);
+
+  // Fetch seller payment info when modal opens
+  useEffect(() => {
+    const fetchSellerPaymentInfo = async () => {
+      if (!sellerId || !open) return;
+      setLoadingSellerInfo(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('bank_name, bank_account_number, bank_account_name, momo_phone, zalopay_phone, display_name')
+          .eq('id', sellerId)
+          .single();
+
+        if (error) throw error;
+        setSellerPaymentInfo(data);
+      } catch (error) {
+        console.error('Error fetching seller payment info:', error);
+      } finally {
+        setLoadingSellerInfo(false);
+      }
+    };
+
+    fetchSellerPaymentInfo();
+  }, [sellerId, open]);
 
   const quantityNum = parseFloat(quantity) || 0;
   const totalCamly = Math.ceil(quantityNum * priceCamly);
@@ -291,20 +329,33 @@ export default function BuyProductModal({
               Thanh toán đơn hàng
             </DialogTitle>
           </DialogHeader>
-          <PaymentQRDisplay
-            paymentMethod={paymentMethod}
-            orderId={createdOrderId}
-            amount={totalVnd}
-            sellerInfo={{
-              // TODO: Fetch seller's bank info from profile
-              bankName: 'Vietcombank',
-              accountNumber: '1234567890',
-              accountName: 'NGUYEN VAN A',
-              momoPhone: '0912345678',
-              zaloPayPhone: '0912345678',
-            }}
-            onPaymentDone={handlePaymentDone}
-          />
+          {sellerPaymentInfo && !sellerPaymentInfo.bank_account_number && 
+           !sellerPaymentInfo.momo_phone && !sellerPaymentInfo.zalopay_phone ? (
+            <div className="py-8 text-center space-y-4">
+              <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto" />
+              <h3 className="text-lg font-semibold">Người bán chưa cập nhật thông tin thanh toán</h3>
+              <p className="text-muted-foreground text-sm">
+                Vui lòng liên hệ trực tiếp với người bán hoặc chọn phương thức thanh toán bằng CAMLY
+              </p>
+              <Button onClick={() => setStep('order')} variant="outline">
+                Quay lại
+              </Button>
+            </div>
+          ) : (
+            <PaymentQRDisplay
+              paymentMethod={paymentMethod}
+              orderId={createdOrderId}
+              amount={totalVnd}
+              sellerInfo={{
+                bankName: sellerPaymentInfo?.bank_name || undefined,
+                accountNumber: sellerPaymentInfo?.bank_account_number || undefined,
+                accountName: sellerPaymentInfo?.bank_account_name || sellerPaymentInfo?.display_name || undefined,
+                momoPhone: sellerPaymentInfo?.momo_phone || undefined,
+                zaloPayPhone: sellerPaymentInfo?.zalopay_phone || undefined,
+              }}
+              onPaymentDone={handlePaymentDone}
+            />
+          )}
         </DialogContent>
       </Dialog>
     );

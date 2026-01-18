@@ -14,6 +14,7 @@ import { RevenueStats } from "@/components/seller/RevenueStats";
 import { SellerProductList } from "@/components/seller/SellerProductList";
 import { NewOrderCard } from "@/components/seller/NewOrderCard";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import PaymentInfoForm from "@/components/seller/PaymentInfoForm";
 import { Store, Package, Truck, DollarSign, Clock, RefreshCw, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -168,7 +169,7 @@ const SellerDashboard = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-4 mb-6">
+            <TabsList className="w-full grid grid-cols-5 mb-6">
               <TabsTrigger value="new" className="text-xs sm:text-sm relative">
                 <Clock className="w-3 h-3 mr-1 hidden sm:inline" />
                 Đơn mới
@@ -180,11 +181,14 @@ const SellerDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="progress" className="text-xs sm:text-sm">
                 <Truck className="w-3 h-3 mr-1 hidden sm:inline" />
-                Đang xử lý ({inProgressOrders.length})
+                Đang xử lý
               </TabsTrigger>
               <TabsTrigger value="products" className="text-xs sm:text-sm">
                 <Package className="w-3 h-3 mr-1 hidden sm:inline" />
                 Sản phẩm
+              </TabsTrigger>
+              <TabsTrigger value="payment" className="text-xs sm:text-sm">
+                💳 Thanh toán
               </TabsTrigger>
               <TabsTrigger value="revenue" className="text-xs sm:text-sm">
                 <DollarSign className="w-3 h-3 mr-1 hidden sm:inline" />
@@ -314,6 +318,11 @@ const SellerDashboard = () => {
             {/* Products Tab */}
             <TabsContent value="products">
               <SellerProductList />
+            </TabsContent>
+
+            {/* Payment Info Tab */}
+            <TabsContent value="payment">
+              <PaymentInfoForm />
             </TabsContent>
 
             {/* Revenue Tab */}
