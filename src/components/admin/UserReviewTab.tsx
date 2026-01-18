@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { DAILY_REWARD_CAP, TOTAL_WELCOME_BONUS } from "@/lib/constants";
 import {
   AlertTriangle,
   Ban,
@@ -70,13 +71,13 @@ interface UserReviewTabProps {
   onRefresh: () => void;
 }
 
-// Tiêu chí nghi ngờ lạm dụng
+// Tiêu chí nghi ngờ lạm dụng - V3.0: Dựa trên DAILY_REWARD_CAP (500k) và TOTAL_WELCOME_BONUS (100k)
 const getSuspicionScore = (user: UserData): number => {
   let score = 0;
   
-  // Pending reward cao bất thường (>5 triệu)
-  if (user.pending_reward > 5000000) score += 40;
-  else if (user.pending_reward > 2000000) score += 20;
+  // Pending reward cao bất thường (>3 ngày cap = 1.5 triệu hoặc >2 ngày cap = 1 triệu)
+  if (user.pending_reward > DAILY_REWARD_CAP * 3) score += 40;  // >1.5M
+  else if (user.pending_reward > DAILY_REWARD_CAP * 2) score += 20;  // >1M
   
   // Không có avatar
   if (!user.avatar_url) score += 15;
@@ -87,12 +88,12 @@ const getSuspicionScore = (user: UserData): number => {
   // Có lịch sử vi phạm
   if (user.violation_level > 0) score += 25;
   
-  // Không có bài viết nhưng có pending thưởng cao
-  if ((user.posts_count || 0) === 0 && user.pending_reward > 100000) score += 20;
+  // Không có bài viết nhưng có pending thưởng cao (> welcome bonus)
+  if ((user.posts_count || 0) === 0 && user.pending_reward > TOTAL_WELCOME_BONUS) score += 20;
   
-  // Tỉ lệ bất thường: pending cao nhưng không có hoạt động
+  // Tỉ lệ bất thường: pending cao nhưng không có hoạt động (> welcome bonus)
   const totalActivity = (user.posts_count || 0) + (user.comments_count || 0);
-  if (totalActivity === 0 && user.pending_reward > 50000) score += 15;
+  if (totalActivity === 0 && user.pending_reward > TOTAL_WELCOME_BONUS) score += 15;
   
   // Avatar chưa xác minh
   if (!user.avatar_verified) score += 10;
