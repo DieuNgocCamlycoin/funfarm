@@ -765,6 +765,9 @@ export type Database = {
           cancelled_by: string | null
           cancelled_reason: string | null
           created_at: string
+          crypto_amount: number | null
+          crypto_currency: string | null
+          crypto_tx_hash: string | null
           delivery_address: string | null
           delivery_lat: number | null
           delivery_lng: number | null
@@ -794,6 +797,9 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          crypto_amount?: number | null
+          crypto_currency?: string | null
+          crypto_tx_hash?: string | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
@@ -823,6 +829,9 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          crypto_amount?: number | null
+          crypto_currency?: string | null
+          crypto_tx_hash?: string | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
@@ -1189,6 +1198,9 @@ export type Database = {
           avatar_url: string | null
           avatar_verified: boolean
           ban_reason: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           banned: boolean
           banned_at: string | null
           bio: string | null
@@ -1217,6 +1229,7 @@ export type Database = {
           location_lng: number | null
           merge_request_id: string | null
           merged_at: string | null
+          momo_phone: string | null
           pending_reward: number
           phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"]
@@ -1233,12 +1246,16 @@ export type Database = {
           wallet_bonus_claimed: boolean
           wallet_connected: boolean
           welcome_bonus_claimed: boolean
+          zalopay_phone: string | null
         }
         Insert: {
           approved_reward?: number
           avatar_url?: string | null
           avatar_verified?: boolean
           ban_reason?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           banned?: boolean
           banned_at?: string | null
           bio?: string | null
@@ -1267,6 +1284,7 @@ export type Database = {
           location_lng?: number | null
           merge_request_id?: string | null
           merged_at?: string | null
+          momo_phone?: string | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -1283,12 +1301,16 @@ export type Database = {
           wallet_bonus_claimed?: boolean
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
+          zalopay_phone?: string | null
         }
         Update: {
           approved_reward?: number
           avatar_url?: string | null
           avatar_verified?: boolean
           ban_reason?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           banned?: boolean
           banned_at?: string | null
           bio?: string | null
@@ -1317,6 +1339,7 @@ export type Database = {
           location_lng?: number | null
           merge_request_id?: string | null
           merged_at?: string | null
+          momo_phone?: string | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -1333,6 +1356,7 @@ export type Database = {
           wallet_bonus_claimed?: boolean
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
+          zalopay_phone?: string | null
         }
         Relationships: []
       }
