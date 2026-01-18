@@ -1,5 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Reward constants (mirror src/lib/constants.ts for Edge Function)
+const WELCOME_BONUS = 50000;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -25,7 +28,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const rewardAmount = amount || 50000;
+    const rewardAmount = amount || WELCOME_BONUS;
     console.log('Resetting reward for user:', userId, 'amount:', rewardAmount);
 
     const supabase = createClient(

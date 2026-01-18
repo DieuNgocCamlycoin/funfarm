@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { QUALITY_COMMENT_REWARD } from "@/lib/constants";
 
 interface Comment {
   id: string;
@@ -171,8 +172,8 @@ const CommentSection = ({ postId, isOpen, onCommentAdded }: CommentSectionProps)
       // Notify parent about new comment
       onCommentAdded?.();
 
-      // Show reward notification (+5,000 CAMLY for commenter via trigger)
-      toast.success('+5.000 CAMLY cho bạn! 💬', { duration: 2000 });
+      // Show reward notification for quality comment (v3.0)
+      toast.success(`+${QUALITY_COMMENT_REWARD.toLocaleString()} CAMLY cho comment chất lượng! 💬`, { duration: 2000 });
 
     } catch (error) {
       console.error('Error adding comment:', error);
