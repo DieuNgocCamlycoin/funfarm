@@ -57,9 +57,10 @@ import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyActivityStats } from "@/components/admin/UserDailyActivityStats";
+import { RewardComparisonTable } from "@/components/admin/RewardComparisonTable";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
-import { GitMerge, Send } from "lucide-react";
+import { GitMerge, Send, Scale } from "lucide-react";
 
 interface PendingRewardUser {
   id: string;
@@ -664,6 +665,10 @@ const Admin = () => {
               <Download className="h-4 w-4 text-purple-500" />
               <span className="text-purple-500 font-medium">Tính thưởng</span>
             </TabsTrigger>
+            <TabsTrigger value="reward-compare" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Scale className="h-4 w-4 text-indigo-500" />
+              <span className="text-indigo-500 font-medium">So sánh V3.0</span>
+            </TabsTrigger>
             <TabsTrigger value="verification" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Shield className="h-4 w-4 text-blue-500" />
               <span className="text-blue-500 font-medium">Xác minh</span>
@@ -734,6 +739,11 @@ const Admin = () => {
           {/* Reward Calculation Tab */}
           <TabsContent value="reward-calc" className="mt-4">
             <RewardCalculationExport />
+          </TabsContent>
+
+          {/* Reward Comparison Tab */}
+          <TabsContent value="reward-compare" className="mt-4">
+            <RewardComparisonTable />
           </TabsContent>
 
           {/* User Activity Search & Report Tab */}
