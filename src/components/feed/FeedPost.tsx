@@ -237,13 +237,9 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
         setLikes(prev => prev + 1);
         
         // Only show reward notification if this is the FIRST time liking this post
+        // V3.0: Flat rate 1.000 CLC/like (không phân biệt thứ tự)
         if (!hasBeenRewardedForLike && user.id !== post.author.id) {
-          const currentLikes = likes + 1;
-          if (currentLikes <= 3) {
-            toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
-          } else {
-            toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
-          }
+          toast.success(`+1.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
           setHasBeenRewardedForLike(true);
         } else if (hasBeenRewardedForLike) {
           toast.info('Bạn đã lan tỏa tình yêu cho bài này rồi ❤️', { duration: 2000 });
@@ -293,13 +289,9 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
         setLikes(prev => prev + 1);
         
         // Only show reward notification if this is the FIRST time reacting
+        // V3.0: Flat rate 1.000 CLC/like (không phân biệt thứ tự)
         if (!hasBeenRewardedForLike && user.id !== post.author.id) {
-          const currentLikes = likes + 1;
-          if (currentLikes <= 3) {
-            toast.success(`+10.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
-          } else {
-            toast.success(`+1.000 CAMLY cho chủ bài viết!`, { duration: 2000 });
-          }
+          toast.success(`+1.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
           setHasBeenRewardedForLike(true);
         } else if (hasBeenRewardedForLike) {
           toast.info('Bạn đã lan tỏa tình yêu cho bài này rồi ❤️', { duration: 2000 });

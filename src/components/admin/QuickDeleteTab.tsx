@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { DAILY_REWARD_CAP, TOTAL_WELCOME_BONUS } from "@/lib/constants";
 import { 
   Search, 
   Trash2, 
@@ -144,9 +145,11 @@ const QuickDeleteTab = ({ adminId, onRefresh }: QuickDeleteTabProps) => {
         const reasons: string[] = [];
         let riskScore = 0;
 
-        // 1. Pending cao bất thường (> 500k)
-        if (user.pending_reward > 500000) {
-          reasons.push(`Pending cao: ${user.pending_reward.toLocaleString()} CLC`);
+        // V3.0: Sử dụng DAILY_REWARD_CAP (500k) và TOTAL_WELCOME_BONUS (100k) làm ngưỡng
+        
+        // 1. Pending cao bất thường (> 1 ngày cap)
+        if (user.pending_reward > DAILY_REWARD_CAP) {
+          reasons.push(`Pending cao: ${user.pending_reward.toLocaleString()} CLC (> ${DAILY_REWARD_CAP.toLocaleString()} cap/ngày)`);
           riskScore += 3;
         }
 
@@ -165,25 +168,25 @@ const QuickDeleteTab = ({ adminId, onRefresh }: QuickDeleteTabProps) => {
           }
         }
 
-        // 4. Tài khoản mới có pending cao
+        // 4. Tài khoản mới có pending cao (> 1.5x welcome bonus)
         const createdDate = new Date(user.created_at);
         const daysSinceCreation = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (daysSinceCreation < 3 && user.pending_reward > 200000) {
-          reasons.push(`Tài khoản mới (${daysSinceCreation} ngày) + pending cao`);
+        if (daysSinceCreation < 3 && user.pending_reward > TOTAL_WELCOME_BONUS * 1.5) {
+          reasons.push(`Tài khoản mới (${daysSinceCreation} ngày) + pending > ${(TOTAL_WELCOME_BONUS * 1.5).toLocaleString()} CLC`);
           riskScore += 2;
         }
 
-        // 5. Không có hoạt động thật (0 posts, 0 comments) nhưng có pending
+        // 5. Không có hoạt động thật (0 posts, 0 comments) nhưng có pending > welcome bonus
         const posts = postsCount[user.id] || 0;
         const comments = commentsCount[user.id] || 0;
-        if (posts === 0 && comments === 0 && user.pending_reward > 100000) {
-          reasons.push('Không có bài viết/bình luận nhưng có pending');
+        if (posts === 0 && comments === 0 && user.pending_reward > TOTAL_WELCOME_BONUS) {
+          reasons.push('Không có bài viết/bình luận nhưng pending > welcome bonus');
           riskScore += 2;
         }
 
-        // 6. Không xác thực email
-        if (!user.email_verified && user.pending_reward > 100000) {
-          reasons.push('Email chưa xác thực + pending cao');
+        // 6. Không xác thực email + pending > welcome bonus
+        if (!user.email_verified && user.pending_reward > TOTAL_WELCOME_BONUS) {
+          reasons.push('Email chưa xác thực + pending > welcome bonus');
           riskScore += 1;
         }
 
