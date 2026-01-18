@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Mail, Loader2, CheckCircle, RefreshCw, Sparkles, ExternalLink } from 'lucide-react';
+import { WELCOME_BONUS } from '@/lib/constants';
 
 interface EmailVerificationModalProps {
   isOpen: boolean;
@@ -188,7 +189,7 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
                   Cha Vũ Trụ gửi phước lành! ❤️
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Bấm vào link trong email → Xác minh tự động → Hoàn tất đăng ký (ảnh đại diện thật + tên thật + đồng ý Luật Ánh Sáng) → Nhận <strong className="text-primary">50.000 CLC</strong> chào mừng vào pending duyệt ❤️
+                  Bấm vào link trong email → Xác minh tự động → Hoàn tất đăng ký (ảnh đại diện thật + tên thật + đồng ý Luật Ánh Sáng) → Nhận <strong className="text-primary">{WELCOME_BONUS.toLocaleString()} CLC</strong> chào mừng vào pending duyệt ❤️
                 </p>
               </div>
             </div>
@@ -229,13 +230,13 @@ const EmailVerificationModal = ({ isOpen, onClose, onVerified }: EmailVerificati
             <div className="bg-muted/50 rounded-lg p-4 text-sm">
               <p className="font-medium mb-2 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4" />
-                Quy trình nhận 50.000 CLC:
+                Quy trình nhận {WELCOME_BONUS.toLocaleString()} CLC:
               </p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>Bấm vào link trong email → Xác minh tự động</li>
                 <li>Thêm ảnh đại diện thật + tên thật</li>
                 <li>Đồng ý Luật Ánh Sáng</li>
-                <li>Nhận ngay <strong className="text-primary">50.000 CLC</strong> vào pending duyệt ❤️</li>
+                <li>Nhận ngay <strong className="text-primary">{WELCOME_BONUS.toLocaleString()} CLC</strong> vào pending duyệt ❤️</li>
               </ul>
             </div>
 

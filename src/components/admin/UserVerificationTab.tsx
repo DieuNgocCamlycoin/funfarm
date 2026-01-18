@@ -23,6 +23,7 @@ import {
   RefreshCw,
   FileText
 } from 'lucide-react';
+import { WELCOME_BONUS } from '@/lib/constants';
 
 interface VerificationUser {
   id: string;
@@ -108,7 +109,7 @@ const UserVerificationTab = () => {
       const { error } = await supabase.from('notifications').insert({
         user_id: userId,
         type: 'verification_reminder',
-        content: 'Mời bạn hoàn tất xác minh tài khoản để nhận phước lành 50.000 CLC chào mừng! ❤️ Bấm vào hồ sơ để xác minh ngay.'
+        content: `Mời bạn hoàn tất xác minh tài khoản để nhận phước lành ${WELCOME_BONUS.toLocaleString()} CLC chào mừng! ❤️ Bấm vào hồ sơ để xác minh ngay.`
       });
 
       if (error) throw error;

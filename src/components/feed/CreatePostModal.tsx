@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { QUALITY_POST_REWARD } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { uploadToR2 } from "@/lib/r2Upload";
@@ -307,12 +308,11 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
 
       if (error) throw error;
 
-      // Trigger adds +10,000 CAMLY to pending_reward
-      // Reward depends on content quality (>100 chars + media = 20,000 CLC via trigger)
+      // Reward depends on content quality (>100 chars + media = quality post)
       const hasMedia = images.length > 0;
       const hasQualityContent = content.trim().length > 100;
       const rewardMsg = hasMedia && hasQualityContent 
-        ? "Đã đăng bài viết thành công! +20.000 CAMLY 🎉" 
+        ? `Đã đăng bài viết thành công! +${QUALITY_POST_REWARD.toLocaleString()} CAMLY 🎉` 
         : "Đã đăng bài viết thành công! 🌱";
       toast.success(rewardMsg, { duration: 3000 });
       onPost?.(data);
