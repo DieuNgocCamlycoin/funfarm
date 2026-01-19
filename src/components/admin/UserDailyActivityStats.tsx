@@ -39,15 +39,29 @@ interface UserSearchResult {
 
 interface DailyActivityRow {
   date: string;
-  // Activity counts
+  // Activity counts - Posts
+  totalPostsCreated: number;        // NEW: All posts (any type)
   qualityPostsCreated: number;      // Quality posts only
+  
+  // Activity counts - Reactions (Likes)
   reactionsGiven: number;           // Display only, no reward
-  reactionsReceived: number;        // From quality posts
+  totalReactionsReceived: number;   // NEW: All likes received (from any post)
+  reactionsReceived: number;        // From quality posts only
+  
+  // Activity counts - Comments  
   commentsGiven: number;            // Display only, no reward
+  totalCommentsReceived: number;    // NEW: All comments received
+  commentsFromQualityPosts: number; // NEW: Comments from quality posts (any length)
   qualityCommentsReceived: number;  // >20 chars from quality posts
+  
+  // Activity counts - Shares
   sharesGiven: number;              // Display only, no reward
+  totalSharesReceived: number;      // NEW: All shares received
   sharesReceived: number;           // From quality posts
+  
+  // Activity counts - Friends
   friendsAdded: number;
+  
   // Rewards (only received, no given rewards in v3.0)
   postReward: number;
   reactReceivedReward: number;
@@ -294,14 +308,17 @@ export function UserDailyActivityStats() {
 
     const { data: allPosts } = await allPostsQuery;
     
+    // All posts IDs (for total received metrics)
+    const allPostIds = (allPosts || []).map(p => p.id);
+    
     // Filter quality posts only
     const qualityPosts = (allPosts || []).filter(p => isQualityPost(p));
     const qualityPostIds = qualityPosts.map(p => p.id);
     
-    // Collect all dates
+    // Collect all dates - include ALL posts (not just quality)
     const allDates = new Set<string>();
     
-    qualityPosts.forEach(p => {
+    (allPosts || []).forEach(p => {
       allDates.add(toVietnamDate(p.created_at));
     });
 
@@ -374,12 +391,68 @@ export function UserDailyActivityStats() {
     });
 
     // ========================================
-    // STEP 4: Fetch RECEIVED metrics (ONLY from quality posts)
+    // STEP 4: Fetch RECEIVED metrics
     // ========================================
+    // NEW: Total received (from ALL posts)
+    let totalReactionsReceived: { created_at: string }[] = [];
+    let totalCommentsReceived: { created_at: string; content: string | null }[] = [];
+    let totalSharesReceived: { created_at: string }[] = [];
+    
+    // Existing: From quality posts only
     let reactionsReceived: { created_at: string }[] = [];
+    let commentsFromQualityPosts: { created_at: string; content: string | null }[] = [];
     let qualityCommentsReceived: { created_at: string; content: string | null }[] = [];
     let sharesReceived: { created_at: string }[] = [];
 
+    // Fetch TOTAL received (from ALL posts)
+    if (allPostIds.length > 0 && validUserIdArray.length > 0) {
+      // Total reactions received from all posts
+      let totalRrQuery = supabase
+        .from('post_likes')
+        .select('created_at')
+        .in('post_id', allPostIds)
+        .neq('user_id', userId)
+        .in('user_id', validUserIdArray)
+        .limit(50000);
+      
+      if (startDateStr) totalRrQuery = totalRrQuery.gte('created_at', startDateStr);
+      if (endDateStr) totalRrQuery = totalRrQuery.lte('created_at', endDateStr);
+      
+      const { data: totalRr } = await totalRrQuery;
+      totalReactionsReceived = totalRr || [];
+      
+      // Total comments received from all posts
+      let totalCrQuery = supabase
+        .from('comments')
+        .select('created_at, content')
+        .in('post_id', allPostIds)
+        .neq('author_id', userId)
+        .in('author_id', validUserIdArray)
+        .limit(50000);
+      
+      if (startDateStr) totalCrQuery = totalCrQuery.gte('created_at', startDateStr);
+      if (endDateStr) totalCrQuery = totalCrQuery.lte('created_at', endDateStr);
+      
+      const { data: totalCr } = await totalCrQuery;
+      totalCommentsReceived = totalCr || [];
+      
+      // Total shares received from all posts
+      let totalSrQuery = supabase
+        .from('post_shares')
+        .select('created_at')
+        .in('post_id', allPostIds)
+        .neq('user_id', userId)
+        .in('user_id', validUserIdArray)
+        .limit(50000);
+      
+      if (startDateStr) totalSrQuery = totalSrQuery.gte('created_at', startDateStr);
+      if (endDateStr) totalSrQuery = totalSrQuery.lte('created_at', endDateStr);
+      
+      const { data: totalSr } = await totalSrQuery;
+      totalSharesReceived = totalSr || [];
+    }
+
+    // Fetch from QUALITY posts only
     if (qualityPostIds.length > 0 && validUserIdArray.length > 0) {
       // Reactions received from quality posts
       let rrQuery = supabase
@@ -409,8 +482,9 @@ export function UserDailyActivityStats() {
       if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
       
       const { data: cr } = await crQuery;
+      commentsFromQualityPosts = cr || [];
       // Filter only quality comments (>20 chars)
-      qualityCommentsReceived = (cr || []).filter(c => isQualityComment(c));
+      qualityCommentsReceived = commentsFromQualityPosts.filter(c => isQualityComment(c));
       
       // Shares received from quality posts
       let srQuery = supabase
@@ -428,6 +502,16 @@ export function UserDailyActivityStats() {
       sharesReceived = sr || [];
     }
 
+    // Add all dates from received metrics
+    totalReactionsReceived.forEach(r => {
+      allDates.add(toVietnamDate(r.created_at));
+    });
+    totalCommentsReceived.forEach(c => {
+      allDates.add(toVietnamDate(c.created_at));
+    });
+    totalSharesReceived.forEach(s => {
+      allDates.add(toVietnamDate(s.created_at));
+    });
     reactionsReceived.forEach(r => {
       allDates.add(toVietnamDate(r.created_at));
     });
@@ -445,13 +529,27 @@ export function UserDailyActivityStats() {
     
     const stats: DailyActivityRow[] = sortedDates.map(date => {
       // Count activities for this date
+      // Posts
+      const totalPosts = (allPosts || []).filter(p => toVietnamDate(p.created_at) === date).length;
       const qPosts = qualityPosts.filter(p => toVietnamDate(p.created_at) === date).length;
+      
+      // Given
       const rGiven = reactionsGiven?.filter(r => toVietnamDate(r.created_at) === date).length || 0;
-      const rReceived = reactionsReceived.filter(r => toVietnamDate(r.created_at) === date).length;
       const cGiven = commentsGiven?.filter(c => toVietnamDate(c.created_at) === date).length || 0;
-      const qcReceived = qualityCommentsReceived.filter(c => toVietnamDate(c.created_at) === date).length;
       const sGiven = sharesGiven?.filter(s => toVietnamDate(s.created_at) === date).length || 0;
+      
+      // Received - Total (from all posts)
+      const totalRReceived = totalReactionsReceived.filter(r => toVietnamDate(r.created_at) === date).length;
+      const totalCReceived = totalCommentsReceived.filter(c => toVietnamDate(c.created_at) === date).length;
+      const totalSReceived = totalSharesReceived.filter(s => toVietnamDate(s.created_at) === date).length;
+      
+      // Received - From quality posts
+      const rReceived = reactionsReceived.filter(r => toVietnamDate(r.created_at) === date).length;
+      const cFromQualityPosts = commentsFromQualityPosts.filter(c => toVietnamDate(c.created_at) === date).length;
+      const qcReceived = qualityCommentsReceived.filter(c => toVietnamDate(c.created_at) === date).length;
       const sReceived = sharesReceived.filter(s => toVietnamDate(s.created_at) === date).length;
+      
+      // Friends
       const fAdded = friendsAdded?.filter(f => toVietnamDate(f.created_at) === date).length || 0;
 
       // ========================================
@@ -492,14 +590,25 @@ export function UserDailyActivityStats() {
 
       return {
         date,
+        // Posts
+        totalPostsCreated: totalPosts,
         qualityPostsCreated: qPosts,
+        // Reactions
         reactionsGiven: rGiven,
+        totalReactionsReceived: totalRReceived,
         reactionsReceived: rReceived,
+        // Comments
         commentsGiven: cGiven,
+        totalCommentsReceived: totalCReceived,
+        commentsFromQualityPosts: cFromQualityPosts,
         qualityCommentsReceived: qcReceived,
+        // Shares
         sharesGiven: sGiven,
+        totalSharesReceived: totalSReceived,
         sharesReceived: sReceived,
+        // Friends
         friendsAdded: fAdded,
+        // Rewards
         postReward,
         reactReceivedReward,
         cmtReceivedReward,
@@ -569,14 +678,25 @@ export function UserDailyActivityStats() {
 
   // Calculate totals
   const totals = activityData.reduce((acc, row) => ({
-    posts: acc.posts + row.qualityPostsCreated,
+    // Posts
+    totalPosts: acc.totalPosts + row.totalPostsCreated,
+    qualityPosts: acc.qualityPosts + row.qualityPostsCreated,
+    // Reactions
     reactGiven: acc.reactGiven + row.reactionsGiven,
+    totalReactReceived: acc.totalReactReceived + row.totalReactionsReceived,
     reactReceived: acc.reactReceived + row.reactionsReceived,
+    // Comments
     cmtGiven: acc.cmtGiven + row.commentsGiven,
-    cmtReceived: acc.cmtReceived + row.qualityCommentsReceived,
+    totalCmtReceived: acc.totalCmtReceived + row.totalCommentsReceived,
+    cmtFromQualityPosts: acc.cmtFromQualityPosts + row.commentsFromQualityPosts,
+    qualityCmtReceived: acc.qualityCmtReceived + row.qualityCommentsReceived,
+    // Shares
     shareGiven: acc.shareGiven + row.sharesGiven,
+    totalShareReceived: acc.totalShareReceived + row.totalSharesReceived,
     shareReceived: acc.shareReceived + row.sharesReceived,
+    // Friends
     friends: acc.friends + row.friendsAdded,
+    // Rewards
     postReward: acc.postReward + row.postReward,
     reactReceivedReward: acc.reactReceivedReward + row.reactReceivedReward,
     cmtReceivedReward: acc.cmtReceivedReward + row.cmtReceivedReward,
@@ -585,8 +705,11 @@ export function UserDailyActivityStats() {
     grandTotal: acc.grandTotal + row.dailyTotal,
     cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_CAP ? 1 : 0)
   }), { 
-    posts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, cmtReceived: 0, 
-    shareGiven: 0, shareReceived: 0, friends: 0,
+    totalPosts: 0, qualityPosts: 0,
+    reactGiven: 0, totalReactReceived: 0, reactReceived: 0, 
+    cmtGiven: 0, totalCmtReceived: 0, cmtFromQualityPosts: 0, qualityCmtReceived: 0, 
+    shareGiven: 0, totalShareReceived: 0, shareReceived: 0, 
+    friends: 0,
     postReward: 0, reactReceivedReward: 0, cmtReceivedReward: 0, 
     shareReceivedReward: 0, friendReward: 0, grandTotal: 0, cappedDays: 0
   });
@@ -601,14 +724,11 @@ export function UserDailyActivityStats() {
 
     const headers = [
       'Ngày', 
-      'Bài CL', 'Thưởng bài CL',
-      'Like cho', // No reward
-      'Like nhận', 'Thưởng like nhận',
-      'Cmt cho', // No reward
-      'Cmt CL nhận', 'Thưởng cmt CL nhận',
-      'Share cho', // No reward
-      'Share nhận', 'Thưởng share nhận',
-      'Bạn mới', 'Thưởng bạn mới',
+      'Tổng bài', 'Bài CL', 'Thưởng bài CL',
+      'Like cho', 'Tổng Like nhận', 'Like từ bài CL', 'Thưởng LN',
+      'Cmt cho', 'Tổng Cmt nhận', 'Cmt từ bài CL', 'Cmt CL nhận', 'Thưởng CmtCL',
+      'Share cho', 'Tổng Share nhận', 'Share từ bài CL', 'Thưởng SN',
+      'Bạn mới', 'Thưởng BM',
       'Tổng thưởng ngày', 'Có bị CAP'
     ];
     
@@ -625,13 +745,10 @@ export function UserDailyActivityStats() {
       headers.join(','),
       ...activityData.map(row => [
         row.date,
-        row.qualityPostsCreated, row.postReward,
-        row.reactionsGiven, // No reward column
-        row.reactionsReceived, row.reactReceivedReward,
-        row.commentsGiven, // No reward column
-        row.qualityCommentsReceived, row.cmtReceivedReward,
-        row.sharesGiven, // No reward column
-        row.sharesReceived, row.shareReceivedReward,
+        row.totalPostsCreated, row.qualityPostsCreated, row.postReward,
+        row.reactionsGiven, row.totalReactionsReceived, row.reactionsReceived, row.reactReceivedReward,
+        row.commentsGiven, row.totalCommentsReceived, row.commentsFromQualityPosts, row.qualityCommentsReceived, row.cmtReceivedReward,
+        row.sharesGiven, row.totalSharesReceived, row.sharesReceived, row.shareReceivedReward,
         row.friendsAdded, row.friendReward,
         row.dailyTotal, row.dailyTotalBeforeCap > DAILY_CAP ? 'YES' : 'NO'
       ].join(','))
@@ -641,13 +758,10 @@ export function UserDailyActivityStats() {
     rows.push('');
     rows.push([
       'TỔNG',
-      totals.posts, totals.postReward,
-      totals.reactGiven,
-      totals.reactReceived, totals.reactReceivedReward,
-      totals.cmtGiven,
-      totals.cmtReceived, totals.cmtReceivedReward,
-      totals.shareGiven,
-      totals.shareReceived, totals.shareReceivedReward,
+      totals.totalPosts, totals.qualityPosts, totals.postReward,
+      totals.reactGiven, totals.totalReactReceived, totals.reactReceived, totals.reactReceivedReward,
+      totals.cmtGiven, totals.totalCmtReceived, totals.cmtFromQualityPosts, totals.qualityCmtReceived, totals.cmtReceivedReward,
+      totals.shareGiven, totals.totalShareReceived, totals.shareReceived, totals.shareReceivedReward,
       totals.friends, totals.friendReward,
       totals.grandTotal, ''
     ].join(','));
@@ -1101,18 +1215,22 @@ export function UserDailyActivityStats() {
 
             {/* Summary Stats */}
             {activityData.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-600">{totals.posts}</p>
-                  <p className="text-xs text-muted-foreground">Bài CL</p>
+                  <p className="text-2xl font-bold text-blue-600">{totals.totalPosts}</p>
+                  <p className="text-xs text-muted-foreground">Tổng bài / <span className="font-semibold">{totals.qualityPosts} CL</span></p>
                 </div>
                 <div className="p-3 bg-pink-50 dark:bg-pink-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-pink-600">{totals.reactReceived}</p>
-                  <p className="text-xs text-muted-foreground">Like nhận</p>
+                  <p className="text-2xl font-bold text-pink-600">{totals.totalReactReceived}</p>
+                  <p className="text-xs text-muted-foreground">Like nhận / <span className="font-semibold">{totals.reactReceived} từ bài CL</span></p>
                 </div>
                 <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-green-600">{totals.cmtReceived}</p>
-                  <p className="text-xs text-muted-foreground">Cmt CL nhận</p>
+                  <p className="text-2xl font-bold text-green-600">{totals.totalCmtReceived}</p>
+                  <p className="text-xs text-muted-foreground">Cmt nhận / <span className="font-semibold">{totals.qualityCmtReceived} CL</span></p>
+                </div>
+                <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-purple-600">{totals.totalShareReceived}</p>
+                  <p className="text-xs text-muted-foreground">Share nhận / <span className="font-semibold">{totals.shareReceived} từ bài CL</span></p>
                 </div>
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
                   <p className="text-2xl font-bold text-amber-600">{formatCLC(totals.grandTotal)}</p>
@@ -1221,19 +1339,30 @@ export function UserDailyActivityStats() {
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                       <TableHead className="sticky left-0 bg-background z-20 min-w-[100px]">Ngày</TableHead>
+                      {/* Posts */}
+                      <TableHead className="text-center text-muted-foreground text-xs">Tổng bài</TableHead>
                       <TableHead className="text-center">Bài CL</TableHead>
                       <TableHead className="text-right text-blue-600">Thưởng BD</TableHead>
-                      <TableHead className="text-center text-muted-foreground">Like cho</TableHead>
-                      <TableHead className="text-center">Like nhận</TableHead>
+                      {/* Likes */}
+                      <TableHead className="text-center text-muted-foreground text-xs">Like cho</TableHead>
+                      <TableHead className="text-center text-muted-foreground text-xs">Tổng Like</TableHead>
+                      <TableHead className="text-center">Like bài CL</TableHead>
                       <TableHead className="text-right text-pink-600">Thưởng LN</TableHead>
-                      <TableHead className="text-center text-muted-foreground">Cmt cho</TableHead>
-                      <TableHead className="text-center">Cmt CL nhận</TableHead>
+                      {/* Comments */}
+                      <TableHead className="text-center text-muted-foreground text-xs">Cmt cho</TableHead>
+                      <TableHead className="text-center text-muted-foreground text-xs">Tổng Cmt</TableHead>
+                      <TableHead className="text-center text-muted-foreground text-xs">Cmt bài CL</TableHead>
+                      <TableHead className="text-center">CmtCL bài CL</TableHead>
                       <TableHead className="text-right text-green-600">Thưởng CmtCL</TableHead>
-                      <TableHead className="text-center text-muted-foreground">Share cho</TableHead>
-                      <TableHead className="text-center">Share nhận</TableHead>
+                      {/* Shares */}
+                      <TableHead className="text-center text-muted-foreground text-xs">Share cho</TableHead>
+                      <TableHead className="text-center text-muted-foreground text-xs">Tổng Share</TableHead>
+                      <TableHead className="text-center">Share bài CL</TableHead>
                       <TableHead className="text-right text-purple-600">Thưởng SN</TableHead>
+                      {/* Friends */}
                       <TableHead className="text-center">Bạn mới</TableHead>
                       <TableHead className="text-right text-orange-600">Thưởng BM</TableHead>
+                      {/* Total */}
                       <TableHead className="text-right font-bold">Tổng ngày</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1246,38 +1375,60 @@ export function UserDailyActivityStats() {
                             <Badge variant="outline" className="ml-1 text-xs">CAP</Badge>
                           )}
                         </TableCell>
+                        {/* Posts */}
+                        <TableCell className="text-center text-muted-foreground">{row.totalPostsCreated || '-'}</TableCell>
                         <TableCell className="text-center">{row.qualityPostsCreated || '-'}</TableCell>
                         <TableCell className="text-right text-blue-600">{formatCLC(row.postReward)}</TableCell>
+                        {/* Likes */}
                         <TableCell className="text-center text-muted-foreground">{row.reactionsGiven || '-'}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.totalReactionsReceived || '-'}</TableCell>
                         <TableCell className="text-center">{row.reactionsReceived || '-'}</TableCell>
                         <TableCell className="text-right text-pink-600">{formatCLC(row.reactReceivedReward)}</TableCell>
+                        {/* Comments */}
                         <TableCell className="text-center text-muted-foreground">{row.commentsGiven || '-'}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.totalCommentsReceived || '-'}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.commentsFromQualityPosts || '-'}</TableCell>
                         <TableCell className="text-center">{row.qualityCommentsReceived || '-'}</TableCell>
                         <TableCell className="text-right text-green-600">{formatCLC(row.cmtReceivedReward)}</TableCell>
+                        {/* Shares */}
                         <TableCell className="text-center text-muted-foreground">{row.sharesGiven || '-'}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{row.totalSharesReceived || '-'}</TableCell>
                         <TableCell className="text-center">{row.sharesReceived || '-'}</TableCell>
                         <TableCell className="text-right text-purple-600">{formatCLC(row.shareReceivedReward)}</TableCell>
+                        {/* Friends */}
                         <TableCell className="text-center">{row.friendsAdded || '-'}</TableCell>
                         <TableCell className="text-right text-orange-600">{formatCLC(row.friendReward)}</TableCell>
+                        {/* Total */}
                         <TableCell className="text-right font-bold">{formatCLC(row.dailyTotal)}</TableCell>
                       </TableRow>
                     ))}
                     {/* Totals Row */}
                     <TableRow className="bg-muted/50 font-semibold sticky bottom-0">
                       <TableCell className="sticky left-0 bg-muted/50">TỔNG</TableCell>
-                      <TableCell className="text-center">{totals.posts}</TableCell>
+                      {/* Posts */}
+                      <TableCell className="text-center text-muted-foreground">{totals.totalPosts}</TableCell>
+                      <TableCell className="text-center">{totals.qualityPosts}</TableCell>
                       <TableCell className="text-right text-blue-600">{formatCLC(totals.postReward)}</TableCell>
+                      {/* Likes */}
                       <TableCell className="text-center text-muted-foreground">{totals.reactGiven}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.totalReactReceived}</TableCell>
                       <TableCell className="text-center">{totals.reactReceived}</TableCell>
                       <TableCell className="text-right text-pink-600">{formatCLC(totals.reactReceivedReward)}</TableCell>
+                      {/* Comments */}
                       <TableCell className="text-center text-muted-foreground">{totals.cmtGiven}</TableCell>
-                      <TableCell className="text-center">{totals.cmtReceived}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.totalCmtReceived}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.cmtFromQualityPosts}</TableCell>
+                      <TableCell className="text-center">{totals.qualityCmtReceived}</TableCell>
                       <TableCell className="text-right text-green-600">{formatCLC(totals.cmtReceivedReward)}</TableCell>
+                      {/* Shares */}
                       <TableCell className="text-center text-muted-foreground">{totals.shareGiven}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.totalShareReceived}</TableCell>
                       <TableCell className="text-center">{totals.shareReceived}</TableCell>
                       <TableCell className="text-right text-purple-600">{formatCLC(totals.shareReceivedReward)}</TableCell>
+                      {/* Friends */}
                       <TableCell className="text-center">{totals.friends}</TableCell>
                       <TableCell className="text-right text-orange-600">{formatCLC(totals.friendReward)}</TableCell>
+                      {/* Total */}
                       <TableCell className="text-right font-bold text-primary">{formatCLC(totals.grandTotal)}</TableCell>
                     </TableRow>
                   </TableBody>
