@@ -519,6 +519,7 @@ export function UserDailyActivityStats() {
     }
 
     return { stats, debugPosts: debugPostsInfo, queryInfo: debugQueryInfo };
+  };
 
   // Fetch daily stats for selected user
   const handleSelectUser = async (user: UserSearchResult) => {
@@ -1288,3 +1289,4 @@ export function UserDailyActivityStats() {
     </Card>
   );
 }
+
