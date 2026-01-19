@@ -332,6 +332,23 @@
     transform-origin: center center;
   }
 
+  /* Background GIF riêng cho trang Feed */
+  .feed-background::before {
+    content: '';
+    position: fixed;
+    top: -1%;
+    left: -1%;
+    right: -1%;
+    bottom: -1%;
+    background: url('/background-farm.gif') center center / cover no-repeat;
+    z-index: -2;
+  }
+
+  /* Ẩn body::before khi có .feed-background */
+  body:has(.feed-background)::before {
+    display: none;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
   }
