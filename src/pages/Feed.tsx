@@ -622,7 +622,7 @@ const Feed = () => {
     await fetchPosts(0);
   };
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen feed-background">
       <Navbar />
       
       
