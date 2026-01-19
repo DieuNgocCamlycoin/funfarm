@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Coins, Users } from 'lucide-react';
+import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Users, Bug, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   QUALITY_POST_REWARD, 
   LIKE_REWARD, 
@@ -57,6 +59,18 @@ interface DailyActivityRow {
   dailyTotal: number;
 }
 
+// Debug info for a single post
+interface DebugPostInfo {
+  id: string;
+  created_at_raw: string;
+  created_at_vn: string;
+  post_type: string;
+  content_length: number;
+  hasImages: boolean;
+  hasVideo: boolean;
+  isQualityPost: boolean;
+}
+
 // Reward rates v3.0 - Only "received" interactions
 const REWARD_RATES = {
   qualityPost: QUALITY_POST_REWARD,      // 10,000 CLC - >100 chars + media
@@ -82,14 +96,22 @@ const formatCLC = (amount: number): string => {
   return amount.toLocaleString('vi-VN');
 };
 
+// Helper to check if images array has valid images
+const hasValidImages = (images: string[] | null): boolean => {
+  return images != null && Array.isArray(images) && 
+    images.some(url => typeof url === 'string' && url.trim() !== '');
+};
+
+// Helper to check if video_url is valid
+const hasValidVideo = (video_url: string | null): boolean => {
+  return typeof video_url === 'string' && video_url.trim() !== '';
+};
+
 // Check if post is a quality post: >100 chars + has media + original content
 const isQualityPost = (post: { content: string | null; images: string[] | null; video_url: string | null; post_type: string }): boolean => {
   const hasContent = (post.content?.length || 0) > 100;
-  // Fix: images array could contain empty strings, must filter them out
-  const hasImages = post.images && Array.isArray(post.images) && 
-    post.images.some(url => typeof url === 'string' && url.trim() !== '');
-  // Fix: video_url could be empty string '', must check for non-empty
-  const hasVideo = typeof post.video_url === 'string' && post.video_url.trim() !== '';
+  const hasImages = hasValidImages(post.images);
+  const hasVideo = hasValidVideo(post.video_url);
   const hasMedia = hasImages || hasVideo;
   const isOriginalContent = post.post_type === 'post' || post.post_type === 'product';
   return hasContent && hasMedia && isOriginalContent;
@@ -117,6 +139,13 @@ export function UserDailyActivityStats() {
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportCurrentUser, setExportCurrentUser] = useState('');
+  
+  // Debug mode states
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugDate, setDebugDate] = useState<string>('');
+  const [debugPosts, setDebugPosts] = useState<DebugPostInfo[]>([]);
+  const [debugQueryInfo, setDebugQueryInfo] = useState<{ startUTC: string; endUTC: string } | null>(null);
+  const requestIdRef = useRef<number>(0);
 
   // Search users by name or ID
   const handleSearch = async () => {
@@ -188,8 +217,29 @@ export function UserDailyActivityStats() {
   // Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
   const toVietnamDate = (utcTimestamp: string): string => {
     const date = new Date(utcTimestamp);
+    // Add 7 hours to convert UTC to Vietnam time (UTC+7)
     const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
     return format(vietnamTime, 'yyyy-MM-dd');
+  };
+
+  // Convert Vietnam date (YYYY-MM-DD) to UTC range for database query
+  // Vietnam day starts at 00:00 VN = 17:00 previous day UTC
+  // Vietnam day ends at 23:59:59 VN = 16:59:59 same day UTC
+  const vietnamDateToUTCRange = (vnDateStr: string, isStart: boolean): string => {
+    // Parse the date string as YYYY-MM-DD
+    const [year, month, day] = vnDateStr.split('-').map(Number);
+    
+    if (isStart) {
+      // Start of Vietnam day (00:00:00 VN) = previous day 17:00:00 UTC
+      const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      // Subtract 7 hours to get UTC equivalent
+      return new Date(utcDate.getTime() - 7 * 60 * 60 * 1000).toISOString();
+    } else {
+      // End of Vietnam day (23:59:59.999 VN) = same day 16:59:59.999 UTC
+      const utcDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+      // Subtract 7 hours to get UTC equivalent
+      return new Date(utcDate.getTime() - 7 * 60 * 60 * 1000).toISOString();
+    }
   };
 
   // Fetch user stats with v3.0 logic
@@ -197,25 +247,30 @@ export function UserDailyActivityStats() {
     userId: string, 
     validUserIds: Set<string>,
     filterStartDate?: Date,
-    filterEndDate?: Date
-  ): Promise<DailyActivityRow[]> => {
+    filterEndDate?: Date,
+    collectDebugInfo?: boolean
+  ): Promise<{ stats: DailyActivityRow[]; debugPosts?: DebugPostInfo[]; queryInfo?: { startUTC: string; endUTC: string } }> => {
     const validUserIdArray = Array.from(validUserIds);
     
     // Build date filter strings - convert Vietnam date to UTC for database query
+    // IMPORTANT: Calendar gives us Date object in local timezone
+    // We need to extract the DATE PART only and treat it as Vietnam date
     let startDateStr: string | null = null;
     let endDateStr: string | null = null;
     
     if (filterStartDate) {
-      const startUTC = new Date(filterStartDate.getTime() - 7 * 60 * 60 * 1000);
-      startDateStr = startUTC.toISOString();
+      // Extract year/month/day from the Date object (these represent Vietnam date selection)
+      const vnDateStr = format(filterStartDate, 'yyyy-MM-dd');
+      startDateStr = vietnamDateToUTCRange(vnDateStr, true);
     }
     
     if (filterEndDate) {
-      const endVN = new Date(filterEndDate);
-      endVN.setHours(23, 59, 59, 999);
-      const endUTC = new Date(endVN.getTime() - 7 * 60 * 60 * 1000);
-      endDateStr = endUTC.toISOString();
+      // Extract year/month/day from the Date object (these represent Vietnam date selection)
+      const vnDateStr = format(filterEndDate, 'yyyy-MM-dd');
+      endDateStr = vietnamDateToUTCRange(vnDateStr, false);
     }
+    
+    const debugQueryInfo = startDateStr || endDateStr ? { startUTC: startDateStr || 'N/A', endUTC: endDateStr || 'N/A' } : undefined;
     
     // ========================================
     // STEP 1: Fetch ALL posts (with content info for quality check)
@@ -447,9 +502,23 @@ export function UserDailyActivityStats() {
         dailyTotal
       };
     });
+    
+    // Build debug info if requested
+    let debugPostsInfo: DebugPostInfo[] | undefined;
+    if (collectDebugInfo) {
+      debugPostsInfo = (allPosts || []).map(p => ({
+        id: p.id,
+        created_at_raw: p.created_at,
+        created_at_vn: toVietnamDate(p.created_at),
+        post_type: p.post_type,
+        content_length: p.content?.length || 0,
+        hasImages: hasValidImages(p.images),
+        hasVideo: hasValidVideo(p.video_url),
+        isQualityPost: isQualityPost(p)
+      }));
+    }
 
-    return stats;
-  };
+    return { stats, debugPosts: debugPostsInfo, queryInfo: debugQueryInfo };
 
   // Fetch daily stats for selected user
   const handleSelectUser = async (user: UserSearchResult) => {
@@ -457,13 +526,29 @@ export function UserDailyActivityStats() {
     setIsLoading(true);
     setSearchTimestamp(new Date());
     setSearchResults([]);
+    setDebugPosts([]);
+    setDebugQueryInfo(null);
+    
+    // Increment request ID to handle race conditions
+    const currentRequestId = ++requestIdRef.current;
 
     try {
       const validUserIds = await getValidUserIds();
-      const stats = await fetchUserStats(user.id, validUserIds, startDate, endDate);
-      setActivityData(stats);
+      const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, debugMode);
       
-      if (stats.length === 0) {
+      // Check if this is still the current request (handle race conditions)
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
+      
+      setActivityData(result.stats);
+      
+      if (debugMode && result.debugPosts) {
+        setDebugPosts(result.debugPosts);
+        setDebugQueryInfo(result.queryInfo || null);
+      }
+      
+      if (result.stats.length === 0) {
         toast.info('User chưa có hoạt động nào trong khoảng thời gian đã chọn');
       }
     } catch (err: any) {
@@ -629,9 +714,9 @@ export function UserDailyActivityStats() {
 
         const batchPromises = batch.map(async (user) => {
           setExportCurrentUser(user.display_name || user.id.slice(0, 8));
-          const stats = await fetchUserStats(user.id, validUserIds, startDate, endDate);
+          const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, false);
 
-          const summary = stats.reduce((acc, row) => ({
+          const summary = result.stats.reduce((acc, row) => ({
             qualityPosts: acc.qualityPosts + row.qualityPostsCreated,
             reactGiven: acc.reactGiven + row.reactionsGiven,
             reactReceived: acc.reactReceived + row.reactionsReceived,
@@ -788,11 +873,21 @@ export function UserDailyActivityStats() {
     setActivityData([]);
     setSearchTimestamp(null);
     setSearchQuery('');
+    setDebugPosts([]);
+    setDebugQueryInfo(null);
   };
 
   const handleResetDates = () => {
     setStartDate(undefined);
     setEndDate(undefined);
+  };
+  
+  // Copy debug IDs to clipboard
+  const handleCopyDebugIds = (date: string) => {
+    const postsForDate = debugPosts.filter(p => p.created_at_vn === date && p.isQualityPost);
+    const ids = postsForDate.map(p => `'${p.id}'`).join(',\n');
+    navigator.clipboard.writeText(ids);
+    toast.success(`Đã copy ${postsForDate.length} Post IDs cho ngày ${date}`);
   };
 
   return (
@@ -877,6 +972,19 @@ export function UserDailyActivityStats() {
           )}
 
           <div className="flex-1" />
+          
+          {/* Debug Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <Switch
+              id="debug-mode"
+              checked={debugMode}
+              onCheckedChange={setDebugMode}
+            />
+            <Label htmlFor="debug-mode" className="flex items-center gap-1 text-xs cursor-pointer">
+              <Bug className="h-3 w-3" />
+              Debug
+            </Label>
+          </div>
 
           <Button 
             onClick={handleExportAllUsers} 
@@ -1001,6 +1109,82 @@ export function UserDailyActivityStats() {
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
                   <p className="text-2xl font-bold text-amber-600">{formatCLC(totals.grandTotal)}</p>
                   <p className="text-xs text-muted-foreground">Tổng CLC</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Debug Panel */}
+            {debugMode && debugPosts.length > 0 && (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                    <Bug className="h-4 w-4" />
+                    🔍 Debug Mode - Chi tiết Posts
+                  </h4>
+                  {debugQueryInfo && (
+                    <span className="text-xs text-yellow-700 dark:text-yellow-300">
+                      Query range: {debugQueryInfo.startUTC} → {debugQueryInfo.endUTC}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="grid gap-2 text-sm">
+                  <div className="flex gap-4">
+                    <span>📄 Tổng posts trong range: <strong>{debugPosts.length}</strong></span>
+                    <span>✅ Quality posts: <strong>{debugPosts.filter(p => p.isQualityPost).length}</strong></span>
+                  </div>
+                  
+                  {/* Group by date */}
+                  {Array.from(new Set(debugPosts.map(p => p.created_at_vn))).sort().reverse().map(date => {
+                    const postsForDate = debugPosts.filter(p => p.created_at_vn === date);
+                    const qualityPostsForDate = postsForDate.filter(p => p.isQualityPost);
+                    
+                    return (
+                      <div key={date} className="p-2 bg-white dark:bg-muted/30 rounded border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">
+                            📅 {date} - {qualityPostsForDate.length} Bài CL / {postsForDate.length} tổng
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCopyDebugIds(date)}
+                            className="h-6 text-xs"
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy {qualityPostsForDate.length} IDs
+                          </Button>
+                        </div>
+                        <div className="max-h-32 overflow-auto text-xs space-y-1">
+                          {postsForDate.map(p => (
+                            <div 
+                              key={p.id} 
+                              className={cn(
+                                "flex gap-2 p-1 rounded",
+                                p.isQualityPost 
+                                  ? "bg-green-100 dark:bg-green-900/30" 
+                                  : "bg-red-100 dark:bg-red-900/30 opacity-60"
+                              )}
+                            >
+                              <span className="font-mono">{p.id.slice(0, 8)}...</span>
+                              <span>|</span>
+                              <span>type: {p.post_type}</span>
+                              <span>|</span>
+                              <span>chars: {p.content_length}</span>
+                              <span>|</span>
+                              <span>img: {p.hasImages ? '✓' : '✗'}</span>
+                              <span>|</span>
+                              <span>vid: {p.hasVideo ? '✓' : '✗'}</span>
+                              <span>|</span>
+                              <span className={p.isQualityPost ? 'text-green-700' : 'text-red-700'}>
+                                {p.isQualityPost ? '✅ Quality' : '❌ Not quality'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
