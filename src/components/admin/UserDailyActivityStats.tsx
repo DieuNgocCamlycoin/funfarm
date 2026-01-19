@@ -294,31 +294,38 @@ export function UserDailyActivityStats() {
     const debugQueryInfo = startDateStr || endDateStr ? { startUTC: startDateStr || 'N/A', endUTC: endDateStr || 'N/A' } : undefined;
     
     // ========================================
-    // STEP 1: Fetch ALL posts (with content info for quality check)
+    // STEP 1: Fetch ALL user's posts (NO date filter - we need all post IDs for received metrics)
     // ========================================
-    let allPostsQuery = supabase
+    const { data: allUserPosts } = await supabase
       .from('posts')
       .select('id, content, images, video_url, created_at, post_type')
       .eq('author_id', userId)
       .order('created_at', { ascending: true })
       .limit(50000);
     
-    if (startDateStr) allPostsQuery = allPostsQuery.gte('created_at', startDateStr);
-    if (endDateStr) allPostsQuery = allPostsQuery.lte('created_at', endDateStr);
-
-    const { data: allPosts } = await allPostsQuery;
+    // All posts IDs (for querying received interactions on ALL posts)
+    const allPostIds = (allUserPosts || []).map(p => p.id);
     
-    // All posts IDs (for total received metrics)
-    const allPostIds = (allPosts || []).map(p => p.id);
+    // Filter quality posts only (from all user's posts)
+    const allQualityPosts = (allUserPosts || []).filter(p => isQualityPost(p));
+    const qualityPostIds = allQualityPosts.map(p => p.id);
     
-    // Filter quality posts only
-    const qualityPosts = (allPosts || []).filter(p => isQualityPost(p));
-    const qualityPostIds = qualityPosts.map(p => p.id);
+    // Helper to check if timestamp is within date range
+    const isInDateRange = (created_at: string): boolean => {
+      if (!startDateStr && !endDateStr) return true;
+      if (startDateStr && created_at < startDateStr) return false;
+      if (endDateStr && created_at > endDateStr) return false;
+      return true;
+    };
     
-    // Collect all dates - include ALL posts (not just quality)
+    // Posts WITHIN the date range (for "Tổng bài" and "Bài CL" columns)
+    const postsInDateRange = (allUserPosts || []).filter(p => isInDateRange(p.created_at));
+    const qualityPostsInDateRange = postsInDateRange.filter(p => isQualityPost(p));
+    
+    // Collect all dates from posts in date range
     const allDates = new Set<string>();
     
-    (allPosts || []).forEach(p => {
+    postsInDateRange.forEach(p => {
       allDates.add(toVietnamDate(p.created_at));
     });
 
@@ -530,8 +537,8 @@ export function UserDailyActivityStats() {
     const stats: DailyActivityRow[] = sortedDates.map(date => {
       // Count activities for this date
       // Posts
-      const totalPosts = (allPosts || []).filter(p => toVietnamDate(p.created_at) === date).length;
-      const qPosts = qualityPosts.filter(p => toVietnamDate(p.created_at) === date).length;
+      const totalPosts = postsInDateRange.filter(p => toVietnamDate(p.created_at) === date).length;
+      const qPosts = qualityPostsInDateRange.filter(p => toVietnamDate(p.created_at) === date).length;
       
       // Given
       const rGiven = reactionsGiven?.filter(r => toVietnamDate(r.created_at) === date).length || 0;
@@ -622,7 +629,7 @@ export function UserDailyActivityStats() {
     // Build debug info if requested
     let debugPostsInfo: DebugPostInfo[] | undefined;
     if (collectDebugInfo) {
-      debugPostsInfo = (allPosts || []).map(p => ({
+      debugPostsInfo = postsInDateRange.map(p => ({
         id: p.id,
         created_at_raw: p.created_at,
         created_at_vn: toVietnamDate(p.created_at),
