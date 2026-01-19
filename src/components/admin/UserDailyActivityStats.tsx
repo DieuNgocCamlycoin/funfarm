@@ -215,11 +215,18 @@ export function UserDailyActivityStats() {
   };
 
   // Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
+  // CRITICAL: Must not use date-fns/format() as it applies browser timezone
+  // Instead, manually extract UTC components after adding 7 hours
   const toVietnamDate = (utcTimestamp: string): string => {
     const date = new Date(utcTimestamp);
     // Add 7 hours to convert UTC to Vietnam time (UTC+7)
-    const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-    return format(vietnamTime, 'yyyy-MM-dd');
+    const vnMs = date.getTime() + 7 * 60 * 60 * 1000;
+    const vnDate = new Date(vnMs);
+    // Use UTC getters to avoid browser timezone interference
+    const year = vnDate.getUTCFullYear();
+    const month = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(vnDate.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Convert Vietnam date (YYYY-MM-DD) to UTC range for database query
