@@ -17,7 +17,8 @@ import {
   WELCOME_BONUS,
   WALLET_CONNECT_BONUS,
   MAX_POSTS_PER_DAY,
-  MAX_INTERACTIONS_PER_DAY,
+  MAX_LIKES_PER_DAY,
+  MAX_COMMENTS_PER_DAY,
   MAX_SHARES_PER_DAY,
   MAX_FRIENDSHIPS_PER_DAY
 } from "@/lib/constants";
@@ -212,9 +213,8 @@ export function RewardCalculationExport() {
             addRewardForDate(toVietnamDate(post.created_at), QUALITY_POST_REWARD);
           }
 
-          // ONLY quality post IDs are eligible for interaction rewards
-          // Interactions on invalid posts (short content, no media, share posts) are NOT rewarded
-          const qualityPostIds = rewardableQualityPosts.map(p => p.id);
+          // V3.1: Interactions are rewarded on ALL quality posts (not just the first 10/day)
+          const qualityPostIds = qualityPostsData.map(p => p.id);
           
           let likesReceived = 0;
           let qualityComments = 0;
@@ -245,28 +245,22 @@ export function RewardCalculationExport() {
               existingUserIds.has(c.author_id) && (c.content?.length || 0) > 20
             );
 
-            // Combine likes + comments for daily limit
-            interface Interaction {
-              type: 'like' | 'comment';
-              created_at: string;
+            // V3.1: Apply SEPARATE daily limits - 50 likes/day AND 50 comments/day
+            const rewardableLikes = applyDailyLimit(validLikes, l => l.created_at, MAX_LIKES_PER_DAY);
+            const rewardableComments = applyDailyLimit(validQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
+            
+            // Add likes rewards
+            for (const like of rewardableLikes) {
+              const vnDate = toVietnamDate(like.created_at);
+              likesReceived++;
+              addRewardForDate(vnDate, LIKE_REWARD);
             }
-            const allInteractions: Interaction[] = [
-              ...validLikes.map(l => ({ type: 'like' as const, created_at: l.created_at })),
-              ...validQualityComments.map(c => ({ type: 'comment' as const, created_at: c.created_at }))
-            ];
-            allInteractions.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-            
-            const rewardableInteractions = applyDailyLimit(allInteractions, i => i.created_at, MAX_INTERACTIONS_PER_DAY);
-            
-            for (const interaction of rewardableInteractions) {
-              const vnDate = toVietnamDate(interaction.created_at);
-              if (interaction.type === 'like') {
-                likesReceived++;
-                addRewardForDate(vnDate, LIKE_REWARD);
-              } else {
-                qualityComments++;
-                addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-              }
+
+            // Add comments rewards
+            for (const comment of rewardableComments) {
+              const vnDate = toVietnamDate(comment.created_at);
+              qualityComments++;
+              addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
             }
 
             // Shares received on QUALITY posts only - limit 5/day
@@ -519,8 +513,8 @@ export function RewardCalculationExport() {
                     <br />
                     <strong>Tính Daily Cap 500k/ngày:</strong>
                     <br />• Bài CL: {formatNumber(QUALITY_POST_REWARD)} (max {MAX_POSTS_PER_DAY}/ngày)
-                    <br />• Like: {formatNumber(LIKE_REWARD)}/like (max {MAX_INTERACTIONS_PER_DAY}/ngày)
-                    <br />• Comment CL: {formatNumber(QUALITY_COMMENT_REWARD)} (max {MAX_INTERACTIONS_PER_DAY}/ngày)
+                    <br />• Like: {formatNumber(LIKE_REWARD)}/like (max {MAX_LIKES_PER_DAY}/ngày)
+                    <br />• Comment CL: {formatNumber(QUALITY_COMMENT_REWARD)} (max {MAX_COMMENTS_PER_DAY}/ngày)
                     <br />• Share: {formatNumber(SHARE_REWARD)} (max {MAX_SHARES_PER_DAY}/ngày)
                     <br />• Kết bạn: {formatNumber(FRIENDSHIP_REWARD)}/người (max {MAX_FRIENDSHIPS_PER_DAY}/ngày)
                   </AlertDialogDescription>

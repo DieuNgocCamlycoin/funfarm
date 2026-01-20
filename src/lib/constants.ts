@@ -51,7 +51,9 @@ export const LIVESTREAM_MIN_DURATION = 15; // Phút
 // ============================================
 
 export const MAX_POSTS_PER_DAY = 10;
-export const MAX_INTERACTIONS_PER_DAY = 50; // Like + Comment
+export const MAX_INTERACTIONS_PER_DAY = 50; // Legacy - kept for backward compatibility
+export const MAX_LIKES_PER_DAY = 50; // V3.1: Separate limit for likes
+export const MAX_COMMENTS_PER_DAY = 50; // V3.1: Separate limit for quality comments
 export const MAX_SHARES_PER_DAY = 5;
 export const MAX_FRIENDSHIPS_PER_DAY = 10;
 export const MAX_LIVESTREAMS_PER_DAY = 5;

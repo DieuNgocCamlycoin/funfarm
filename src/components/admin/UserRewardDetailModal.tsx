@@ -19,7 +19,8 @@ import {
   WALLET_CONNECT_BONUS,
   DAILY_REWARD_CAP,
   MAX_POSTS_PER_DAY,
-  MAX_INTERACTIONS_PER_DAY,
+  MAX_LIKES_PER_DAY,
+  MAX_COMMENTS_PER_DAY,
   MAX_SHARES_PER_DAY,
   MAX_FRIENDSHIPS_PER_DAY
 } from '@/lib/constants';
@@ -162,24 +163,19 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
         return validUserIds.has(otherId);
       });
 
-      // === Apply daily limits using the SAME logic as RewardComparisonTable ===
+      // === V3.1: Apply SEPARATE daily limits (50 likes, 50 comments) ===
       
       // 1. Quality posts: max 10/day
       const qualityPostsData = (userPosts || []).filter(isQualityPost);
       qualityPostsData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
 
-      // 2. Likes + Comments: COMBINED 50/day (same pool, not separate!)
-      interface Interaction {
-        type: 'like' | 'comment';
-        created_at: string;
-      }
-      const allInteractions: Interaction[] = [
-        ...validLikes.map(l => ({ type: 'like' as const, created_at: l.created_at })),
-        ...validQualityComments.map(c => ({ type: 'comment' as const, created_at: c.created_at }))
-      ];
-      allInteractions.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const rewardableInteractions = applyDailyLimit(allInteractions, i => i.created_at, MAX_INTERACTIONS_PER_DAY);
+      // 2. V3.1: Likes and Comments have SEPARATE limits (50 each)
+      validLikes.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const rewardableLikes = applyDailyLimit(validLikes, l => l.created_at, MAX_LIKES_PER_DAY);
+
+      validQualityComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const rewardableComments = applyDailyLimit(validQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
 
       // 3. Shares: max 5/day
       validShares.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -209,16 +205,18 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
         dailyPostsCount.set(vnDate, (dailyPostsCount.get(vnDate) || 0) + 1);
       }
 
-      // Add interactions reward (from combined pool)
-      for (const interaction of rewardableInteractions) {
-        const vnDate = toVietnamDate(interaction.created_at);
-        if (interaction.type === 'like') {
-          addRewardForDate(vnDate, LIKE_REWARD);
-          dailyLikesCount.set(vnDate, (dailyLikesCount.get(vnDate) || 0) + 1);
-        } else {
-          addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-          dailyCommentsCount.set(vnDate, (dailyCommentsCount.get(vnDate) || 0) + 1);
-        }
+      // V3.1: Add likes rewards (from separate pool)
+      for (const like of rewardableLikes) {
+        const vnDate = toVietnamDate(like.created_at);
+        addRewardForDate(vnDate, LIKE_REWARD);
+        dailyLikesCount.set(vnDate, (dailyLikesCount.get(vnDate) || 0) + 1);
+      }
+
+      // V3.1: Add comments rewards (from separate pool)
+      for (const comment of rewardableComments) {
+        const vnDate = toVietnamDate(comment.created_at);
+        addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
+        dailyCommentsCount.set(vnDate, (dailyCommentsCount.get(vnDate) || 0) + 1);
       }
 
       // Add shares reward
@@ -253,10 +251,10 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
         };
       });
 
-      // Calculate totals (after applying limits, these are the correct counts)
+      // V3.1: Calculate totals (after applying separate limits)
       const totalQualityPosts = rewardableQualityPosts.length;
-      const totalLikes = rewardableInteractions.filter(i => i.type === 'like').length;
-      const totalQualityComments = rewardableInteractions.filter(i => i.type === 'comment').length;
+      const totalLikes = rewardableLikes.length;
+      const totalQualityComments = rewardableComments.length;
       const totalShares = rewardableShares.length;
       const totalFriends = rewardableFriendships.length;
 

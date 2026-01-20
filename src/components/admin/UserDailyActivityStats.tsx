@@ -23,7 +23,8 @@ import {
   SHARE_REWARD, 
   FRIENDSHIP_REWARD,
   MAX_POSTS_PER_DAY,
-  MAX_INTERACTIONS_PER_DAY,
+  MAX_LIKES_PER_DAY,
+  MAX_COMMENTS_PER_DAY,
   MAX_SHARES_PER_DAY,
   MAX_FRIENDSHIPS_PER_DAY,
   DAILY_REWARD_CAP
@@ -94,10 +95,11 @@ const REWARD_RATES = {
   friend: FRIENDSHIP_REWARD              // 10,000 CLC
 };
 
-// Daily limits v3.0
+// Daily limits v3.1
 const DAILY_LIMITS = {
   qualityPost: MAX_POSTS_PER_DAY,           // 10
-  interactionsReceived: MAX_INTERACTIONS_PER_DAY, // 50 (likes + comments combined)
+  likesReceived: MAX_LIKES_PER_DAY,         // 50 (V3.1: separate)
+  commentsReceived: MAX_COMMENTS_PER_DAY,   // 50 (V3.1: separate)
   shareReceived: MAX_SHARES_PER_DAY,        // 5
   friend: MAX_FRIENDSHIPS_PER_DAY           // 10
 };
@@ -560,30 +562,18 @@ export function UserDailyActivityStats() {
       const fAdded = friendsAdded?.filter(f => toVietnamDate(f.created_at) === date).length || 0;
 
       // ========================================
-      // V3.0 REWARD CALCULATION
+      // V3.1 REWARD CALCULATION - Separate limits for likes and comments
       // ========================================
       
       // Quality Post reward: 10,000 * min(count, 10)
       const postReward = Math.min(qPosts, DAILY_LIMITS.qualityPost) * REWARD_RATES.qualityPost;
       
-      // Interactions received: Likes + Quality Comments share limit of 50
-      const totalInteractionsReceived = rReceived + qcReceived;
-      const cappedInteractions = Math.min(totalInteractionsReceived, DAILY_LIMITS.interactionsReceived);
+      // V3.1: Likes and Comments have SEPARATE limits (50 each)
+      const cappedLikes = Math.min(rReceived, DAILY_LIMITS.likesReceived);
+      const cappedComments = Math.min(qcReceived, DAILY_LIMITS.commentsReceived);
       
-      // Distribute capped interactions proportionally to likes and comments
-      let reactReceivedReward = 0;
-      let cmtReceivedReward = 0;
-      
-      if (totalInteractionsReceived > 0) {
-        const likeRatio = rReceived / totalInteractionsReceived;
-        const commentRatio = qcReceived / totalInteractionsReceived;
-        
-        const cappedLikes = Math.floor(cappedInteractions * likeRatio);
-        const cappedComments = Math.ceil(cappedInteractions * commentRatio);
-        
-        reactReceivedReward = cappedLikes * REWARD_RATES.likeReceived;
-        cmtReceivedReward = cappedComments * REWARD_RATES.qualityCommentReceived;
-      }
+      const reactReceivedReward = cappedLikes * REWARD_RATES.likeReceived;
+      const cmtReceivedReward = cappedComments * REWARD_RATES.qualityCommentReceived;
       
       // Share received reward: 10,000 * min(count, 5)
       const shareReceivedReward = Math.min(sReceived, DAILY_LIMITS.shareReceived) * REWARD_RATES.shareReceived;
