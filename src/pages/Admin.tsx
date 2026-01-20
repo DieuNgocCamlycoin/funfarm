@@ -58,9 +58,10 @@ import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyActivityStats } from "@/components/admin/UserDailyActivityStats";
 import { RewardComparisonTable } from "@/components/admin/RewardComparisonTable";
+import { FinancialReportTab } from "@/components/admin/FinancialReportTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
-import { GitMerge, Send, Scale } from "lucide-react";
+import { GitMerge, Send, Scale, DollarSign } from "lucide-react";
 
 interface PendingRewardUser {
   id: string;
@@ -669,6 +670,10 @@ const Admin = () => {
               <Scale className="h-4 w-4 text-indigo-500" />
               <span className="text-indigo-500 font-medium">So sánh V3.0</span>
             </TabsTrigger>
+            <TabsTrigger value="financial" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <DollarSign className="h-4 w-4 text-emerald-600" />
+              <span className="text-emerald-600 font-medium">Báo cáo TC</span>
+            </TabsTrigger>
             <TabsTrigger value="verification" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Shield className="h-4 w-4 text-blue-500" />
               <span className="text-blue-500 font-medium">Xác minh</span>
@@ -744,6 +749,11 @@ const Admin = () => {
           {/* Reward Comparison Tab */}
           <TabsContent value="reward-compare" className="mt-4">
             <RewardComparisonTable />
+          </TabsContent>
+
+          {/* Financial Report Tab */}
+          <TabsContent value="financial" className="mt-4">
+            <FinancialReportTab />
           </TabsContent>
 
           {/* User Activity Search & Report Tab */}
