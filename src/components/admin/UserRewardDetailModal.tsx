@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Download, FileText, Heart, MessageSquare, Share2, Users, Wallet, Gift, Calendar, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toVietnamDate } from '@/lib/dateUtils';
+import { toVietnamDate, applyDailyLimit } from '@/lib/dateUtils';
 import { 
   QUALITY_POST_REWARD, 
   LIKE_REWARD, 
@@ -57,20 +57,14 @@ interface UserSummary {
 
 const formatNumber = (num: number) => num.toLocaleString('vi-VN');
 
-// Daily limit helper (by action type)
-const applyDailyLimit = (count: number, actionType: 'post' | 'like' | 'comment' | 'share' | 'friend'): number => {
-  const limits: Record<string, number> = {
-    post: MAX_POSTS_PER_DAY,
-    like: MAX_INTERACTIONS_PER_DAY,
-    comment: MAX_INTERACTIONS_PER_DAY,
-    share: MAX_SHARES_PER_DAY,
-    friend: MAX_FRIENDSHIPS_PER_DAY
-  };
-  return Math.min(count, limits[actionType] || count);
+// Daily cap helper - applies 500k cap per Vietnam day
+const applyDailyCapToRewards = (rewardsByDate: Map<string, number>): number => {
+  let total = 0;
+  for (const [, amount] of rewardsByDate) {
+    total += Math.min(amount, DAILY_REWARD_CAP);
+  }
+  return total;
 };
-
-// Daily cap helper
-const applyDailyCap = (reward: number): number => Math.min(reward, DAILY_REWARD_CAP);
 
 export function UserRewardDetailModal({ open, onClose, userId, userName }: UserRewardDetailModalProps) {
   const [loading, setLoading] = useState(true);
@@ -161,102 +155,123 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
 
       // Filter to valid users only
       const validLikes = (likesReceived || []).filter(l => validUserIds.has(l.user_id));
-      const validComments = (commentsReceived || []).filter(c => validUserIds.has(c.author_id) && isQualityComment(c.content));
+      const validQualityComments = (commentsReceived || []).filter(c => validUserIds.has(c.author_id) && isQualityComment(c.content));
       const validShares = (sharesReceived || []).filter(s => validUserIds.has(s.user_id));
       const validFriends = (friends || []).filter(f => {
         const otherId = f.follower_id === userId ? f.following_id : f.follower_id;
         return validUserIds.has(otherId);
       });
 
-      // Group by Vietnam date
-      const qualityPostsByDate = new Map<string, number>();
-      const likesByDate = new Map<string, number>();
-      const commentsByDate = new Map<string, number>();
-      const sharesByDate = new Map<string, number>();
-      const friendsByDate = new Map<string, number>();
-
-      // Quality posts by creation date
-      (userPosts || []).filter(isQualityPost).forEach(post => {
-        const date = toVietnamDate(post.created_at);
-        qualityPostsByDate.set(date, (qualityPostsByDate.get(date) || 0) + 1);
-      });
-
-      // Likes received
-      validLikes.forEach(like => {
-        const date = toVietnamDate(like.created_at);
-        likesByDate.set(date, (likesByDate.get(date) || 0) + 1);
-      });
-
-      // Comments received
-      validComments.forEach(comment => {
-        const date = toVietnamDate(comment.created_at);
-        commentsByDate.set(date, (commentsByDate.get(date) || 0) + 1);
-      });
-
-      // Shares received
-      validShares.forEach(share => {
-        const date = toVietnamDate(share.created_at);
-        sharesByDate.set(date, (sharesByDate.get(date) || 0) + 1);
-      });
-
-      // Friends
-      validFriends.forEach(friend => {
-        const date = toVietnamDate(friend.created_at);
-        friendsByDate.set(date, (friendsByDate.get(date) || 0) + 1);
-      });
-
-      // Collect all unique dates
-      const allDates = new Set<string>();
-      [qualityPostsByDate, likesByDate, commentsByDate, sharesByDate, friendsByDate].forEach(map => {
-        map.forEach((_, date) => allDates.add(date));
-      });
-
-      // Build daily stats with limits
-      const dailyStatsMap = new Map<string, DailyStats>();
+      // === Apply daily limits using the SAME logic as RewardComparisonTable ===
       
-      Array.from(allDates).sort().reverse().forEach(date => {
-        const posts = applyDailyLimit(qualityPostsByDate.get(date) || 0, 'post');
-        const likes = applyDailyLimit(likesByDate.get(date) || 0, 'like');
-        const comments = applyDailyLimit(commentsByDate.get(date) || 0, 'comment');
-        const shares = applyDailyLimit(sharesByDate.get(date) || 0, 'share');
-        const friends = applyDailyLimit(friendsByDate.get(date) || 0, 'friend');
+      // 1. Quality posts: max 10/day
+      const qualityPostsData = (userPosts || []).filter(isQualityPost);
+      qualityPostsData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
 
-        const rawReward = 
-          posts * QUALITY_POST_REWARD +
-          likes * LIKE_REWARD +
-          comments * QUALITY_COMMENT_REWARD +
-          shares * SHARE_REWARD +
-          friends * FRIENDSHIP_REWARD;
+      // 2. Likes + Comments: COMBINED 50/day (same pool, not separate!)
+      interface Interaction {
+        type: 'like' | 'comment';
+        created_at: string;
+      }
+      const allInteractions: Interaction[] = [
+        ...validLikes.map(l => ({ type: 'like' as const, created_at: l.created_at })),
+        ...validQualityComments.map(c => ({ type: 'comment' as const, created_at: c.created_at }))
+      ];
+      allInteractions.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const rewardableInteractions = applyDailyLimit(allInteractions, i => i.created_at, MAX_INTERACTIONS_PER_DAY);
 
-        const cappedReward = applyDailyCap(rawReward);
+      // 3. Shares: max 5/day
+      validShares.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const rewardableShares = applyDailyLimit(validShares, s => s.created_at, MAX_SHARES_PER_DAY);
 
-        dailyStatsMap.set(date, {
+      // 4. Friendships: max 10/day
+      validFriends.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const rewardableFriendships = applyDailyLimit(validFriends, f => f.created_at, MAX_FRIENDSHIPS_PER_DAY);
+
+      // === Build rewards by date map (for daily cap calculation) ===
+      const rewardsByDate = new Map<string, number>();
+      const addRewardForDate = (date: string, amount: number) => {
+        rewardsByDate.set(date, (rewardsByDate.get(date) || 0) + amount);
+      };
+
+      // Track daily stats for UI display
+      const dailyPostsCount = new Map<string, number>();
+      const dailyLikesCount = new Map<string, number>();
+      const dailyCommentsCount = new Map<string, number>();
+      const dailySharesCount = new Map<string, number>();
+      const dailyFriendsCount = new Map<string, number>();
+
+      // Add posts reward
+      for (const post of rewardableQualityPosts) {
+        const vnDate = toVietnamDate(post.created_at);
+        addRewardForDate(vnDate, QUALITY_POST_REWARD);
+        dailyPostsCount.set(vnDate, (dailyPostsCount.get(vnDate) || 0) + 1);
+      }
+
+      // Add interactions reward (from combined pool)
+      for (const interaction of rewardableInteractions) {
+        const vnDate = toVietnamDate(interaction.created_at);
+        if (interaction.type === 'like') {
+          addRewardForDate(vnDate, LIKE_REWARD);
+          dailyLikesCount.set(vnDate, (dailyLikesCount.get(vnDate) || 0) + 1);
+        } else {
+          addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
+          dailyCommentsCount.set(vnDate, (dailyCommentsCount.get(vnDate) || 0) + 1);
+        }
+      }
+
+      // Add shares reward
+      for (const share of rewardableShares) {
+        const vnDate = toVietnamDate(share.created_at);
+        addRewardForDate(vnDate, SHARE_REWARD);
+        dailySharesCount.set(vnDate, (dailySharesCount.get(vnDate) || 0) + 1);
+      }
+
+      // Add friendships reward
+      for (const friendship of rewardableFriendships) {
+        const vnDate = toVietnamDate(friendship.created_at);
+        addRewardForDate(vnDate, FRIENDSHIP_REWARD);
+        dailyFriendsCount.set(vnDate, (dailyFriendsCount.get(vnDate) || 0) + 1);
+      }
+
+      // Collect all dates
+      const allDates = new Set(rewardsByDate.keys());
+
+      // Build daily stats with cap applied
+      const dailyStatsArray: DailyStats[] = Array.from(allDates).sort().reverse().map(date => {
+        const rawReward = rewardsByDate.get(date) || 0;
+        return {
           date,
-          qualityPosts: qualityPostsByDate.get(date) || 0,
-          likesReceived: likesByDate.get(date) || 0,
-          qualityComments: commentsByDate.get(date) || 0,
-          sharesReceived: sharesByDate.get(date) || 0,
-          friendsMade: friendsByDate.get(date) || 0,
+          qualityPosts: dailyPostsCount.get(date) || 0,
+          likesReceived: dailyLikesCount.get(date) || 0,
+          qualityComments: dailyCommentsCount.get(date) || 0,
+          sharesReceived: dailySharesCount.get(date) || 0,
+          friendsMade: dailyFriendsCount.get(date) || 0,
           rawReward,
-          cappedReward
-        });
+          cappedReward: Math.min(rawReward, DAILY_REWARD_CAP)
+        };
       });
 
-      const dailyStatsArray = Array.from(dailyStatsMap.values());
+      // Calculate totals (after applying limits, these are the correct counts)
+      const totalQualityPosts = rewardableQualityPosts.length;
+      const totalLikes = rewardableInteractions.filter(i => i.type === 'like').length;
+      const totalQualityComments = rewardableInteractions.filter(i => i.type === 'comment').length;
+      const totalShares = rewardableShares.length;
+      const totalFriends = rewardableFriendships.length;
 
-      // Calculate totals
-      const totalCappedReward = dailyStatsArray.reduce((sum, d) => sum + d.cappedReward, 0);
+      const totalCappedReward = applyDailyCapToRewards(rewardsByDate);
       const welcomeBonus = profile?.welcome_bonus_claimed ? WELCOME_BONUS : 0;
       const walletBonus = profile?.wallet_bonus_claimed ? WALLET_CONNECT_BONUS : 0;
 
       setSummary({
         avatarUrl: profile?.avatar_url || null,
         joinDate: profile?.created_at || '',
-        totalQualityPosts: dailyStatsArray.reduce((sum, d) => sum + d.qualityPosts, 0),
-        totalLikes: dailyStatsArray.reduce((sum, d) => sum + d.likesReceived, 0),
-        totalQualityComments: dailyStatsArray.reduce((sum, d) => sum + d.qualityComments, 0),
-        totalShares: dailyStatsArray.reduce((sum, d) => sum + d.sharesReceived, 0),
-        totalFriends: dailyStatsArray.reduce((sum, d) => sum + d.friendsMade, 0),
+        totalQualityPosts,
+        totalLikes,
+        totalQualityComments,
+        totalShares,
+        totalFriends,
         welcomeBonus,
         walletBonus,
         totalReward: totalCappedReward + welcomeBonus + walletBonus
