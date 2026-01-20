@@ -21,6 +21,7 @@ import {
   MAX_SHARES_PER_DAY,
   MAX_FRIENDSHIPS_PER_DAY
 } from "@/lib/constants";
+import { toVietnamDate, applyDailyLimit as applyDailyLimitVN, applyDailyCap as applyDailyCapVN } from "@/lib/dateUtils";
 
 interface ComparisonData {
   id: string;
@@ -66,35 +67,9 @@ export function RewardComparisonTable() {
 
   const formatNumber = (n: number) => n.toLocaleString('vi-VN');
 
-  // Helper functions for v3.0 calculation (same as RewardCalculationExport)
-  const groupByDate = <T,>(items: T[], getDate: (item: T) => string): Map<string, T[]> => {
-    const grouped = new Map<string, T[]>();
-    for (const item of items) {
-      const date = getDate(item).split('T')[0];
-      if (!grouped.has(date)) {
-        grouped.set(date, []);
-      }
-      grouped.get(date)!.push(item);
-    }
-    return grouped;
-  };
-
-  const applyDailyLimit = <T,>(items: T[], getDate: (item: T) => string, limit: number): T[] => {
-    const grouped = groupByDate(items, getDate);
-    const result: T[] = [];
-    for (const [, dayItems] of grouped) {
-      result.push(...dayItems.slice(0, limit));
-    }
-    return result;
-  };
-
-  const applyDailyCap = (rewardsByDate: Map<string, number>): number => {
-    let total = 0;
-    for (const [, amount] of rewardsByDate) {
-      total += Math.min(amount, DAILY_REWARD_CAP);
-    }
-    return total;
-  };
+  // Use Vietnam timezone helpers from dateUtils.ts
+  const applyDailyLimit = applyDailyLimitVN;
+  const applyDailyCap = (rewardsByDate: Map<string, number>): number => applyDailyCapVN(rewardsByDate, DAILY_REWARD_CAP);
 
   const fetchComparison = async () => {
     setLoading(true);
@@ -147,7 +122,7 @@ export function RewardComparisonTable() {
           const qualityPosts = rewardableQualityPosts.length;
 
           for (const post of rewardableQualityPosts) {
-            addRewardForDate(post.created_at.split('T')[0], QUALITY_POST_REWARD);
+            addRewardForDate(toVietnamDate(post.created_at), QUALITY_POST_REWARD);
           }
 
           const qualityPostIds = rewardableQualityPosts.map(p => p.id);
@@ -195,13 +170,13 @@ export function RewardComparisonTable() {
             const rewardableInteractions = applyDailyLimit(allInteractions, i => i.created_at, MAX_INTERACTIONS_PER_DAY);
             
             for (const interaction of rewardableInteractions) {
-              const date = interaction.created_at.split('T')[0];
+              const vnDate = toVietnamDate(interaction.created_at);
               if (interaction.type === 'like') {
                 likesReceived++;
-                addRewardForDate(date, LIKE_REWARD);
+                addRewardForDate(vnDate, LIKE_REWARD);
               } else {
                 qualityComments++;
-                addRewardForDate(date, QUALITY_COMMENT_REWARD);
+                addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
               }
             }
 
@@ -219,7 +194,7 @@ export function RewardComparisonTable() {
             sharesReceived = rewardableShares.length;
 
             for (const share of rewardableShares) {
-              addRewardForDate(share.created_at.split('T')[0], SHARE_REWARD);
+              addRewardForDate(toVietnamDate(share.created_at), SHARE_REWARD);
             }
           }
 
@@ -241,7 +216,7 @@ export function RewardComparisonTable() {
           const friendships = rewardableFriendships.length;
 
           for (const friendship of rewardableFriendships) {
-            addRewardForDate(friendship.created_at.split('T')[0], FRIENDSHIP_REWARD);
+            addRewardForDate(toVietnamDate(friendship.created_at), FRIENDSHIP_REWARD);
           }
 
           // Calculate rewards

@@ -26,20 +26,39 @@ const LIVESTREAM_REWARD = 20000;
 
 const BATCH_SIZE = 5;
 
-function groupByDate<T>(items: T[], getDate: (item: T) => string): Map<string, T[]> {
+/**
+ * Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
+ * Vietnam timezone is UTC+7
+ * 
+ * CRITICAL: This ensures reward grouping uses Vietnam Day, not UTC Day.
+ * Without this, activities between 17:00-24:00 UTC would be attributed to the wrong day.
+ */
+function toVietnamDate(utcTimestamp: string): string {
+  const date = new Date(utcTimestamp);
+  // Add 7 hours to convert UTC to Vietnam time (UTC+7)
+  const vnMs = date.getTime() + 7 * 60 * 60 * 1000;
+  const vnDate = new Date(vnMs);
+  // Use UTC getters to avoid any timezone interference
+  const year = vnDate.getUTCFullYear();
+  const month = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(vnDate.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function groupByVietnamDate<T>(items: T[], getTimestamp: (item: T) => string): Map<string, T[]> {
   const grouped = new Map<string, T[]>();
   for (const item of items) {
-    const date = getDate(item).split('T')[0];
-    if (!grouped.has(date)) {
-      grouped.set(date, []);
+    const vnDate = toVietnamDate(getTimestamp(item));
+    if (!grouped.has(vnDate)) {
+      grouped.set(vnDate, []);
     }
-    grouped.get(date)!.push(item);
+    grouped.get(vnDate)!.push(item);
   }
   return grouped;
 }
 
-function applyDailyLimit<T>(items: T[], getDate: (item: T) => string, limit: number): T[] {
-  const grouped = groupByDate(items, getDate);
+function applyDailyLimit<T>(items: T[], getTimestamp: (item: T) => string, limit: number): T[] {
+  const grouped = groupByVietnamDate(items, getTimestamp);
   const result: T[] = [];
   
   for (const [, dayItems] of grouped) {
@@ -50,7 +69,7 @@ function applyDailyLimit<T>(items: T[], getDate: (item: T) => string, limit: num
   return result;
 }
 
-// Apply daily cap per day (excludes welcome + wallet)
+// Apply daily cap per Vietnam day (excludes welcome + wallet)
 function applyDailyCap(rewardsByDate: Map<string, number>): Map<string, number> {
   const capped = new Map<string, number>();
   for (const [date, amount] of rewardsByDate) {
@@ -108,8 +127,8 @@ async function processUser(
   const rewardableQualityPosts = applyDailyLimit(qualityPosts, p => p.created_at, MAX_POSTS_PER_DAY);
   
   for (const post of rewardableQualityPosts) {
-    const date = post.created_at.split('T')[0];
-    addRewardForDate(date, QUALITY_POST_REWARD);
+    const vnDate = toVietnamDate(post.created_at);
+    addRewardForDate(vnDate, QUALITY_POST_REWARD);
   }
 
   // 4. ONLY quality posts are eligible for interaction rewards
@@ -160,11 +179,11 @@ async function processUser(
     const rewardableLikesComments = applyDailyLimit(likesAndComments, i => i.created_at, MAX_INTERACTIONS_PER_DAY);
 
     for (const interaction of rewardableLikesComments) {
-      const date = interaction.created_at.split('T')[0];
+      const vnDate = toVietnamDate(interaction.created_at);
       if (interaction.type === 'like') {
-        addRewardForDate(date, LIKE_REWARD);
+        addRewardForDate(vnDate, LIKE_REWARD);
       } else if (interaction.type === 'comment') {
-        addRewardForDate(date, QUALITY_COMMENT_REWARD);
+        addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
       }
     }
 
@@ -185,8 +204,8 @@ async function processUser(
     const rewardableShares = applyDailyLimit(sharesReceived, s => s.created_at, MAX_SHARES_PER_DAY);
     
     for (const share of rewardableShares) {
-      const date = share.created_at.split('T')[0];
-      addRewardForDate(date, SHARE_REWARD);
+      const vnDate = toVietnamDate(share.created_at);
+      addRewardForDate(vnDate, SHARE_REWARD);
     }
   }
 
@@ -207,8 +226,8 @@ async function processUser(
   );
   
   for (const friendship of rewardableFriendships) {
-    const date = friendship.created_at.split('T')[0];
-    addRewardForDate(date, FRIENDSHIP_REWARD);
+    const vnDate = toVietnamDate(friendship.created_at);
+    addRewardForDate(vnDate, FRIENDSHIP_REWARD);
   }
 
   // 6. Livestream rewards - 20k for >=15 min, limit 5/day
@@ -225,8 +244,8 @@ async function processUser(
   );
   
   for (const livestream of rewardableLivestreams) {
-    const date = livestream.started_at.split('T')[0];
-    addRewardForDate(date, LIVESTREAM_REWARD);
+    const vnDate = toVietnamDate(livestream.started_at);
+    addRewardForDate(vnDate, LIVESTREAM_REWARD);
   }
 
   // 7. Livestream interactions (likes, comments, shares)
@@ -239,8 +258,8 @@ async function processUser(
     );
     
     for (const like of livestreamLikes) {
-      const date = like.created_at.split('T')[0];
-      addRewardForDate(date, LIKE_REWARD);
+      const vnDate = toVietnamDate(like.created_at);
+      addRewardForDate(vnDate, LIKE_REWARD);
     }
     
     // Livestream quality comments
@@ -252,8 +271,8 @@ async function processUser(
     );
     
     for (const comment of livestreamComments) {
-      const date = comment.created_at.split('T')[0];
-      addRewardForDate(date, QUALITY_COMMENT_REWARD);
+      const vnDate = toVietnamDate(comment.created_at);
+      addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
     }
     
     // Livestream shares (limit 5/day already applied above for all shares)
@@ -268,8 +287,8 @@ async function processUser(
     );
     
     for (const share of rewardableLivestreamShares) {
-      const date = share.created_at.split('T')[0];
-      addRewardForDate(date, SHARE_REWARD);
+      const vnDate = toVietnamDate(share.created_at);
+      addRewardForDate(vnDate, SHARE_REWARD);
     }
   }
 
