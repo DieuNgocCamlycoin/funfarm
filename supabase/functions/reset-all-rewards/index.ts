@@ -5,10 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Reward System v3.0 Constants - Dynamic cutoff to current time
+// Reward System v3.1 Constants - Dynamic cutoff to current time
 const CUTOFF_DATE = new Date().toISOString();
 const MAX_POSTS_PER_DAY = 10;
-const MAX_INTERACTIONS_PER_DAY = 50;
+const MAX_LIKES_PER_DAY = 50; // V3.1: Separate limit
+const MAX_COMMENTS_PER_DAY = 50; // V3.1: Separate limit
 const MAX_SHARES_PER_DAY = 5;
 const MAX_FRIENDSHIPS_PER_DAY = 10;
 const MAX_LIVESTREAMS_PER_DAY = 5;
@@ -131,25 +132,18 @@ async function processUser(
     addRewardForDate(vnDate, QUALITY_POST_REWARD);
   }
 
-  // 4. ONLY quality posts are eligible for interaction rewards
-  // Interactions on invalid posts (short content, no media, share posts) are NOT rewarded
-  const qualityPostIds = new Set(rewardableQualityPosts.map(p => p.id));
+  // 4. V3.1: Interactions are rewarded on ALL quality posts (not just the first 10 rewarded/day)
+  // This allows interactions on post #11+ to still be rewarded
+  const qualityPostIds = new Set(qualityPosts.map(p => p.id));
 
   if (qualityPostIds.size > 0) {
-    interface Interaction {
-      type: 'like' | 'comment' | 'share';
-      user_id: string;
-      post_id: string;
-      created_at: string;
-      content_length?: number;
-    }
-    const allInteractions: Interaction[] = [];
-
-    // Likes received on QUALITY posts only
+    // V3.1: Separate like and comment arrays, apply separate limits (50 each)
+    
+    // Collect likes received on QUALITY posts
+    const allLikes: { user_id: string; post_id: string; created_at: string }[] = [];
     for (const like of allLikesData) {
       if (qualityPostIds.has(like.post_id) && like.user_id !== userId && existingUserIds.has(like.user_id)) {
-        allInteractions.push({
-          type: 'like',
+        allLikes.push({
           user_id: like.user_id,
           post_id: like.post_id,
           created_at: like.created_at
@@ -157,42 +151,45 @@ async function processUser(
       }
     }
 
-    // Comments received on QUALITY posts - ONLY quality comments (>20 chars)
+    // Collect quality comments received on QUALITY posts (>20 chars)
+    const allQualityComments: { user_id: string; post_id: string; created_at: string }[] = [];
     for (const comment of allCommentsData) {
       if (qualityPostIds.has(comment.post_id) && comment.author_id !== userId && existingUserIds.has(comment.author_id)) {
         const contentLength = comment.content?.length || 0;
         if (contentLength > 20) {
-          allInteractions.push({
-            type: 'comment',
+          allQualityComments.push({
             user_id: comment.author_id,
             post_id: comment.post_id,
-            created_at: comment.created_at,
-            content_length: contentLength
+            created_at: comment.created_at
           });
         }
       }
     }
 
-    // Sort and apply daily limit for likes + comments
-    const likesAndComments = allInteractions.filter(i => i.type === 'like' || i.type === 'comment');
-    likesAndComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    const rewardableLikesComments = applyDailyLimit(likesAndComments, i => i.created_at, MAX_INTERACTIONS_PER_DAY);
+    // V3.1: Apply SEPARATE daily limits - 50 likes/day AND 50 comments/day
+    allLikes.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const rewardableLikes = applyDailyLimit(allLikes, l => l.created_at, MAX_LIKES_PER_DAY);
 
-    for (const interaction of rewardableLikesComments) {
-      const vnDate = toVietnamDate(interaction.created_at);
-      if (interaction.type === 'like') {
-        addRewardForDate(vnDate, LIKE_REWARD);
-      } else if (interaction.type === 'comment') {
-        addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-      }
+    allQualityComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const rewardableComments = applyDailyLimit(allQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
+
+    // Add likes rewards
+    for (const like of rewardableLikes) {
+      const vnDate = toVietnamDate(like.created_at);
+      addRewardForDate(vnDate, LIKE_REWARD);
+    }
+
+    // Add comments rewards
+    for (const comment of rewardableComments) {
+      const vnDate = toVietnamDate(comment.created_at);
+      addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
     }
 
     // Shares received on QUALITY posts only - limit 5/day
-    const sharesReceived: Interaction[] = [];
+    const sharesReceived: { user_id: string; post_id: string; created_at: string }[] = [];
     for (const share of allSharesData) {
       if (qualityPostIds.has(share.post_id) && share.user_id !== userId && existingUserIds.has(share.user_id)) {
         sharesReceived.push({
-          type: 'share',
           user_id: share.user_id,
           post_id: share.post_id,
           created_at: share.created_at
