@@ -22,6 +22,7 @@ import {
   MAX_FRIENDSHIPS_PER_DAY
 } from "@/lib/constants";
 import { toVietnamDate, applyDailyLimit as applyDailyLimitVN, applyDailyCap as applyDailyCapVN } from "@/lib/dateUtils";
+import { UserRewardDetailModal } from "./UserRewardDetailModal";
 
 interface ComparisonData {
   id: string;
@@ -49,6 +50,10 @@ export function RewardComparisonTable() {
   const [sortField, setSortField] = useState<'current_pending' | 'calculated_v3' | 'difference'>('difference');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filter, setFilter] = useState<'all' | 'increase' | 'decrease' | 'same'>('all');
+  
+  // Modal state for user detail view
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
 
   // Load from cache on mount
   useEffect(() => {
@@ -501,13 +506,21 @@ export function RewardComparisonTable() {
                   }>
                     <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedUserId(user.id);
+                          setSelectedUserName(user.display_name);
+                        }}
+                        className="flex items-center gap-2 hover:bg-muted/50 rounded-lg p-1 -m-1 transition-colors cursor-pointer group"
+                      >
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={user.avatar_url || ''} />
                           <AvatarFallback>{user.display_name?.charAt(0) || '?'}</AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-sm truncate max-w-[120px]">{user.display_name}</span>
-                      </div>
+                        <span className="font-medium text-sm truncate max-w-[120px] text-blue-600 group-hover:underline">
+                          {user.display_name}
+                        </span>
+                      </button>
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatNumber(user.current_pending)}
@@ -567,6 +580,14 @@ export function RewardComparisonTable() {
           </div>
         )}
       </CardContent>
+      
+      {/* User Reward Detail Modal */}
+      <UserRewardDetailModal
+        open={!!selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+        userId={selectedUserId || ''}
+        userName={selectedUserName}
+      />
     </Card>
   );
 }
