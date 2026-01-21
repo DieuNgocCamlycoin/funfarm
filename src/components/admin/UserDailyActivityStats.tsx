@@ -16,19 +16,18 @@ import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { 
-  QUALITY_POST_REWARD, 
-  LIKE_REWARD, 
-  QUALITY_COMMENT_REWARD, 
-  SHARE_REWARD, 
-  FRIENDSHIP_REWARD,
-  MAX_POSTS_PER_DAY,
-  MAX_LIKES_PER_DAY,
-  MAX_COMMENTS_PER_DAY,
-  MAX_SHARES_PER_DAY,
-  MAX_FRIENDSHIPS_PER_DAY,
-  DAILY_REWARD_CAP
-} from '@/lib/constants';
+
+// === IMPORT FROM SINGLE SOURCE OF TRUTH ===
+import {
+  calculateUserReward,
+  getValidUserIds,
+  REWARD_RATES,
+  DAILY_LIMITS,
+  DAILY_REWARD_CAP,
+  DailyRewardStats,
+  RewardCalculationResult,
+  DebugPostInfo
+} from '@/lib/rewardCalculationService';
 
 interface UserSearchResult {
   id: string;
@@ -38,73 +37,36 @@ interface UserSearchResult {
   created_at: string;
 }
 
+// Mapped type for table display (derived from DailyRewardStats)
 interface DailyActivityRow {
   date: string;
-  // Activity counts - Posts
-  totalPostsCreated: number;        // NEW: All posts (any type)
-  qualityPostsCreated: number;      // Quality posts only
-  
-  // Activity counts - Reactions (Likes)
-  reactionsGiven: number;           // Display only, no reward
-  totalReactionsReceived: number;   // NEW: All likes received (from any post)
-  reactionsReceived: number;        // From quality posts only
-  
-  // Activity counts - Comments  
-  commentsGiven: number;            // Display only, no reward
-  totalCommentsReceived: number;    // NEW: All comments received
-  commentsFromQualityPosts: number; // NEW: Comments from quality posts (any length)
-  qualityCommentsReceived: number;  // >20 chars from quality posts
-  
-  // Activity counts - Shares
-  sharesGiven: number;              // Display only, no reward
-  totalSharesReceived: number;      // NEW: All shares received
-  sharesReceived: number;           // From quality posts
-  
-  // Activity counts - Friends
+  // Posts
+  totalPostsCreated: number;
+  qualityPostsCreated: number;
+  // Reactions (Likes)
+  reactionsGiven: number;
+  totalReactionsReceived: number;
+  reactionsReceived: number;
+  // Comments
+  commentsGiven: number;
+  totalCommentsReceived: number;
+  commentsFromQualityPosts: number;
+  qualityCommentsReceived: number;
+  // Shares
+  sharesGiven: number;
+  totalSharesReceived: number;
+  sharesReceived: number;
+  // Friends
   friendsAdded: number;
-  
-  // Rewards (only received, no given rewards in v3.0)
+  // Rewards
   postReward: number;
   reactReceivedReward: number;
   cmtReceivedReward: number;
   shareReceivedReward: number;
   friendReward: number;
-  // Daily totals
   dailyTotalBeforeCap: number;
   dailyTotal: number;
 }
-
-// Debug info for a single post
-interface DebugPostInfo {
-  id: string;
-  created_at_raw: string;
-  created_at_vn: string;
-  post_type: string;
-  content_length: number;
-  hasImages: boolean;
-  hasVideo: boolean;
-  isQualityPost: boolean;
-}
-
-// Reward rates v3.0 - Only "received" interactions
-const REWARD_RATES = {
-  qualityPost: QUALITY_POST_REWARD,      // 10,000 CLC - >100 chars + media
-  likeReceived: LIKE_REWARD,             // 1,000 CLC
-  qualityCommentReceived: QUALITY_COMMENT_REWARD, // 2,000 CLC - >20 chars
-  shareReceived: SHARE_REWARD,           // 10,000 CLC
-  friend: FRIENDSHIP_REWARD              // 10,000 CLC
-};
-
-// Daily limits v3.1
-const DAILY_LIMITS = {
-  qualityPost: MAX_POSTS_PER_DAY,           // 10
-  likesReceived: MAX_LIKES_PER_DAY,         // 50 (V3.1: separate)
-  commentsReceived: MAX_COMMENTS_PER_DAY,   // 50 (V3.1: separate)
-  shareReceived: MAX_SHARES_PER_DAY,        // 5
-  friend: MAX_FRIENDSHIPS_PER_DAY           // 10
-};
-
-const DAILY_CAP = DAILY_REWARD_CAP; // 500,000 CLC
 
 // Format CLC number
 const formatCLC = (amount: number): string => {
@@ -112,31 +74,30 @@ const formatCLC = (amount: number): string => {
   return amount.toLocaleString('vi-VN');
 };
 
-// Helper to check if images array has valid images
-const hasValidImages = (images: string[] | null): boolean => {
-  return images != null && Array.isArray(images) && 
-    images.some(url => typeof url === 'string' && url.trim() !== '');
-};
-
-// Helper to check if video_url is valid
-const hasValidVideo = (video_url: string | null): boolean => {
-  return typeof video_url === 'string' && video_url.trim() !== '';
-};
-
-// Check if post is a quality post: >100 chars + has media + original content
-const isQualityPost = (post: { content: string | null; images: string[] | null; video_url: string | null; post_type: string }): boolean => {
-  const hasContent = (post.content?.length || 0) > 100;
-  const hasImages = hasValidImages(post.images);
-  const hasVideo = hasValidVideo(post.video_url);
-  const hasMedia = hasImages || hasVideo;
-  const isOriginalContent = post.post_type === 'post' || post.post_type === 'product';
-  return hasContent && hasMedia && isOriginalContent;
-};
-
-// Check if comment is quality: >20 chars
-const isQualityComment = (comment: { content: string | null }): boolean => {
-  return (comment.content?.length || 0) > 20;
-};
+// Convert DailyRewardStats from service to DailyActivityRow for display
+const mapToActivityRow = (stats: DailyRewardStats): DailyActivityRow => ({
+  date: stats.date,
+  totalPostsCreated: stats.totalPostsCreated,
+  qualityPostsCreated: stats.qualityPosts,
+  reactionsGiven: stats.likesGiven,
+  totalReactionsReceived: stats.totalLikesReceived,
+  reactionsReceived: stats.likesReceived,
+  commentsGiven: stats.commentsGiven,
+  totalCommentsReceived: stats.totalCommentsReceived,
+  commentsFromQualityPosts: stats.commentsFromQualityPosts,
+  qualityCommentsReceived: stats.qualityComments,
+  sharesGiven: stats.sharesGiven,
+  totalSharesReceived: stats.totalSharesReceived,
+  sharesReceived: stats.sharesReceived,
+  friendsAdded: stats.friendsMade,
+  postReward: stats.postReward,
+  reactReceivedReward: stats.likeReward,
+  cmtReceivedReward: stats.commentReward,
+  shareReceivedReward: stats.shareReward,
+  friendReward: stats.friendReward,
+  dailyTotalBeforeCap: stats.rawReward,
+  dailyTotal: stats.cappedReward
+});
 
 export function UserDailyActivityStats() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,17 +122,19 @@ export function UserDailyActivityStats() {
   
   // Debug mode states
   const [debugMode, setDebugMode] = useState(false);
-  const [debugDate, setDebugDate] = useState<string>('');
   const [debugPosts, setDebugPosts] = useState<DebugPostInfo[]>([]);
   const [debugQueryInfo, setDebugQueryInfo] = useState<{ startUTC: string; endUTC: string } | null>(null);
   const requestIdRef = useRef<number>(0);
+  
+  // Bonuses state (from service)
+  const [userBonuses, setUserBonuses] = useState<{ welcomeBonus: number; walletBonus: number } | null>(null);
   
   // Calculate cutoff timestamp - round down to nearest 5 minutes
   const calculateCutoffTimestamp = (): Date => {
     const now = new Date();
     const minutes = now.getMinutes();
     const roundedMinutes = Math.floor(minutes / 5) * 5;
-    now.setMinutes(roundedMinutes, 0, 0); // Reset seconds and milliseconds
+    now.setMinutes(roundedMinutes, 0, 0);
     return now;
   };
 
@@ -186,6 +149,7 @@ export function UserDailyActivityStats() {
     setSearchResults([]);
     setSelectedUser(null);
     setActivityData([]);
+    setUserBonuses(null);
 
     try {
       let query = supabase
@@ -220,451 +184,7 @@ export function UserDailyActivityStats() {
     }
   };
 
-  // Get valid user IDs (not banned, not deleted)
-  const getValidUserIds = async (): Promise<Set<string>> => {
-    const { data: activeProfiles } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('banned', false);
-    
-    const { data: deletedUsers } = await supabase
-      .from('deleted_users')
-      .select('user_id');
-    
-    const deletedUserIds = new Set(deletedUsers?.map(d => d.user_id) || []);
-    
-    const validIds = new Set(
-      activeProfiles
-        ?.filter(p => !deletedUserIds.has(p.id))
-        .map(p => p.id) || []
-    );
-
-    return validIds;
-  };
-
-  // Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
-  // CRITICAL: Must not use date-fns/format() as it applies browser timezone
-  // Instead, manually extract UTC components after adding 7 hours
-  const toVietnamDate = (utcTimestamp: string): string => {
-    const date = new Date(utcTimestamp);
-    // Add 7 hours to convert UTC to Vietnam time (UTC+7)
-    const vnMs = date.getTime() + 7 * 60 * 60 * 1000;
-    const vnDate = new Date(vnMs);
-    // Use UTC getters to avoid browser timezone interference
-    const year = vnDate.getUTCFullYear();
-    const month = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(vnDate.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  // Convert Vietnam date (YYYY-MM-DD) to UTC range for database query
-  // Vietnam day starts at 00:00 VN = 17:00 previous day UTC
-  // Vietnam day ends at 23:59:59 VN = 16:59:59 same day UTC
-  const vietnamDateToUTCRange = (vnDateStr: string, isStart: boolean): string => {
-    // Parse the date string as YYYY-MM-DD
-    const [year, month, day] = vnDateStr.split('-').map(Number);
-    
-    if (isStart) {
-      // Start of Vietnam day (00:00:00 VN) = previous day 17:00:00 UTC
-      const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-      // Subtract 7 hours to get UTC equivalent
-      return new Date(utcDate.getTime() - 7 * 60 * 60 * 1000).toISOString();
-    } else {
-      // End of Vietnam day (23:59:59.999 VN) = same day 16:59:59.999 UTC
-      const utcDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-      // Subtract 7 hours to get UTC equivalent
-      return new Date(utcDate.getTime() - 7 * 60 * 60 * 1000).toISOString();
-    }
-  };
-
-  // Fetch user stats with v3.0 logic
-  const fetchUserStats = async (
-    userId: string, 
-    validUserIds: Set<string>,
-    filterStartDate?: Date,
-    filterEndDate?: Date,
-    collectDebugInfo?: boolean,
-    cutoffTimestamp?: string  // NEW: 5-minute cutoff for data stability
-  ): Promise<{ stats: DailyActivityRow[]; debugPosts?: DebugPostInfo[]; queryInfo?: { startUTC: string; endUTC: string }; cutoffTime?: Date }> => {
-    const validUserIdArray = Array.from(validUserIds);
-    
-    // Build date filter strings - convert Vietnam date to UTC for database query
-    // IMPORTANT: Calendar gives us Date object in local timezone
-    // We need to extract the DATE PART only and treat it as Vietnam date
-    let startDateStr: string | null = null;
-    let endDateStr: string | null = null;
-    
-    if (filterStartDate) {
-      // Extract year/month/day from the Date object (these represent Vietnam date selection)
-      const vnDateStr = format(filterStartDate, 'yyyy-MM-dd');
-      startDateStr = vietnamDateToUTCRange(vnDateStr, true);
-    }
-    
-    if (filterEndDate) {
-      // Extract year/month/day from the Date object (these represent Vietnam date selection)
-      const vnDateStr = format(filterEndDate, 'yyyy-MM-dd');
-      endDateStr = vietnamDateToUTCRange(vnDateStr, false);
-    }
-    
-    const debugQueryInfo = startDateStr || endDateStr ? { startUTC: startDateStr || 'N/A', endUTC: endDateStr || 'N/A' } : undefined;
-    
-    // ========================================
-    // STEP 1: Fetch ALL user's posts (NO date filter - we need all post IDs for received metrics)
-    // Apply cutoff if provided for data stability
-    // ========================================
-    let allPostsQuery = supabase
-      .from('posts')
-      .select('id, content, images, video_url, created_at, post_type')
-      .eq('author_id', userId)
-      .order('created_at', { ascending: true })
-      .limit(50000);
-    
-    if (cutoffTimestamp) {
-      allPostsQuery = allPostsQuery.lte('created_at', cutoffTimestamp);
-    }
-    
-    const { data: allUserPosts } = await allPostsQuery;
-    
-    // All posts IDs (for querying received interactions on ALL posts)
-    const allPostIds = (allUserPosts || []).map(p => p.id);
-    
-    // Filter quality posts only (from all user's posts)
-    const allQualityPosts = (allUserPosts || []).filter(p => isQualityPost(p));
-    const qualityPostIds = allQualityPosts.map(p => p.id);
-    
-    // Helper to check if timestamp is within date range
-    const isInDateRange = (created_at: string): boolean => {
-      if (!startDateStr && !endDateStr) return true;
-      if (startDateStr && created_at < startDateStr) return false;
-      if (endDateStr && created_at > endDateStr) return false;
-      return true;
-    };
-    
-    // Posts WITHIN the date range (for "Tổng bài" and "Bài CL" columns)
-    const postsInDateRange = (allUserPosts || []).filter(p => isInDateRange(p.created_at));
-    const qualityPostsInDateRange = postsInDateRange.filter(p => isQualityPost(p));
-    
-    // Collect all dates from posts in date range
-    const allDates = new Set<string>();
-    
-    postsInDateRange.forEach(p => {
-      allDates.add(toVietnamDate(p.created_at));
-    });
-
-    // ========================================
-    // STEP 2: Fetch reactions/comments/shares GIVEN (for display only, no reward)
-    // ========================================
-    let reactionsGivenQuery = supabase
-      .from('post_likes')
-      .select('created_at')
-      .eq('user_id', userId)
-      .limit(50000);
-    
-    if (startDateStr) reactionsGivenQuery = reactionsGivenQuery.gte('created_at', startDateStr);
-    if (cutoffTimestamp) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', cutoffTimestamp);
-    else if (endDateStr) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', endDateStr);
-    
-    const { data: reactionsGiven } = await reactionsGivenQuery;
-    
-    reactionsGiven?.forEach(r => {
-      allDates.add(toVietnamDate(r.created_at));
-    });
-
-    let commentsGivenQuery = supabase
-      .from('comments')
-      .select('created_at')
-      .eq('author_id', userId)
-      .limit(50000);
-    
-    if (startDateStr) commentsGivenQuery = commentsGivenQuery.gte('created_at', startDateStr);
-    if (cutoffTimestamp) commentsGivenQuery = commentsGivenQuery.lte('created_at', cutoffTimestamp);
-    else if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
-    
-    const { data: commentsGiven } = await commentsGivenQuery;
-    
-    commentsGiven?.forEach(c => {
-      allDates.add(toVietnamDate(c.created_at));
-    });
-
-    let sharesGivenQuery = supabase
-      .from('posts')
-      .select('created_at')
-      .eq('author_id', userId)
-      .eq('post_type', 'share')
-      .limit(50000);
-    
-    if (startDateStr) sharesGivenQuery = sharesGivenQuery.gte('created_at', startDateStr);
-    if (cutoffTimestamp) sharesGivenQuery = sharesGivenQuery.lte('created_at', cutoffTimestamp);
-    else if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
-    
-    const { data: sharesGiven } = await sharesGivenQuery;
-    
-    sharesGiven?.forEach(s => {
-      allDates.add(toVietnamDate(s.created_at));
-    });
-
-    // ========================================
-    // STEP 3: Fetch friends added
-    // ========================================
-    let friendsAddedQuery = supabase
-      .from('followers')
-      .select('created_at')
-      .eq('follower_id', userId)
-      .eq('status', 'accepted')
-      .limit(50000);
-    
-    if (startDateStr) friendsAddedQuery = friendsAddedQuery.gte('created_at', startDateStr);
-    if (cutoffTimestamp) friendsAddedQuery = friendsAddedQuery.lte('created_at', cutoffTimestamp);
-    else if (endDateStr) friendsAddedQuery = friendsAddedQuery.lte('created_at', endDateStr);
-    
-    const { data: friendsAdded } = await friendsAddedQuery;
-    
-    friendsAdded?.forEach(f => {
-      allDates.add(toVietnamDate(f.created_at));
-    });
-
-    // ========================================
-    // STEP 4: Fetch RECEIVED metrics
-    // ========================================
-    // NEW: Total received (from ALL posts)
-    let totalReactionsReceived: { created_at: string }[] = [];
-    let totalCommentsReceived: { created_at: string; content: string | null }[] = [];
-    let totalSharesReceived: { created_at: string }[] = [];
-    
-    // Existing: From quality posts only
-    let reactionsReceived: { created_at: string }[] = [];
-    let commentsFromQualityPosts: { created_at: string; content: string | null }[] = [];
-    let qualityCommentsReceived: { created_at: string; content: string | null }[] = [];
-    let sharesReceived: { created_at: string }[] = [];
-
-    // Fetch TOTAL received (from ALL posts)
-    if (allPostIds.length > 0 && validUserIdArray.length > 0) {
-      // Total reactions received from all posts
-      let totalRrQuery = supabase
-        .from('post_likes')
-        .select('created_at')
-        .in('post_id', allPostIds)
-        .neq('user_id', userId)
-        .in('user_id', validUserIdArray)
-        .limit(50000);
-      
-      if (startDateStr) totalRrQuery = totalRrQuery.gte('created_at', startDateStr);
-      if (cutoffTimestamp) totalRrQuery = totalRrQuery.lte('created_at', cutoffTimestamp);
-      if (endDateStr) totalRrQuery = totalRrQuery.lte('created_at', endDateStr);
-      
-      const { data: totalRr } = await totalRrQuery;
-      totalReactionsReceived = totalRr || [];
-      
-      // Total comments received from all posts
-      let totalCrQuery = supabase
-        .from('comments')
-        .select('created_at, content')
-        .in('post_id', allPostIds)
-        .neq('author_id', userId)
-        .in('author_id', validUserIdArray)
-        .limit(50000);
-      
-      if (startDateStr) totalCrQuery = totalCrQuery.gte('created_at', startDateStr);
-      if (cutoffTimestamp) totalCrQuery = totalCrQuery.lte('created_at', cutoffTimestamp);
-      if (endDateStr) totalCrQuery = totalCrQuery.lte('created_at', endDateStr);
-      
-      const { data: totalCr } = await totalCrQuery;
-      totalCommentsReceived = totalCr || [];
-      
-      // Total shares received from all posts
-      let totalSrQuery = supabase
-        .from('post_shares')
-        .select('created_at')
-        .in('post_id', allPostIds)
-        .neq('user_id', userId)
-        .in('user_id', validUserIdArray)
-        .limit(50000);
-      
-      if (startDateStr) totalSrQuery = totalSrQuery.gte('created_at', startDateStr);
-      if (cutoffTimestamp) totalSrQuery = totalSrQuery.lte('created_at', cutoffTimestamp);
-      if (endDateStr) totalSrQuery = totalSrQuery.lte('created_at', endDateStr);
-      
-      const { data: totalSr } = await totalSrQuery;
-      totalSharesReceived = totalSr || [];
-    }
-
-    // Fetch from QUALITY posts only
-    if (qualityPostIds.length > 0 && validUserIdArray.length > 0) {
-      // Reactions received from quality posts
-      let rrQuery = supabase
-        .from('post_likes')
-        .select('created_at')
-        .in('post_id', qualityPostIds)
-        .neq('user_id', userId)
-        .in('user_id', validUserIdArray)
-        .limit(50000);
-      
-      if (startDateStr) rrQuery = rrQuery.gte('created_at', startDateStr);
-      if (cutoffTimestamp) rrQuery = rrQuery.lte('created_at', cutoffTimestamp);
-      if (endDateStr) rrQuery = rrQuery.lte('created_at', endDateStr);
-      
-      const { data: rr } = await rrQuery;
-      reactionsReceived = rr || [];
-      
-      // Comments received from quality posts - fetch with content for quality check
-      let crQuery = supabase
-        .from('comments')
-        .select('created_at, content')
-        .in('post_id', qualityPostIds)
-        .neq('author_id', userId)
-        .in('author_id', validUserIdArray)
-        .limit(50000);
-      
-      if (startDateStr) crQuery = crQuery.gte('created_at', startDateStr);
-      if (cutoffTimestamp) crQuery = crQuery.lte('created_at', cutoffTimestamp);
-      if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
-      
-      const { data: cr } = await crQuery;
-      commentsFromQualityPosts = cr || [];
-      // Filter only quality comments (>20 chars)
-      qualityCommentsReceived = commentsFromQualityPosts.filter(c => isQualityComment(c));
-      
-      // Shares received from quality posts
-      let srQuery = supabase
-        .from('post_shares')
-        .select('created_at')
-        .in('post_id', qualityPostIds)
-        .neq('user_id', userId)
-        .in('user_id', validUserIdArray)
-        .limit(50000);
-      
-      if (startDateStr) srQuery = srQuery.gte('created_at', startDateStr);
-      if (cutoffTimestamp) srQuery = srQuery.lte('created_at', cutoffTimestamp);
-      if (endDateStr) srQuery = srQuery.lte('created_at', endDateStr);
-      
-      const { data: sr } = await srQuery;
-      sharesReceived = sr || [];
-    }
-
-    // Add all dates from received metrics
-    totalReactionsReceived.forEach(r => {
-      allDates.add(toVietnamDate(r.created_at));
-    });
-    totalCommentsReceived.forEach(c => {
-      allDates.add(toVietnamDate(c.created_at));
-    });
-    totalSharesReceived.forEach(s => {
-      allDates.add(toVietnamDate(s.created_at));
-    });
-    reactionsReceived.forEach(r => {
-      allDates.add(toVietnamDate(r.created_at));
-    });
-    qualityCommentsReceived.forEach(c => {
-      allDates.add(toVietnamDate(c.created_at));
-    });
-    sharesReceived.forEach(s => {
-      allDates.add(toVietnamDate(s.created_at));
-    });
-
-    // ========================================
-    // STEP 5: Calculate stats per date with v3.0 rules
-    // ========================================
-    const sortedDates = Array.from(allDates).sort().reverse();
-    
-    const stats: DailyActivityRow[] = sortedDates.map(date => {
-      // Count activities for this date
-      // Posts
-      const totalPosts = postsInDateRange.filter(p => toVietnamDate(p.created_at) === date).length;
-      const qPosts = qualityPostsInDateRange.filter(p => toVietnamDate(p.created_at) === date).length;
-      
-      // Given
-      const rGiven = reactionsGiven?.filter(r => toVietnamDate(r.created_at) === date).length || 0;
-      const cGiven = commentsGiven?.filter(c => toVietnamDate(c.created_at) === date).length || 0;
-      const sGiven = sharesGiven?.filter(s => toVietnamDate(s.created_at) === date).length || 0;
-      
-      // Received - Total (from all posts)
-      const totalRReceived = totalReactionsReceived.filter(r => toVietnamDate(r.created_at) === date).length;
-      const totalCReceived = totalCommentsReceived.filter(c => toVietnamDate(c.created_at) === date).length;
-      const totalSReceived = totalSharesReceived.filter(s => toVietnamDate(s.created_at) === date).length;
-      
-      // Received - From quality posts
-      const rReceived = reactionsReceived.filter(r => toVietnamDate(r.created_at) === date).length;
-      const cFromQualityPosts = commentsFromQualityPosts.filter(c => toVietnamDate(c.created_at) === date).length;
-      const qcReceived = qualityCommentsReceived.filter(c => toVietnamDate(c.created_at) === date).length;
-      const sReceived = sharesReceived.filter(s => toVietnamDate(s.created_at) === date).length;
-      
-      // Friends
-      const fAdded = friendsAdded?.filter(f => toVietnamDate(f.created_at) === date).length || 0;
-
-      // ========================================
-      // V3.1 REWARD CALCULATION - Separate limits for likes and comments
-      // ========================================
-      
-      // Quality Post reward: 10,000 * min(count, 10)
-      const postReward = Math.min(qPosts, DAILY_LIMITS.qualityPost) * REWARD_RATES.qualityPost;
-      
-      // V3.1: Likes and Comments have SEPARATE limits (50 each)
-      const cappedLikes = Math.min(rReceived, DAILY_LIMITS.likesReceived);
-      const cappedComments = Math.min(qcReceived, DAILY_LIMITS.commentsReceived);
-      
-      const reactReceivedReward = cappedLikes * REWARD_RATES.likeReceived;
-      const cmtReceivedReward = cappedComments * REWARD_RATES.qualityCommentReceived;
-      
-      // Share received reward: 10,000 * min(count, 5)
-      const shareReceivedReward = Math.min(sReceived, DAILY_LIMITS.shareReceived) * REWARD_RATES.shareReceived;
-      
-      // Friend reward: 10,000 * min(count, 10)
-      const friendReward = Math.min(fAdded, DAILY_LIMITS.friend) * REWARD_RATES.friend;
-
-      // Daily total with cap
-      const dailyTotalBeforeCap = postReward + reactReceivedReward + cmtReceivedReward + shareReceivedReward + friendReward;
-      const dailyTotal = Math.min(dailyTotalBeforeCap, DAILY_CAP);
-
-      return {
-        date,
-        // Posts
-        totalPostsCreated: totalPosts,
-        qualityPostsCreated: qPosts,
-        // Reactions
-        reactionsGiven: rGiven,
-        totalReactionsReceived: totalRReceived,
-        reactionsReceived: rReceived,
-        // Comments
-        commentsGiven: cGiven,
-        totalCommentsReceived: totalCReceived,
-        commentsFromQualityPosts: cFromQualityPosts,
-        qualityCommentsReceived: qcReceived,
-        // Shares
-        sharesGiven: sGiven,
-        totalSharesReceived: totalSReceived,
-        sharesReceived: sReceived,
-        // Friends
-        friendsAdded: fAdded,
-        // Rewards
-        postReward,
-        reactReceivedReward,
-        cmtReceivedReward,
-        shareReceivedReward,
-        friendReward,
-        dailyTotalBeforeCap,
-        dailyTotal
-      };
-    });
-    
-    // Build debug info if requested
-    let debugPostsInfo: DebugPostInfo[] | undefined;
-    if (collectDebugInfo) {
-      debugPostsInfo = postsInDateRange.map(p => ({
-        id: p.id,
-        created_at_raw: p.created_at,
-        created_at_vn: toVietnamDate(p.created_at),
-        post_type: p.post_type,
-        content_length: p.content?.length || 0,
-        hasImages: hasValidImages(p.images),
-        hasVideo: hasValidVideo(p.video_url),
-        isQualityPost: isQualityPost(p)
-      }));
-    }
-
-    return { stats, debugPosts: debugPostsInfo, queryInfo: debugQueryInfo, cutoffTime: cutoffTimestamp ? new Date(cutoffTimestamp) : undefined };
-  };
-
-  // Fetch daily stats for selected user
+  // Fetch daily stats for selected user - NOW CALLS SERVICE
   const handleSelectUser = async (user: UserSearchResult) => {
     setSelectedUser(user);
     setIsLoading(true);
@@ -672,33 +192,53 @@ export function UserDailyActivityStats() {
     setSearchResults([]);
     setDebugPosts([]);
     setDebugQueryInfo(null);
+    setUserBonuses(null);
     
     // Increment request ID to handle race conditions
     const currentRequestId = ++requestIdRef.current;
 
     try {
+      // Get valid user IDs from service
       const validUserIds = await getValidUserIds();
       
       // Calculate 5-minute cutoff for data stability
       const cutoff = calculateCutoffTimestamp();
       const cutoffTimestamp = cutoff.toISOString();
       
-      const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, debugMode, cutoffTimestamp);
+      // === CALL SERVICE INSTEAD OF LOCAL fetchUserStats ===
+      const result: RewardCalculationResult = await calculateUserReward({
+        userId: user.id,
+        validUserIds,
+        cutoffTimestamp,
+        includeDailyBreakdown: true,
+        filterStartDate: startDate,
+        filterEndDate: endDate,
+        includeDebugInfo: debugMode
+      });
       
       // Check if this is still the current request (handle race conditions)
       if (currentRequestId !== requestIdRef.current) {
         return;
       }
       
-      setActivityData(result.stats);
-      setDataCutoffTime(cutoff); // Save cutoff time for display
+      // Map service result to display rows
+      const activityRows = (result.dailyStats || []).map(mapToActivityRow);
+      setActivityData(activityRows);
+      setDataCutoffTime(cutoff);
       
+      // Save bonuses for display
+      setUserBonuses({
+        welcomeBonus: result.welcomeBonus,
+        walletBonus: result.walletBonus
+      });
+      
+      // Handle debug info
       if (debugMode && result.debugPosts) {
         setDebugPosts(result.debugPosts);
-        setDebugQueryInfo(result.queryInfo || null);
+        setDebugQueryInfo(result.debugQueryInfo || null);
       }
       
-      if (result.stats.length === 0) {
+      if (activityRows.length === 0) {
         toast.info('User chưa có hoạt động nào trong khoảng thời gian đã chọn');
       }
     } catch (err: any) {
@@ -736,7 +276,7 @@ export function UserDailyActivityStats() {
     shareReceivedReward: acc.shareReceivedReward + row.shareReceivedReward,
     friendReward: acc.friendReward + row.friendReward,
     grandTotal: acc.grandTotal + row.dailyTotal,
-    cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_CAP ? 1 : 0)
+    cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_REWARD_CAP ? 1 : 0)
   }), { 
     totalPosts: 0, qualityPosts: 0,
     reactGiven: 0, totalReactReceived: 0, reactReceived: 0, 
@@ -746,6 +286,9 @@ export function UserDailyActivityStats() {
     postReward: 0, reactReceivedReward: 0, cmtReceivedReward: 0, 
     shareReceivedReward: 0, friendReward: 0, grandTotal: 0, cappedDays: 0
   });
+
+  // Total with bonuses
+  const grandTotalWithBonuses = totals.grandTotal + (userBonuses?.welcomeBonus || 0) + (userBonuses?.walletBonus || 0);
 
   // Export to CSV for single user
   const handleExportCSV = () => {
@@ -771,9 +314,11 @@ export function UserDailyActivityStats() {
       `# Email: ${selectedUser.email || 'N/A'}`,
       `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`,
       `# Tính đến: ${searchTimestamp ? format(searchTimestamp, 'HH:mm:ss dd/MM/yyyy', { locale: vi }) : ''}`,
-      `# REWARD SYSTEM v3.0 - Chỉ tính thưởng NHẬN (không tính cho)`,
-      `# Daily Cap: ${DAILY_CAP.toLocaleString()} CLC`,
+      `# REWARD SYSTEM v3.1 - Chỉ tính thưởng NHẬN (không tính cho)`,
+      `# Daily Cap: ${DAILY_REWARD_CAP.toLocaleString()} CLC`,
       `# Số ngày bị CAP: ${totals.cappedDays}`,
+      `# Welcome Bonus: ${userBonuses?.welcomeBonus?.toLocaleString() || '0'} CLC`,
+      `# Wallet Bonus: ${userBonuses?.walletBonus?.toLocaleString() || '0'} CLC`,
       '',
       headers.join(','),
       ...activityData.map(row => [
@@ -783,7 +328,7 @@ export function UserDailyActivityStats() {
         row.commentsGiven, row.totalCommentsReceived, row.commentsFromQualityPosts, row.qualityCommentsReceived, row.cmtReceivedReward,
         row.sharesGiven, row.totalSharesReceived, row.sharesReceived, row.shareReceivedReward,
         row.friendsAdded, row.friendReward,
-        row.dailyTotal, row.dailyTotalBeforeCap > DAILY_CAP ? 'YES' : 'NO'
+        row.dailyTotal, row.dailyTotalBeforeCap > DAILY_REWARD_CAP ? 'YES' : 'NO'
       ].join(','))
     ];
 
@@ -798,13 +343,17 @@ export function UserDailyActivityStats() {
       totals.friends, totals.friendReward,
       totals.grandTotal, ''
     ].join(','));
+    
+    // Add grand total with bonuses
+    rows.push('');
+    rows.push(`# TỔNG CỘNG (bao gồm Bonus): ${grandTotalWithBonuses.toLocaleString()} CLC`);
 
     const csvContent = rows.join('\n');
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `user-activity-reward-v3-${selectedUser.id.slice(0, 8)}-${dateRangeStr}.csv`;
+    link.download = `user-activity-reward-v3.1-${selectedUser.id.slice(0, 8)}-${dateRangeStr}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -813,7 +362,7 @@ export function UserDailyActivityStats() {
     toast.success('Đã xuất file CSV!');
   };
 
-  // Export all users
+  // Export all users - NOW CALLS SERVICE
   const handleExportAllUsers = async () => {
     if (!startDate && !endDate) {
       toast.error('Vui lòng chọn ít nhất 1 mốc thời gian (Từ ngày hoặc Đến ngày)');
@@ -856,6 +405,8 @@ export function UserDailyActivityStats() {
         cmtReceivedReward: number;
         shareReceivedReward: number;
         friendReward: number;
+        welcomeBonus: number;
+        walletBonus: number;
         totalReward: number;
         cappedDays: number;
         activeDays: number;
@@ -863,7 +414,7 @@ export function UserDailyActivityStats() {
 
       const allUsersSummary: UserSummary[] = [];
 
-      // Calculate shared cutoff timestamp for all users - ensures consistency
+      // Calculate shared cutoff timestamp for all users
       const exportCutoff = calculateCutoffTimestamp();
       const exportCutoffTimestamp = exportCutoff.toISOString();
 
@@ -873,81 +424,77 @@ export function UserDailyActivityStats() {
 
         const batchPromises = batch.map(async (user) => {
           setExportCurrentUser(user.display_name || user.id.slice(0, 8));
-          const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, false, exportCutoffTimestamp);
-
-          const summary = result.stats.reduce((acc, row) => ({
-            qualityPosts: acc.qualityPosts + row.qualityPostsCreated,
-            reactGiven: acc.reactGiven + row.reactionsGiven,
-            reactReceived: acc.reactReceived + row.reactionsReceived,
-            cmtGiven: acc.cmtGiven + row.commentsGiven,
-            qualityCmtReceived: acc.qualityCmtReceived + row.qualityCommentsReceived,
-            shareGiven: acc.shareGiven + row.sharesGiven,
-            shareReceived: acc.shareReceived + row.sharesReceived,
-            friends: acc.friends + row.friendsAdded,
-            postReward: acc.postReward + row.postReward,
-            reactReceivedReward: acc.reactReceivedReward + row.reactReceivedReward,
-            cmtReceivedReward: acc.cmtReceivedReward + row.cmtReceivedReward,
-            shareReceivedReward: acc.shareReceivedReward + row.shareReceivedReward,
-            friendReward: acc.friendReward + row.friendReward,
-            totalReward: acc.totalReward + row.dailyTotal,
-            cappedDays: acc.cappedDays + (row.dailyTotalBeforeCap > DAILY_CAP ? 1 : 0),
-            activeDays: acc.activeDays + 1
-          }), {
-            qualityPosts: 0, reactGiven: 0, reactReceived: 0, cmtGiven: 0, qualityCmtReceived: 0,
-            shareGiven: 0, shareReceived: 0, friends: 0,
-            postReward: 0, reactReceivedReward: 0, cmtReceivedReward: 0,
-            shareReceivedReward: 0, friendReward: 0, totalReward: 0, cappedDays: 0, activeDays: 0
+          
+          // === CALL SERVICE ===
+          const result = await calculateUserReward({
+            userId: user.id,
+            validUserIds,
+            cutoffTimestamp: exportCutoffTimestamp,
+            includeDailyBreakdown: true,
+            filterStartDate: startDate,
+            filterEndDate: endDate
           });
+
+          const dailyStats = result.dailyStats || [];
+          const cappedDays = dailyStats.filter(s => s.rawReward > DAILY_REWARD_CAP).length;
 
           return {
             userId: user.id,
             displayName: user.display_name || 'Chưa đặt tên',
             email: user.email || '',
-            ...summary
-          } as UserSummary;
+            qualityPosts: result.qualityPosts,
+            reactGiven: result.likesGiven,
+            reactReceived: result.likesReceived,
+            cmtGiven: result.commentsGiven,
+            qualityCmtReceived: result.qualityComments,
+            shareGiven: result.sharesGiven,
+            shareReceived: result.sharesReceived,
+            friends: result.friendships,
+            postReward: result.postReward,
+            reactReceivedReward: result.likeReward,
+            cmtReceivedReward: result.commentReward,
+            shareReceivedReward: result.shareReward,
+            friendReward: result.friendshipReward,
+            welcomeBonus: result.welcomeBonus,
+            walletBonus: result.walletBonus,
+            totalReward: result.calculatedTotal,
+            cappedDays,
+            activeDays: dailyStats.length
+          };
         });
 
         const batchResults = await Promise.all(batchPromises);
         allUsersSummary.push(...batchResults);
-
-        setExportProgress(Math.round(((i + batchSize) / totalUsers) * 100));
+        
+        setExportProgress(Math.round(((i + batch.length) / totalUsers) * 100));
       }
 
+      // Filter users with activity
       const activeUsersSummary = allUsersSummary.filter(u => u.activeDays > 0);
 
-      if (activeUsersSummary.length === 0) {
-        toast.error('Không có user nào có hoạt động trong khoảng thời gian đã chọn');
-        return;
-      }
-
-      activeUsersSummary.sort((a, b) => b.totalReward - a.totalReward);
-
-      const dateRangeStr = `${startDate ? format(startDate, 'yyyyMMdd') : 'start'}-${endDate ? format(endDate, 'yyyyMMdd') : 'now'}`;
+      const dateRangeStr = startDate && endDate
+        ? `${format(startDate, 'yyyyMMdd')}-${format(endDate, 'yyyyMMdd')}`
+        : startDate
+          ? `from-${format(startDate, 'yyyyMMdd')}`
+          : `to-${format(endDate!, 'yyyyMMdd')}`;
 
       const headers = [
-        'User ID', 'Tên hiển thị', 'Email',
-        'Bài CL', 'Thưởng bài CL',
-        'Like cho', // No reward
-        'Like nhận', 'Thưởng LN',
-        'Cmt cho', // No reward
-        'Cmt CL nhận', 'Thưởng CmtCL',
-        'Share cho', // No reward
-        'Share nhận', 'Thưởng SN',
+        'User ID', 'Tên', 'Email',
+        'Bài CL', 'Thưởng BD',
+        'Like cho', 'Like nhận (CL)', 'Thưởng LN',
+        'Cmt cho', 'Cmt CL nhận', 'Thưởng CmtCL',
+        'Share cho', 'Share nhận (CL)', 'Thưởng SN',
         'Bạn mới', 'Thưởng BM',
-        'TỔNG THƯỞNG', 'Số ngày CAP', 'Số ngày HĐ'
+        'Welcome Bonus', 'Wallet Bonus',
+        'Tổng thưởng', 'Ngày CAP', 'Ngày HĐ'
       ];
 
       const csvRows = [
-        '# BÁO CÁO TỔNG HỢP THƯỞNG TẤT CẢ USERS - FUN FARM REWARD SYSTEM v3.0',
+        `# BÁO CÁO THƯỞNG TẤT CẢ USERS - REWARD SYSTEM v3.1`,
         `# Khoảng thời gian: ${startDate ? format(startDate, 'dd/MM/yyyy') : 'đầu'} - ${endDate ? format(endDate, 'dd/MM/yyyy') : 'nay'}`,
-        `# Ngày xuất: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
-        `# Tổng users có hoạt động: ${activeUsersSummary.length}/${totalUsers}`,
-        `# Daily Cap: ${DAILY_CAP.toLocaleString()} CLC`,
-        '',
-        '# * V3.0: Chỉ tính thưởng NHẬN (không tính cho)',
-        '# * Bài CL = Bài chất lượng (>100 ký tự + media)',
-        '# * Cmt CL = Comment chất lượng (>20 ký tự)',
-        '# * Đã loại trừ: self-interactions, users bị ban, users bị xóa',
+        `# Tính đến: ${format(exportCutoff, 'HH:mm:ss dd/MM/yyyy', { locale: vi })}`,
+        `# Tổng số users có hoạt động: ${activeUsersSummary.length}`,
+        `# Daily Cap: ${DAILY_REWARD_CAP.toLocaleString()} CLC`,
         '',
         headers.join(','),
         ...activeUsersSummary.map(u => [
@@ -955,13 +502,14 @@ export function UserDailyActivityStats() {
           `"${u.displayName.replace(/"/g, '""')}"`,
           `"${u.email.replace(/"/g, '""')}"`,
           u.qualityPosts, u.postReward,
-          u.reactGiven, // No reward
+          u.reactGiven,
           u.reactReceived, u.reactReceivedReward,
-          u.cmtGiven, // No reward
+          u.cmtGiven,
           u.qualityCmtReceived, u.cmtReceivedReward,
-          u.shareGiven, // No reward
+          u.shareGiven,
           u.shareReceived, u.shareReceivedReward,
           u.friends, u.friendReward,
+          u.welcomeBonus, u.walletBonus,
           u.totalReward, u.cappedDays, u.activeDays
         ].join(','))
       ];
@@ -981,6 +529,8 @@ export function UserDailyActivityStats() {
         shareReceivedReward: acc.shareReceivedReward + u.shareReceivedReward,
         friends: acc.friends + u.friends,
         friendReward: acc.friendReward + u.friendReward,
+        welcomeBonus: acc.welcomeBonus + u.welcomeBonus,
+        walletBonus: acc.walletBonus + u.walletBonus,
         totalReward: acc.totalReward + u.totalReward,
         cappedDays: acc.cappedDays + u.cappedDays
       }), {
@@ -988,6 +538,7 @@ export function UserDailyActivityStats() {
         reactReceived: 0, reactReceivedReward: 0, cmtGiven: 0,
         qualityCmtReceived: 0, cmtReceivedReward: 0, shareGiven: 0,
         shareReceived: 0, shareReceivedReward: 0, friends: 0, friendReward: 0,
+        welcomeBonus: 0, walletBonus: 0,
         totalReward: 0, cappedDays: 0
       });
 
@@ -1002,6 +553,7 @@ export function UserDailyActivityStats() {
         grandTotals.shareGiven,
         grandTotals.shareReceived, grandTotals.shareReceivedReward,
         grandTotals.friends, grandTotals.friendReward,
+        grandTotals.welcomeBonus, grandTotals.walletBonus,
         grandTotals.totalReward, grandTotals.cappedDays, ''
       ].join(','));
 
@@ -1010,13 +562,13 @@ export function UserDailyActivityStats() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `fun-farm-all-users-reward-v3-${dateRangeStr}.csv`;
+      link.download = `fun-farm-all-users-reward-v3.1-${dateRangeStr}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`✅ Đã xuất báo cáo v3.0 cho ${activeUsersSummary.length} users!`);
+      toast.success(`✅ Đã xuất báo cáo v3.1 cho ${activeUsersSummary.length} users!`);
     } catch (err: any) {
       console.error('Export all error:', err);
       toast.error('Lỗi xuất dữ liệu: ' + (err.message || 'Unknown error'));
@@ -1035,6 +587,7 @@ export function UserDailyActivityStats() {
     setSearchQuery('');
     setDebugPosts([]);
     setDebugQueryInfo(null);
+    setUserBonuses(null);
   };
 
   const handleResetDates = () => {
@@ -1058,10 +611,10 @@ export function UserDailyActivityStats() {
           📊 Tra cứu & Báo cáo User
         </CardTitle>
         <CardDescription>
-          Tìm kiếm user hoặc xuất báo cáo tất cả users với công thức <strong>Reward System v3.0</strong>.
+          Tìm kiếm user hoặc xuất báo cáo tất cả users với công thức <strong>Reward System v3.1</strong>.
           <br />
           <span className="text-amber-600 font-medium">
-            V3.0: Chỉ tính thưởng NHẬN • Bài CL &gt;100 ký tự + media • Cmt CL &gt;20 ký tự
+            V3.1: Chỉ tính thưởng NHẬN • Bài CL &gt;100 ký tự + media • Cmt CL &gt;20 ký tự • Bạn bè 2 chiều
           </span>
         </CardDescription>
       </CardHeader>
@@ -1272,26 +825,48 @@ export function UserDailyActivityStats() {
 
             {/* Summary Stats */}
             {activityData.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-blue-600">{totals.totalPosts}</p>
-                  <p className="text-xs text-muted-foreground">Tổng bài / <span className="font-semibold">{totals.qualityPosts} CL</span></p>
-                </div>
-                <div className="p-3 bg-pink-50 dark:bg-pink-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-pink-600">{totals.totalReactReceived}</p>
-                  <p className="text-xs text-muted-foreground">Like nhận / <span className="font-semibold">{totals.reactReceived} từ bài CL</span></p>
-                </div>
-                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-green-600">{totals.totalCmtReceived}</p>
-                  <p className="text-xs text-muted-foreground">Cmt nhận / <span className="font-semibold">{totals.qualityCmtReceived} CL</span></p>
-                </div>
-                <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-purple-600">{totals.totalShareReceived}</p>
-                  <p className="text-xs text-muted-foreground">Share nhận / <span className="font-semibold">{totals.shareReceived} từ bài CL</span></p>
-                </div>
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-amber-600">{formatCLC(totals.grandTotal)}</p>
-                  <p className="text-xs text-muted-foreground">Tổng CLC</p>
+              <div className="space-y-3">
+                {/* Bonuses Row */}
+                {userBonuses && (userBonuses.welcomeBonus > 0 || userBonuses.walletBonus > 0) && (
+                  <div className="flex gap-3 flex-wrap">
+                    {userBonuses.welcomeBonus > 0 && (
+                      <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30">
+                        🎁 Welcome Bonus: {formatCLC(userBonuses.welcomeBonus)} CLC
+                      </Badge>
+                    )}
+                    {userBonuses.walletBonus > 0 && (
+                      <Badge variant="outline" className="text-violet-600 border-violet-300 bg-violet-50 dark:bg-violet-950/30">
+                        💳 Wallet Bonus: {formatCLC(userBonuses.walletBonus)} CLC
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-blue-600">{totals.totalPosts}</p>
+                    <p className="text-xs text-muted-foreground">Tổng bài / <span className="font-semibold">{totals.qualityPosts} CL</span></p>
+                  </div>
+                  <div className="p-3 bg-pink-50 dark:bg-pink-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-pink-600">{totals.totalReactReceived}</p>
+                    <p className="text-xs text-muted-foreground">Like nhận / <span className="font-semibold">{totals.reactReceived} từ bài CL</span></p>
+                  </div>
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-green-600">{totals.totalCmtReceived}</p>
+                    <p className="text-xs text-muted-foreground">Cmt nhận / <span className="font-semibold">{totals.qualityCmtReceived} CL</span></p>
+                  </div>
+                  <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-purple-600">{totals.totalShareReceived}</p>
+                    <p className="text-xs text-muted-foreground">Share nhận / <span className="font-semibold">{totals.shareReceived} từ bài CL</span></p>
+                  </div>
+                  <div className="p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-orange-600">{totals.friends}</p>
+                    <p className="text-xs text-muted-foreground">Bạn bè (2 chiều)</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-amber-600">{formatCLC(grandTotalWithBonuses)}</p>
+                    <p className="text-xs text-muted-foreground">Tổng CLC (+ Bonus)</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1379,7 +954,7 @@ export function UserDailyActivityStats() {
                   📅 Dữ liệu tính đến: {format(searchTimestamp, 'HH:mm:ss dd/MM/yyyy', { locale: vi })}
                 </span>
                 <span>
-                  🏆 Daily Cap: {DAILY_CAP.toLocaleString()} CLC
+                  🏆 Daily Cap: {DAILY_REWARD_CAP.toLocaleString()} CLC
                 </span>
                 {totals.cappedDays > 0 && (
                   <Badge variant="destructive">
@@ -1456,10 +1031,10 @@ export function UserDailyActivityStats() {
                     
                     {/* Data Rows */}
                     {activityData.map((row) => (
-                      <TableRow key={row.date} className={row.dailyTotalBeforeCap > DAILY_CAP ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
+                      <TableRow key={row.date} className={row.dailyTotalBeforeCap > DAILY_REWARD_CAP ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
                         <TableCell className="sticky left-0 bg-background font-medium">
                           {format(new Date(row.date), 'dd/MM/yyyy')}
-                          {row.dailyTotalBeforeCap > DAILY_CAP && (
+                          {row.dailyTotalBeforeCap > DAILY_REWARD_CAP && (
                             <Badge variant="outline" className="ml-1 text-xs">CAP</Badge>
                           )}
                         </TableCell>
@@ -1506,4 +1081,3 @@ export function UserDailyActivityStats() {
     </Card>
   );
 }
-
