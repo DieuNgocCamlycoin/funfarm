@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Users, Bug, Copy } from 'lucide-react';
+import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Users, Bug, Copy, RefreshCw, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -147,6 +147,9 @@ export function UserDailyActivityStats() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTimestamp, setSearchTimestamp] = useState<Date | null>(null);
   
+  // Data cutoff state - rounds to nearest 5 minutes for stability
+  const [dataCutoffTime, setDataCutoffTime] = useState<Date | null>(null);
+  
   // Date filter states
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -162,6 +165,15 @@ export function UserDailyActivityStats() {
   const [debugPosts, setDebugPosts] = useState<DebugPostInfo[]>([]);
   const [debugQueryInfo, setDebugQueryInfo] = useState<{ startUTC: string; endUTC: string } | null>(null);
   const requestIdRef = useRef<number>(0);
+  
+  // Calculate cutoff timestamp - round down to nearest 5 minutes
+  const calculateCutoffTimestamp = (): Date => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const roundedMinutes = Math.floor(minutes / 5) * 5;
+    now.setMinutes(roundedMinutes, 0, 0); // Reset seconds and milliseconds
+    return now;
+  };
 
   // Search users by name or ID
   const handleSearch = async () => {
@@ -271,8 +283,9 @@ export function UserDailyActivityStats() {
     validUserIds: Set<string>,
     filterStartDate?: Date,
     filterEndDate?: Date,
-    collectDebugInfo?: boolean
-  ): Promise<{ stats: DailyActivityRow[]; debugPosts?: DebugPostInfo[]; queryInfo?: { startUTC: string; endUTC: string } }> => {
+    collectDebugInfo?: boolean,
+    cutoffTimestamp?: string  // NEW: 5-minute cutoff for data stability
+  ): Promise<{ stats: DailyActivityRow[]; debugPosts?: DebugPostInfo[]; queryInfo?: { startUTC: string; endUTC: string }; cutoffTime?: Date }> => {
     const validUserIdArray = Array.from(validUserIds);
     
     // Build date filter strings - convert Vietnam date to UTC for database query
@@ -297,13 +310,20 @@ export function UserDailyActivityStats() {
     
     // ========================================
     // STEP 1: Fetch ALL user's posts (NO date filter - we need all post IDs for received metrics)
+    // Apply cutoff if provided for data stability
     // ========================================
-    const { data: allUserPosts } = await supabase
+    let allPostsQuery = supabase
       .from('posts')
       .select('id, content, images, video_url, created_at, post_type')
       .eq('author_id', userId)
       .order('created_at', { ascending: true })
       .limit(50000);
+    
+    if (cutoffTimestamp) {
+      allPostsQuery = allPostsQuery.lte('created_at', cutoffTimestamp);
+    }
+    
+    const { data: allUserPosts } = await allPostsQuery;
     
     // All posts IDs (for querying received interactions on ALL posts)
     const allPostIds = (allUserPosts || []).map(p => p.id);
@@ -341,7 +361,8 @@ export function UserDailyActivityStats() {
       .limit(50000);
     
     if (startDateStr) reactionsGivenQuery = reactionsGivenQuery.gte('created_at', startDateStr);
-    if (endDateStr) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', endDateStr);
+    if (cutoffTimestamp) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', cutoffTimestamp);
+    else if (endDateStr) reactionsGivenQuery = reactionsGivenQuery.lte('created_at', endDateStr);
     
     const { data: reactionsGiven } = await reactionsGivenQuery;
     
@@ -356,7 +377,8 @@ export function UserDailyActivityStats() {
       .limit(50000);
     
     if (startDateStr) commentsGivenQuery = commentsGivenQuery.gte('created_at', startDateStr);
-    if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
+    if (cutoffTimestamp) commentsGivenQuery = commentsGivenQuery.lte('created_at', cutoffTimestamp);
+    else if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
     
     const { data: commentsGiven } = await commentsGivenQuery;
     
@@ -372,7 +394,8 @@ export function UserDailyActivityStats() {
       .limit(50000);
     
     if (startDateStr) sharesGivenQuery = sharesGivenQuery.gte('created_at', startDateStr);
-    if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
+    if (cutoffTimestamp) sharesGivenQuery = sharesGivenQuery.lte('created_at', cutoffTimestamp);
+    else if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
     
     const { data: sharesGiven } = await sharesGivenQuery;
     
@@ -391,7 +414,8 @@ export function UserDailyActivityStats() {
       .limit(50000);
     
     if (startDateStr) friendsAddedQuery = friendsAddedQuery.gte('created_at', startDateStr);
-    if (endDateStr) friendsAddedQuery = friendsAddedQuery.lte('created_at', endDateStr);
+    if (cutoffTimestamp) friendsAddedQuery = friendsAddedQuery.lte('created_at', cutoffTimestamp);
+    else if (endDateStr) friendsAddedQuery = friendsAddedQuery.lte('created_at', endDateStr);
     
     const { data: friendsAdded } = await friendsAddedQuery;
     
@@ -425,6 +449,7 @@ export function UserDailyActivityStats() {
         .limit(50000);
       
       if (startDateStr) totalRrQuery = totalRrQuery.gte('created_at', startDateStr);
+      if (cutoffTimestamp) totalRrQuery = totalRrQuery.lte('created_at', cutoffTimestamp);
       if (endDateStr) totalRrQuery = totalRrQuery.lte('created_at', endDateStr);
       
       const { data: totalRr } = await totalRrQuery;
@@ -440,6 +465,7 @@ export function UserDailyActivityStats() {
         .limit(50000);
       
       if (startDateStr) totalCrQuery = totalCrQuery.gte('created_at', startDateStr);
+      if (cutoffTimestamp) totalCrQuery = totalCrQuery.lte('created_at', cutoffTimestamp);
       if (endDateStr) totalCrQuery = totalCrQuery.lte('created_at', endDateStr);
       
       const { data: totalCr } = await totalCrQuery;
@@ -455,6 +481,7 @@ export function UserDailyActivityStats() {
         .limit(50000);
       
       if (startDateStr) totalSrQuery = totalSrQuery.gte('created_at', startDateStr);
+      if (cutoffTimestamp) totalSrQuery = totalSrQuery.lte('created_at', cutoffTimestamp);
       if (endDateStr) totalSrQuery = totalSrQuery.lte('created_at', endDateStr);
       
       const { data: totalSr } = await totalSrQuery;
@@ -473,6 +500,7 @@ export function UserDailyActivityStats() {
         .limit(50000);
       
       if (startDateStr) rrQuery = rrQuery.gte('created_at', startDateStr);
+      if (cutoffTimestamp) rrQuery = rrQuery.lte('created_at', cutoffTimestamp);
       if (endDateStr) rrQuery = rrQuery.lte('created_at', endDateStr);
       
       const { data: rr } = await rrQuery;
@@ -488,6 +516,7 @@ export function UserDailyActivityStats() {
         .limit(50000);
       
       if (startDateStr) crQuery = crQuery.gte('created_at', startDateStr);
+      if (cutoffTimestamp) crQuery = crQuery.lte('created_at', cutoffTimestamp);
       if (endDateStr) crQuery = crQuery.lte('created_at', endDateStr);
       
       const { data: cr } = await crQuery;
@@ -505,6 +534,7 @@ export function UserDailyActivityStats() {
         .limit(50000);
       
       if (startDateStr) srQuery = srQuery.gte('created_at', startDateStr);
+      if (cutoffTimestamp) srQuery = srQuery.lte('created_at', cutoffTimestamp);
       if (endDateStr) srQuery = srQuery.lte('created_at', endDateStr);
       
       const { data: sr } = await srQuery;
@@ -631,7 +661,7 @@ export function UserDailyActivityStats() {
       }));
     }
 
-    return { stats, debugPosts: debugPostsInfo, queryInfo: debugQueryInfo };
+    return { stats, debugPosts: debugPostsInfo, queryInfo: debugQueryInfo, cutoffTime: cutoffTimestamp ? new Date(cutoffTimestamp) : undefined };
   };
 
   // Fetch daily stats for selected user
@@ -648,7 +678,12 @@ export function UserDailyActivityStats() {
 
     try {
       const validUserIds = await getValidUserIds();
-      const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, debugMode);
+      
+      // Calculate 5-minute cutoff for data stability
+      const cutoff = calculateCutoffTimestamp();
+      const cutoffTimestamp = cutoff.toISOString();
+      
+      const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, debugMode, cutoffTimestamp);
       
       // Check if this is still the current request (handle race conditions)
       if (currentRequestId !== requestIdRef.current) {
@@ -656,6 +691,7 @@ export function UserDailyActivityStats() {
       }
       
       setActivityData(result.stats);
+      setDataCutoffTime(cutoff); // Save cutoff time for display
       
       if (debugMode && result.debugPosts) {
         setDebugPosts(result.debugPosts);
@@ -827,13 +863,17 @@ export function UserDailyActivityStats() {
 
       const allUsersSummary: UserSummary[] = [];
 
+      // Calculate shared cutoff timestamp for all users - ensures consistency
+      const exportCutoff = calculateCutoffTimestamp();
+      const exportCutoffTimestamp = exportCutoff.toISOString();
+
       const batchSize = 3;
       for (let i = 0; i < allUsers.length; i += batchSize) {
         const batch = allUsers.slice(i, i + batchSize);
 
         const batchPromises = batch.map(async (user) => {
           setExportCurrentUser(user.display_name || user.id.slice(0, 8));
-          const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, false);
+          const result = await fetchUserStats(user.id, validUserIds, startDate, endDate, false, exportCutoffTimestamp);
 
           const summary = result.stats.reduce((acc, row) => ({
             qualityPosts: acc.qualityPosts + row.qualityPostsCreated,
@@ -991,6 +1031,7 @@ export function UserDailyActivityStats() {
     setSelectedUser(null);
     setActivityData([]);
     setSearchTimestamp(null);
+    setDataCutoffTime(null);
     setSearchQuery('');
     setDebugPosts([]);
     setDebugQueryInfo(null);
@@ -1195,9 +1236,28 @@ export function UserDailyActivityStats() {
                   <p className="font-semibold">{selectedUser.display_name || 'Chưa đặt tên'}</p>
                   <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
                   <p className="text-xs text-muted-foreground">ID: {selectedUser.id.slice(0, 8)}...</p>
+                  {/* Cutoff Time Display */}
+                  {dataCutoffTime && (
+                    <p className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      Dữ liệu cập nhật lúc: {format(dataCutoffTime, 'HH:mm:ss', { locale: vi })} 
+                      <span className="text-muted-foreground">(mỗi 5 phút)</span>
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
+                {/* Refresh Button */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleSelectUser(selectedUser)}
+                  disabled={isLoading}
+                  title="Làm mới dữ liệu"
+                >
+                  <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+                  Làm mới
+                </Button>
                 {activityData.length > 0 && (
                   <Button variant="outline" size="sm" onClick={handleExportCSV}>
                     <Download className="h-4 w-4 mr-1" />
