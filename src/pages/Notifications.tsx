@@ -9,8 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import Navbar from '@/components/Navbar';
 import MobileBottomNav from '@/components/MobileBottomNav';
-import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { formatLocalDateTime } from '@/lib/dateUtils';
 
 interface Notification {
   id: string;
@@ -211,10 +210,7 @@ const Notifications = () => {
                       {notification.content}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(notification.created_at), { 
-                        addSuffix: true,
-                        locale: vi 
-                      })}
+                      {formatLocalDateTime(notification.created_at)}
                     </p>
                   </div>
                   

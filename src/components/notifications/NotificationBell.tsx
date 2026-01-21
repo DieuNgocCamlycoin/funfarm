@@ -10,10 +10,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatDistanceToNow } from "date-fns";
-import { vi } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/dateUtils";
 
 interface Notification {
   id: string;
@@ -276,10 +275,7 @@ export const NotificationBell = () => {
                       {notification.content}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(notification.created_at), {
-                        addSuffix: true,
-                        locale: vi
-                      })}
+                      {formatLocalDateTime(notification.created_at)}
                     </p>
                   </div>
                   

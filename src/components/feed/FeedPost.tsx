@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Post } from "@/types/feed";
+import { formatLocalDateTime } from "@/lib/dateUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import CommentSection from "./CommentSection";
@@ -78,32 +79,8 @@ const formatPrice = (price: number): string => {
   }).format(price);
 };
 
-const timeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30);
-  
-  if (seconds < 60) return 'Vừa xong';
-  if (minutes < 60) return `${minutes} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  if (days === 1) return 'Hôm qua';
-  if (days < 7) return `${days} ngày trước`;
-  if (weeks < 4) return `${weeks} tuần trước`;
-  if (months < 12) return `${months} tháng trước`;
-  
-  // Format date for older posts
-  return date.toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+const formatPostTime = (dateString: string): string => {
+  return formatLocalDateTime(dateString);
 };
 
 const MAX_CONTENT_LENGTH = 400;
@@ -401,7 +378,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
             <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
               <span className="truncate max-w-[80px] sm:max-w-none">@{post.author.username}</span>
               <span>•</span>
-              <span className="flex-shrink-0">{timeAgo(post.createdAt)}</span>
+              <span className="flex-shrink-0">{formatPostTime(post.createdAt)}</span>
             </div>
           </div>
         </Link>
