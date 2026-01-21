@@ -1,3 +1,17 @@
+/**
+ * ============================================
+ * REWARD SYSTEM V3.1 - EDGE FUNCTION
+ * ============================================
+ * 
+ * SOURCE OF TRUTH: src/lib/rewardCalculationService.ts
+ * 
+ * This Edge Function MUST stay in sync with the frontend service.
+ * If you update logic here, update the service file as well.
+ * 
+ * Last synced: 2026-01-21
+ * ============================================
+ */
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {

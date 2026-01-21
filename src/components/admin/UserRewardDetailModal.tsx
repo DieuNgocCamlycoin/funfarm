@@ -7,23 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Download, FileText, Heart, MessageSquare, Share2, Users, Wallet, Gift, Calendar, Trophy } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toVietnamDate, applyDailyLimit } from '@/lib/dateUtils';
 import { 
-  QUALITY_POST_REWARD, 
-  LIKE_REWARD, 
-  QUALITY_COMMENT_REWARD, 
-  SHARE_REWARD, 
-  FRIENDSHIP_REWARD,
-  WELCOME_BONUS,
-  WALLET_CONNECT_BONUS,
-  DAILY_REWARD_CAP,
-  MAX_POSTS_PER_DAY,
-  MAX_LIKES_PER_DAY,
-  MAX_COMMENTS_PER_DAY,
-  MAX_SHARES_PER_DAY,
-  MAX_FRIENDSHIPS_PER_DAY
-} from '@/lib/constants';
+  calculateUserReward, 
+  getValidUserIds,
+  RewardCalculationResult,
+  DailyRewardStats,
+  DAILY_REWARD_CAP
+} from '@/lib/rewardCalculationService';
 
 interface UserRewardDetailModalProps {
   open: boolean;
@@ -32,45 +22,11 @@ interface UserRewardDetailModalProps {
   userName: string;
 }
 
-interface DailyStats {
-  date: string;
-  qualityPosts: number;
-  likesReceived: number;
-  qualityComments: number;
-  sharesReceived: number;
-  friendsMade: number;
-  rawReward: number;
-  cappedReward: number;
-}
-
-interface UserSummary {
-  avatarUrl: string | null;
-  joinDate: string;
-  totalQualityPosts: number;
-  totalLikes: number;
-  totalQualityComments: number;
-  totalShares: number;
-  totalFriends: number;
-  welcomeBonus: number;
-  walletBonus: number;
-  totalReward: number;
-}
-
 const formatNumber = (num: number) => num.toLocaleString('vi-VN');
-
-// Daily cap helper - applies 500k cap per Vietnam day
-const applyDailyCapToRewards = (rewardsByDate: Map<string, number>): number => {
-  let total = 0;
-  for (const [, amount] of rewardsByDate) {
-    total += Math.min(amount, DAILY_REWARD_CAP);
-  }
-  return total;
-};
 
 export function UserRewardDetailModal({ open, onClose, userId, userName }: UserRewardDetailModalProps) {
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState<UserSummary | null>(null);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [result, setResult] = useState<RewardCalculationResult | null>(null);
 
   useEffect(() => {
     if (open && userId) {
@@ -78,204 +34,18 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
     }
   }, [open, userId]);
 
-  const isQualityPost = (post: { content: string | null; images: string[] | null; video_url: string | null; post_type: string }) => {
-    const hasEnoughContent = (post.content?.length || 0) > 100;
-    const hasMedia = (post.images && post.images.length > 0) || !!post.video_url;
-    const isOriginalPost = post.post_type === 'post' || post.post_type === 'product';
-    return hasEnoughContent && hasMedia && isOriginalPost;
-  };
-
-  const isQualityComment = (content: string) => {
-    return (content?.length || 0) >= 20;
-  };
-
   const loadUserDetails = async () => {
     setLoading(true);
     try {
-      // 1. Fetch user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('avatar_url, created_at, welcome_bonus_claimed, wallet_bonus_claimed')
-        .eq('id', userId)
-        .single();
-
-      // 2. Get all valid user IDs (exclude banned/deleted)
-      const { data: allProfiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('banned', false);
-      const validUserIds = new Set((allProfiles || []).map(p => p.id));
-
-      // 3. Fetch user's posts
-      const { data: userPosts } = await supabase
-        .from('posts')
-        .select('id, content, images, video_url, post_type, created_at')
-        .eq('author_id', userId)
-        .limit(50000);
-
-      const allPostIds = (userPosts || []).map(p => p.id);
-      const qualityPostIds = (userPosts || []).filter(isQualityPost).map(p => p.id);
-
-      // 4. Fetch likes received on quality posts
-      const { data: likesReceived } = allPostIds.length > 0
-        ? await supabase
-            .from('post_likes')
-            .select('id, post_id, user_id, created_at')
-            .in('post_id', qualityPostIds.length > 0 ? qualityPostIds : ['none'])
-            .neq('user_id', userId)
-            .limit(50000)
-        : { data: [] };
-
-      // 5. Fetch comments received on quality posts
-      const { data: commentsReceived } = allPostIds.length > 0
-        ? await supabase
-            .from('comments')
-            .select('id, post_id, author_id, content, created_at')
-            .in('post_id', qualityPostIds.length > 0 ? qualityPostIds : ['none'])
-            .neq('author_id', userId)
-            .limit(50000)
-        : { data: [] };
-
-      // 6. Fetch shares received on quality posts
-      const { data: sharesReceived } = allPostIds.length > 0
-        ? await supabase
-            .from('post_shares')
-            .select('id, post_id, user_id, created_at')
-            .in('post_id', qualityPostIds.length > 0 ? qualityPostIds : ['none'])
-            .neq('user_id', userId)
-            .limit(50000)
-        : { data: [] };
-
-      // 7. Fetch friends (followers with status 'accepted')
-      const { data: friends } = await supabase
-        .from('followers')
-        .select('id, follower_id, following_id, created_at')
-        .or(`follower_id.eq.${userId},following_id.eq.${userId}`)
-        .eq('status', 'accepted')
-        .limit(50000);
-
-      // Filter to valid users only
-      const validLikes = (likesReceived || []).filter(l => validUserIds.has(l.user_id));
-      const validQualityComments = (commentsReceived || []).filter(c => validUserIds.has(c.author_id) && isQualityComment(c.content));
-      const validShares = (sharesReceived || []).filter(s => validUserIds.has(s.user_id));
-      const validFriends = (friends || []).filter(f => {
-        const otherId = f.follower_id === userId ? f.following_id : f.follower_id;
-        return validUserIds.has(otherId);
-      });
-
-      // === V3.1: Apply SEPARATE daily limits (50 likes, 50 comments) ===
+      const validUserIds = await getValidUserIds();
       
-      // 1. Quality posts: max 10/day
-      const qualityPostsData = (userPosts || []).filter(isQualityPost);
-      qualityPostsData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
-
-      // 2. V3.1: Likes and Comments have SEPARATE limits (50 each)
-      validLikes.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const rewardableLikes = applyDailyLimit(validLikes, l => l.created_at, MAX_LIKES_PER_DAY);
-
-      validQualityComments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const rewardableComments = applyDailyLimit(validQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
-
-      // 3. Shares: max 5/day
-      validShares.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const rewardableShares = applyDailyLimit(validShares, s => s.created_at, MAX_SHARES_PER_DAY);
-
-      // 4. Friendships: max 10/day
-      validFriends.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const rewardableFriendships = applyDailyLimit(validFriends, f => f.created_at, MAX_FRIENDSHIPS_PER_DAY);
-
-      // === Build rewards by date map (for daily cap calculation) ===
-      const rewardsByDate = new Map<string, number>();
-      const addRewardForDate = (date: string, amount: number) => {
-        rewardsByDate.set(date, (rewardsByDate.get(date) || 0) + amount);
-      };
-
-      // Track daily stats for UI display
-      const dailyPostsCount = new Map<string, number>();
-      const dailyLikesCount = new Map<string, number>();
-      const dailyCommentsCount = new Map<string, number>();
-      const dailySharesCount = new Map<string, number>();
-      const dailyFriendsCount = new Map<string, number>();
-
-      // Add posts reward
-      for (const post of rewardableQualityPosts) {
-        const vnDate = toVietnamDate(post.created_at);
-        addRewardForDate(vnDate, QUALITY_POST_REWARD);
-        dailyPostsCount.set(vnDate, (dailyPostsCount.get(vnDate) || 0) + 1);
-      }
-
-      // V3.1: Add likes rewards (from separate pool)
-      for (const like of rewardableLikes) {
-        const vnDate = toVietnamDate(like.created_at);
-        addRewardForDate(vnDate, LIKE_REWARD);
-        dailyLikesCount.set(vnDate, (dailyLikesCount.get(vnDate) || 0) + 1);
-      }
-
-      // V3.1: Add comments rewards (from separate pool)
-      for (const comment of rewardableComments) {
-        const vnDate = toVietnamDate(comment.created_at);
-        addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-        dailyCommentsCount.set(vnDate, (dailyCommentsCount.get(vnDate) || 0) + 1);
-      }
-
-      // Add shares reward
-      for (const share of rewardableShares) {
-        const vnDate = toVietnamDate(share.created_at);
-        addRewardForDate(vnDate, SHARE_REWARD);
-        dailySharesCount.set(vnDate, (dailySharesCount.get(vnDate) || 0) + 1);
-      }
-
-      // Add friendships reward
-      for (const friendship of rewardableFriendships) {
-        const vnDate = toVietnamDate(friendship.created_at);
-        addRewardForDate(vnDate, FRIENDSHIP_REWARD);
-        dailyFriendsCount.set(vnDate, (dailyFriendsCount.get(vnDate) || 0) + 1);
-      }
-
-      // Collect all dates
-      const allDates = new Set(rewardsByDate.keys());
-
-      // Build daily stats with cap applied
-      const dailyStatsArray: DailyStats[] = Array.from(allDates).sort().reverse().map(date => {
-        const rawReward = rewardsByDate.get(date) || 0;
-        return {
-          date,
-          qualityPosts: dailyPostsCount.get(date) || 0,
-          likesReceived: dailyLikesCount.get(date) || 0,
-          qualityComments: dailyCommentsCount.get(date) || 0,
-          sharesReceived: dailySharesCount.get(date) || 0,
-          friendsMade: dailyFriendsCount.get(date) || 0,
-          rawReward,
-          cappedReward: Math.min(rawReward, DAILY_REWARD_CAP)
-        };
+      const calculationResult = await calculateUserReward({
+        userId,
+        validUserIds,
+        includeDailyBreakdown: true
       });
 
-      // V3.1: Calculate totals (after applying separate limits)
-      const totalQualityPosts = rewardableQualityPosts.length;
-      const totalLikes = rewardableLikes.length;
-      const totalQualityComments = rewardableComments.length;
-      const totalShares = rewardableShares.length;
-      const totalFriends = rewardableFriendships.length;
-
-      const totalCappedReward = applyDailyCapToRewards(rewardsByDate);
-      const welcomeBonus = profile?.welcome_bonus_claimed ? WELCOME_BONUS : 0;
-      const walletBonus = profile?.wallet_bonus_claimed ? WALLET_CONNECT_BONUS : 0;
-
-      setSummary({
-        avatarUrl: profile?.avatar_url || null,
-        joinDate: profile?.created_at || '',
-        totalQualityPosts,
-        totalLikes,
-        totalQualityComments,
-        totalShares,
-        totalFriends,
-        welcomeBonus,
-        walletBonus,
-        totalReward: totalCappedReward + welcomeBonus + walletBonus
-      });
-
-      setDailyStats(dailyStatsArray);
+      setResult(calculationResult);
     } catch (error) {
       console.error('Error loading user details:', error);
     } finally {
@@ -284,10 +54,10 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
   };
 
   const handleExportCSV = () => {
-    if (!summary) return;
+    if (!result || !result.dailyStats) return;
 
     const headers = ['Ngày', 'Bài CL', 'Like nhận', 'Cmt CL nhận', 'Share nhận', 'Bạn bè', 'Thưởng (trước cap)', 'Thưởng (sau cap)'];
-    const rows = dailyStats.map(d => [
+    const rows = result.dailyStats.map((d: DailyRewardStats) => [
       d.date,
       d.qualityPosts,
       d.likesReceived,
@@ -301,23 +71,23 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
     // Add totals row
     rows.push([
       'TỔNG',
-      summary.totalQualityPosts,
-      summary.totalLikes,
-      summary.totalQualityComments,
-      summary.totalShares,
-      summary.totalFriends,
-      dailyStats.reduce((sum, d) => sum + d.rawReward, 0),
-      dailyStats.reduce((sum, d) => sum + d.cappedReward, 0)
+      result.qualityPosts,
+      result.likesReceived,
+      result.qualityComments,
+      result.sharesReceived,
+      result.friendships,
+      result.dailyStats.reduce((sum: number, d: DailyRewardStats) => sum + d.rawReward, 0),
+      result.dailyStats.reduce((sum: number, d: DailyRewardStats) => sum + d.cappedReward, 0)
     ]);
 
     // Add bonus rows
-    rows.push(['Welcome Bonus', '', '', '', '', '', '', summary.welcomeBonus]);
-    rows.push(['Wallet Bonus', '', '', '', '', '', '', summary.walletBonus]);
-    rows.push(['TỔNG V3.0', '', '', '', '', '', '', summary.totalReward]);
+    rows.push(['Welcome Bonus', '', '', '', '', '', '', result.welcomeBonus]);
+    rows.push(['Wallet Bonus', '', '', '', '', '', '', result.walletBonus]);
+    rows.push(['TỔNG V3.0', '', '', '', '', '', '', result.calculatedTotal]);
 
     const csvContent = [
       `Chi tiết thưởng: ${userName}`,
-      `Tham gia: ${summary.joinDate ? new Date(summary.joinDate).toLocaleDateString('vi-VN') : 'N/A'}`,
+      `Tham gia: ${result.createdAt ? new Date(result.createdAt).toLocaleDateString('vi-VN') : 'N/A'}`,
       '',
       headers.join(','),
       ...rows.map(row => row.join(','))
@@ -341,16 +111,16 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
               <Skeleton className="h-10 w-10 rounded-full" />
             ) : (
               <Avatar className="h-10 w-10">
-                <AvatarImage src={summary?.avatarUrl || ''} />
+                <AvatarImage src={result?.avatarUrl || ''} />
                 <AvatarFallback>{userName?.charAt(0) || '?'}</AvatarFallback>
               </Avatar>
             )}
             <div>
               <div className="text-lg font-semibold">{userName}</div>
-              {summary && (
+              {result && (
                 <div className="text-sm text-muted-foreground font-normal flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  Tham gia: {new Date(summary.joinDate).toLocaleDateString('vi-VN')}
+                  Tham gia: {new Date(result.createdAt).toLocaleDateString('vi-VN')}
                 </div>
               )}
             </div>
@@ -366,127 +136,143 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
             </div>
             <Skeleton className="h-64" />
           </div>
-        ) : summary ? (
+        ) : result ? (
           <div className="flex-1 overflow-hidden flex flex-col gap-4">
             {/* Summary Cards */}
             <div className="grid grid-cols-4 gap-3">
               <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
                 <CardContent className="p-3 text-center">
                   <FileText className="h-5 w-5 mx-auto text-blue-600 mb-1" />
-                  <div className="text-lg font-bold text-blue-700">{formatNumber(summary.totalQualityPosts)}</div>
+                  <div className="text-lg font-bold text-blue-700">{formatNumber(result.qualityPosts)}</div>
                   <div className="text-xs text-blue-600">Bài CL</div>
                 </CardContent>
               </Card>
               <Card className="bg-pink-50 dark:bg-pink-950/30 border-pink-200">
                 <CardContent className="p-3 text-center">
                   <Heart className="h-5 w-5 mx-auto text-pink-600 mb-1" />
-                  <div className="text-lg font-bold text-pink-700">{formatNumber(summary.totalLikes)}</div>
+                  <div className="text-lg font-bold text-pink-700">{formatNumber(result.likesReceived)}</div>
                   <div className="text-xs text-pink-600">Like nhận</div>
                 </CardContent>
               </Card>
               <Card className="bg-green-50 dark:bg-green-950/30 border-green-200">
                 <CardContent className="p-3 text-center">
                   <MessageSquare className="h-5 w-5 mx-auto text-green-600 mb-1" />
-                  <div className="text-lg font-bold text-green-700">{formatNumber(summary.totalQualityComments)}</div>
+                  <div className="text-lg font-bold text-green-700">{formatNumber(result.qualityComments)}</div>
                   <div className="text-xs text-green-600">Cmt CL nhận</div>
                 </CardContent>
               </Card>
               <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200">
                 <CardContent className="p-3 text-center">
                   <Users className="h-5 w-5 mx-auto text-purple-600 mb-1" />
-                  <div className="text-lg font-bold text-purple-700">{formatNumber(summary.totalFriends)}</div>
+                  <div className="text-lg font-bold text-purple-700">{formatNumber(result.friendships)}</div>
                   <div className="text-xs text-purple-600">Bạn bè</div>
                 </CardContent>
               </Card>
               <Card className="bg-orange-50 dark:bg-orange-950/30 border-orange-200">
                 <CardContent className="p-3 text-center">
                   <Gift className="h-5 w-5 mx-auto text-orange-600 mb-1" />
-                  <div className="text-lg font-bold text-orange-700">{formatNumber(summary.welcomeBonus)}</div>
+                  <div className="text-lg font-bold text-orange-700">{formatNumber(result.welcomeBonus)}</div>
                   <div className="text-xs text-orange-600">Welcome</div>
                 </CardContent>
               </Card>
               <Card className="bg-cyan-50 dark:bg-cyan-950/30 border-cyan-200">
                 <CardContent className="p-3 text-center">
                   <Wallet className="h-5 w-5 mx-auto text-cyan-600 mb-1" />
-                  <div className="text-lg font-bold text-cyan-700">{formatNumber(summary.walletBonus)}</div>
+                  <div className="text-lg font-bold text-cyan-700">{formatNumber(result.walletBonus)}</div>
                   <div className="text-xs text-cyan-600">Wallet</div>
                 </CardContent>
               </Card>
               <Card className="bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200">
                 <CardContent className="p-3 text-center">
                   <Share2 className="h-5 w-5 mx-auto text-indigo-600 mb-1" />
-                  <div className="text-lg font-bold text-indigo-700">{formatNumber(summary.totalShares)}</div>
+                  <div className="text-lg font-bold text-indigo-700">{formatNumber(result.sharesReceived)}</div>
                   <div className="text-xs text-indigo-600">Share nhận</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-950/50 dark:to-amber-950/50 border-yellow-300">
                 <CardContent className="p-3 text-center">
                   <Trophy className="h-5 w-5 mx-auto text-yellow-600 mb-1" />
-                  <div className="text-lg font-bold text-yellow-700">{formatNumber(summary.totalReward)}</div>
-                  <div className="text-xs text-yellow-600">TỔNG V3.0</div>
+                  <div className="text-lg font-bold text-yellow-700">{formatNumber(result.calculatedTotal)}</div>
+                  <div className="text-xs text-yellow-600">Tổng V3.0</div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Daily Stats Table */}
-            <div className="flex-1 overflow-hidden border rounded-lg">
-              <div className="bg-muted/50 px-3 py-2 border-b flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  📅 Chi tiết theo ngày ({dailyStats.length} ngày hoạt động)
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Daily Cap: {formatNumber(DAILY_REWARD_CAP)} CLC
-                </span>
-              </div>
-              <ScrollArea className="h-[300px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead className="text-xs font-semibold">Ngày</TableHead>
-                      <TableHead className="text-xs font-semibold text-center">Bài CL</TableHead>
-                      <TableHead className="text-xs font-semibold text-center">Like</TableHead>
-                      <TableHead className="text-xs font-semibold text-center">Cmt CL</TableHead>
-                      <TableHead className="text-xs font-semibold text-center">Share</TableHead>
-                      <TableHead className="text-xs font-semibold text-center">Bạn bè</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">Trước Cap</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">Sau Cap</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {dailyStats.map((stat) => (
-                      <TableRow key={stat.date} className="hover:bg-muted/30">
-                        <TableCell className="text-xs font-medium">{stat.date}</TableCell>
-                        <TableCell className="text-xs text-center">{stat.qualityPosts || '-'}</TableCell>
-                        <TableCell className="text-xs text-center">{stat.likesReceived || '-'}</TableCell>
-                        <TableCell className="text-xs text-center">{stat.qualityComments || '-'}</TableCell>
-                        <TableCell className="text-xs text-center">{stat.sharesReceived || '-'}</TableCell>
-                        <TableCell className="text-xs text-center">{stat.friendsMade || '-'}</TableCell>
-                        <TableCell className="text-xs text-right">{formatNumber(stat.rawReward)}</TableCell>
-                        <TableCell className={`text-xs text-right font-medium ${stat.cappedReward < stat.rawReward ? 'text-red-600' : ''}`}>
-                          {formatNumber(stat.cappedReward)}
-                          {stat.cappedReward < stat.rawReward && ' ⚠️'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Chi tiết theo ngày (Vietnam Time)</h3>
+              <Button size="sm" variant="outline" onClick={handleExportCSV}>
+                <Download className="h-4 w-4 mr-2" />
+                Xuất CSV
+              </Button>
             </div>
 
-            {/* Footer Actions */}
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <Button variant="outline" size="sm" onClick={handleExportCSV}>
-                <Download className="h-4 w-4 mr-1" />
-                Export CSV
-              </Button>
-              <Button variant="default" size="sm" onClick={onClose}>
-                Đóng
-              </Button>
+            <ScrollArea className="flex-1 border rounded-lg">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    <TableHead>Ngày</TableHead>
+                    <TableHead className="text-center">Bài CL</TableHead>
+                    <TableHead className="text-center">Like nhận</TableHead>
+                    <TableHead className="text-center">Cmt CL</TableHead>
+                    <TableHead className="text-center">Share nhận</TableHead>
+                    <TableHead className="text-center">Bạn bè</TableHead>
+                    <TableHead className="text-right">Thưởng (trước cap)</TableHead>
+                    <TableHead className="text-right">Thưởng (sau cap)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.dailyStats?.map((day) => (
+                    <TableRow key={day.date} className={day.rawReward > DAILY_REWARD_CAP ? 'bg-yellow-50 dark:bg-yellow-950/20' : ''}>
+                      <TableCell className="font-medium">{day.date}</TableCell>
+                      <TableCell className="text-center">{day.qualityPosts || '-'}</TableCell>
+                      <TableCell className="text-center">{day.likesReceived || '-'}</TableCell>
+                      <TableCell className="text-center">{day.qualityComments || '-'}</TableCell>
+                      <TableCell className="text-center">{day.sharesReceived || '-'}</TableCell>
+                      <TableCell className="text-center">{day.friendsMade || '-'}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatNumber(day.rawReward)}
+                        {day.rawReward > DAILY_REWARD_CAP && (
+                          <span className="text-yellow-600 ml-1">⚠️</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-bold">
+                        {formatNumber(day.cappedReward)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Summary Row */}
+                  <TableRow className="bg-muted/50 font-bold sticky bottom-0">
+                    <TableCell>TỔNG</TableCell>
+                    <TableCell className="text-center">{result.qualityPosts}</TableCell>
+                    <TableCell className="text-center">{result.likesReceived}</TableCell>
+                    <TableCell className="text-center">{result.qualityComments}</TableCell>
+                    <TableCell className="text-center">{result.sharesReceived}</TableCell>
+                    <TableCell className="text-center">{result.friendships}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatNumber(result.dailyStats?.reduce((sum, d) => sum + d.rawReward, 0) || 0)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-yellow-700">
+                      {formatNumber(result.dailyStats?.reduce((sum, d) => sum + d.cappedReward, 0) || 0)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </ScrollArea>
+
+            {/* Final calculation note */}
+            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+              <p>
+                <strong>Công thức:</strong> Tổng V3.0 = Welcome ({formatNumber(result.welcomeBonus)}) + Wallet ({formatNumber(result.walletBonus)}) + Daily rewards sau cap ({formatNumber(result.dailyStats?.reduce((sum, d) => sum + d.cappedReward, 0) || 0)}) = <strong className="text-foreground">{formatNumber(result.calculatedTotal)} CLC</strong>
+              </p>
+              <p className="mt-1 text-xs">
+                ⚠️ Các ngày có thưởng vượt 500k CLC sẽ bị cap về 500k. V3.1: Like và Comment có giới hạn riêng biệt (50/ngày mỗi loại).
+              </p>
             </div>
           </div>
         ) : (
           <div className="py-8 text-center text-muted-foreground">
-            Không tìm thấy dữ liệu
+            Không tìm thấy dữ liệu user
           </div>
         )}
       </DialogContent>
