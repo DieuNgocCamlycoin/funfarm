@@ -6,6 +6,7 @@ import { CheckCircle2, MapPin, ExternalLink, AlertCircle, Play } from "lucide-re
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import GiftPostDisplay from "./GiftPostDisplay";
+import { formatLocalDateTime } from "@/lib/dateUtils";
 
 interface SharedPostCardProps {
   originalPost: Post | null;
@@ -24,26 +25,8 @@ const getUserTypeIcon = (type: string) => {
   }
 };
 
-const timeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  
-  if (seconds < 60) return 'Vừa xong';
-  if (minutes < 60) return `${minutes} phút trước`;
-  if (hours < 24) return `${hours} giờ trước`;
-  if (days < 7) return `${days} ngày trước`;
-  
-  return date.toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+const formatPostTime = (dateString: string): string => {
+  return formatLocalDateTime(dateString);
 };
 
 export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps) => {
@@ -133,7 +116,7 @@ export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps)
             )}
           </div>
           <span className="text-xs text-muted-foreground">
-            {timeAgo(originalPost.createdAt)}
+            {formatPostTime(originalPost.createdAt)}
           </span>
         </div>
       </Link>

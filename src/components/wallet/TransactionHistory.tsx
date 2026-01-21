@@ -24,10 +24,11 @@ import {
   MessageSquare,
   Hash
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import { formatLocalDateTime } from '@/lib/dateUtils';
 
 interface Transaction {
   id: string;
@@ -226,10 +227,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                             )}
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(tx.created_at), { 
-                              addSuffix: true, 
-                              locale: vi 
-                            })}
+                            {formatLocalDateTime(tx.created_at)}
                           </div>
                         </div>
                         

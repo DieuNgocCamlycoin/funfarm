@@ -92,3 +92,28 @@ export const applyDailyCap = (
   }
   return total;
 };
+
+/**
+ * Format UTC timestamp to user's local timezone with exact date and time
+ * UI display only - does NOT affect reward calculations
+ * 
+ * Browser's Date object automatically converts UTC to local timezone
+ * 
+ * @example
+ * // User in GMT+8 viewing post created at 2026-01-21T03:50:00Z
+ * formatLocalDateTime('2026-01-21T03:50:00Z') // Returns "11h50 ngày 21/01/2026"
+ * 
+ * // User in GMT+7 viewing the same post
+ * formatLocalDateTime('2026-01-21T03:50:00Z') // Returns "10h50 ngày 21/01/2026"
+ */
+export const formatLocalDateTime = (utcTimestamp: string): string => {
+  const date = new Date(utcTimestamp);
+  
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${hours}h${minutes} ngày ${day}/${month}/${year}`;
+};
