@@ -1918,10 +1918,12 @@ export type Database = {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
       }
+      count_comments_today_vn: { Args: { p_user_id: string }; Returns: number }
       count_interactions_today_vn: {
         Args: { p_user_id: string }
         Returns: number
       }
+      count_likes_today_vn: { Args: { p_user_id: string }; Returns: number }
       get_feed_posts: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
