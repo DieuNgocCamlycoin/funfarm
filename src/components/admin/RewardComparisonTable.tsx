@@ -2,28 +2,15 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { Download, RefreshCw, Loader2, ArrowUp, ArrowDown, Minus, TrendingUp, TrendingDown, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  DAILY_REWARD_CAP, 
-  QUALITY_POST_REWARD, 
-  LIKE_REWARD, 
-  QUALITY_COMMENT_REWARD, 
-  SHARE_REWARD, 
-  FRIENDSHIP_REWARD,
-  WELCOME_BONUS,
-  WALLET_CONNECT_BONUS,
-  MAX_POSTS_PER_DAY,
-  MAX_LIKES_PER_DAY,
-  MAX_COMMENTS_PER_DAY,
-  MAX_SHARES_PER_DAY,
-  MAX_FRIENDSHIPS_PER_DAY
-} from "@/lib/constants";
-import { toVietnamDate, applyDailyLimit as applyDailyLimitVN, applyDailyCap as applyDailyCapVN } from "@/lib/dateUtils";
 import { UserRewardDetailModal } from "./UserRewardDetailModal";
+import { 
+  calculateAllUsersRewards, 
+  RewardCalculationResult 
+} from "@/lib/rewardCalculationService";
 
 interface ComparisonData {
   id: string;
@@ -73,191 +60,42 @@ export function RewardComparisonTable() {
 
   const formatNumber = (n: number) => n.toLocaleString('vi-VN');
 
-  // Use Vietnam timezone helpers from dateUtils.ts
-  const applyDailyLimit = applyDailyLimitVN;
-  const applyDailyCap = (rewardsByDate: Map<string, number>): number => applyDailyCapVN(rewardsByDate, DAILY_REWARD_CAP);
-
   const fetchComparison = async () => {
     setLoading(true);
     try {
-      // Fetch profiles with pending_reward (Honor Board data)
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('banned', false)
-        .order('pending_reward', { ascending: false });
+      // Use centralized reward calculation service
+      const results = await calculateAllUsersRewards();
 
-      if (profileError) throw profileError;
-
-      // Get existing user IDs
-      const { data: existingUsers } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('banned', false);
-      const existingUserIds = new Set((existingUsers || []).map(u => u.id));
-
-      const cutoffDate = new Date().toISOString();
-
-      // Calculate v3.0 rewards for each user
-      const calculations = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const rewardsByDate = new Map<string, number>();
-          
-          const addRewardForDate = (date: string, amount: number) => {
-            const current = rewardsByDate.get(date) || 0;
-            rewardsByDate.set(date, current + amount);
-          };
-
-          // Get ALL posts
-          const { data: allPosts } = await supabase
-            .from('posts')
-            .select('id, content, images, video_url, created_at, post_type')
-            .eq('author_id', profile.id)
-            .lte('created_at', cutoffDate)
-            .order('created_at', { ascending: true });
-
-          // Quality posts only: >100 chars + media
-          const qualityPostsData = (allPosts || []).filter(p => {
-            const hasContent = (p.content?.length || 0) > 100;
-            const hasMedia = (p.images && p.images.length > 0) || p.video_url;
-            const isOriginalContent = p.post_type === 'post' || p.post_type === 'product';
-            return hasContent && hasMedia && isOriginalContent;
-          });
-
-          const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
-          const qualityPosts = rewardableQualityPosts.length;
-
-          for (const post of rewardableQualityPosts) {
-            addRewardForDate(toVietnamDate(post.created_at), QUALITY_POST_REWARD);
-          }
-
-          // V3.1: Interactions are rewarded on ALL quality posts (not just first 10/day)
-          const qualityPostIds = qualityPostsData.map(p => p.id);
-          
-          let likesReceived = 0;
-          let qualityComments = 0;
-          let sharesReceived = 0;
-
-          if (qualityPostIds.length > 0) {
-            // Likes received on QUALITY posts only
-            const { data: likesData } = await supabase
-              .from('post_likes')
-              .select('user_id, post_id, created_at')
-              .in('post_id', qualityPostIds)
-              .neq('user_id', profile.id)
-              .lte('created_at', cutoffDate)
-              .order('created_at', { ascending: true });
-
-            const validLikes = (likesData || []).filter(l => existingUserIds.has(l.user_id));
-
-            // Quality comments (>20 chars) on QUALITY posts only
-            const { data: commentsData } = await supabase
-              .from('comments')
-              .select('author_id, post_id, content, created_at')
-              .in('post_id', qualityPostIds)
-              .neq('author_id', profile.id)
-              .lte('created_at', cutoffDate)
-              .order('created_at', { ascending: true });
-
-            const validQualityComments = (commentsData || []).filter(c => 
-              existingUserIds.has(c.author_id) && (c.content?.length || 0) > 20
-            );
-
-            // V3.1: Apply SEPARATE daily limits - 50 likes/day AND 50 comments/day
-            const rewardableLikes = applyDailyLimit(validLikes, l => l.created_at, MAX_LIKES_PER_DAY);
-            const rewardableComments = applyDailyLimit(validQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
-
-            // Add likes rewards
-            for (const like of rewardableLikes) {
-              const vnDate = toVietnamDate(like.created_at);
-              likesReceived++;
-              addRewardForDate(vnDate, LIKE_REWARD);
-            }
-
-            // Add comments rewards
-            for (const comment of rewardableComments) {
-              const vnDate = toVietnamDate(comment.created_at);
-              qualityComments++;
-              addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-            }
-
-            // Shares received on QUALITY posts only
-            const { data: sharesData } = await supabase
-              .from('post_shares')
-              .select('user_id, post_id, created_at')
-              .in('post_id', qualityPostIds)
-              .neq('user_id', profile.id)
-              .lte('created_at', cutoffDate)
-              .order('created_at', { ascending: true });
-
-            const validShares = (sharesData || []).filter(s => existingUserIds.has(s.user_id));
-            const rewardableShares = applyDailyLimit(validShares, s => s.created_at, MAX_SHARES_PER_DAY);
-            sharesReceived = rewardableShares.length;
-
-            for (const share of rewardableShares) {
-              addRewardForDate(toVietnamDate(share.created_at), SHARE_REWARD);
-            }
-          }
-
-          // Friendships
-          const { data: friendshipsData } = await supabase
-            .from('followers')
-            .select('follower_id, following_id, created_at')
-            .or(`follower_id.eq.${profile.id},following_id.eq.${profile.id}`)
-            .eq('status', 'accepted')
-            .lte('created_at', cutoffDate)
-            .order('created_at', { ascending: true });
-          
-          const validFriendships = (friendshipsData || []).filter(f => {
-            const friendId = f.follower_id === profile.id ? f.following_id : f.follower_id;
-            return existingUserIds.has(friendId);
-          });
-          
-          const rewardableFriendships = applyDailyLimit(validFriendships, f => f.created_at, MAX_FRIENDSHIPS_PER_DAY);
-          const friendships = rewardableFriendships.length;
-
-          for (const friendship of rewardableFriendships) {
-            addRewardForDate(toVietnamDate(friendship.created_at), FRIENDSHIP_REWARD);
-          }
-
-          // Calculate rewards
-          const welcomeBonus = profile.welcome_bonus_claimed ? WELCOME_BONUS : 0;
-          const walletBonus = profile.wallet_bonus_claimed ? WALLET_CONNECT_BONUS : 0;
-          const dailyRewardsTotal = applyDailyCap(rewardsByDate);
-          const calculatedTotal = welcomeBonus + walletBonus + dailyRewardsTotal;
-
-          return {
-            id: profile.id,
-            display_name: profile.display_name || 'N/A',
-            avatar_url: profile.avatar_url,
-            current_pending: profile.pending_reward || 0,
-            calculated_v3: calculatedTotal,
-            difference: (profile.pending_reward || 0) - calculatedTotal,
-            welcome_bonus: welcomeBonus,
-            wallet_bonus: walletBonus,
-            quality_posts: qualityPosts,
-            likes_received: likesReceived,
-            quality_comments: qualityComments,
-            shares_received: sharesReceived,
-            friendships: friendships
-          };
-        })
-      );
-
-      // Filter out users with both values = 0
-      const filteredCalcs = calculations.filter(u => u.current_pending > 0 || u.calculated_v3 > 0);
+      // Map results to comparison data format
+      const calculations: ComparisonData[] = results
+        .filter(r => r.currentPending > 0 || r.calculatedTotal > 0)
+        .map((r: RewardCalculationResult) => ({
+          id: r.userId,
+          display_name: r.displayName,
+          avatar_url: r.avatarUrl,
+          current_pending: r.currentPending,
+          calculated_v3: r.calculatedTotal,
+          difference: r.currentPending - r.calculatedTotal,
+          welcome_bonus: r.welcomeBonus,
+          wallet_bonus: r.walletBonus,
+          quality_posts: r.qualityPosts,
+          likes_received: r.likesReceived,
+          quality_comments: r.qualityComments,
+          shares_received: r.sharesReceived,
+          friendships: r.friendships
+        }));
       
-      setUsers(filteredCalcs);
+      setUsers(calculations);
       const now = new Date();
       setLastUpdated(now);
       
       // Save to cache
       localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: filteredCalcs,
+        data: calculations,
         timestamp: now.toISOString()
       }));
       
-      toast.success(`Đã so sánh ${filteredCalcs.length} users với V3.0`);
+      toast.success(`Đã so sánh ${calculations.length} users với V3.0`);
     } catch (error) {
       console.error('Error fetching comparison:', error);
       toast.error('Lỗi khi tải dữ liệu');
@@ -463,27 +301,30 @@ export function RewardComparisonTable() {
         )}
 
         {/* Table */}
-        {users.length > 0 ? (
-          <div className="rounded-md border overflow-x-auto max-h-[500px] overflow-y-auto">
+        {users.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            Nhấn "Tải dữ liệu" để so sánh điểm Honor Board với V3.0
+          </p>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead className="min-w-[150px]">User</TableHead>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[250px]">User</TableHead>
                   <TableHead 
-                    className="text-right cursor-pointer hover:bg-muted/50" 
+                    className="text-right cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('current_pending')}
                   >
-                    Điểm hiện tại {sortField === 'current_pending' && (sortDir === 'asc' ? '↑' : '↓')}
+                    Honor Board {sortField === 'current_pending' && (sortDir === 'asc' ? '↑' : '↓')}
                   </TableHead>
                   <TableHead 
-                    className="text-right cursor-pointer hover:bg-muted/50"
+                    className="text-right cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('calculated_v3')}
                   >
-                    Điểm V3.0 {sortField === 'calculated_v3' && (sortDir === 'asc' ? '↑' : '↓')}
+                    V3.0 {sortField === 'calculated_v3' && (sortDir === 'asc' ? '↑' : '↓')}
                   </TableHead>
                   <TableHead 
-                    className="text-right cursor-pointer hover:bg-muted/50"
+                    className="text-right cursor-pointer hover:bg-muted"
                     onClick={() => handleSort('difference')}
                   >
                     Chênh lệch {sortField === 'difference' && (sortDir === 'asc' ? '↑' : '↓')}
@@ -492,31 +333,23 @@ export function RewardComparisonTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedUsers.map((user, idx) => (
-                  <TableRow key={user.id} className={
-                    user.difference < 0 
-                      ? 'bg-green-50/50 dark:bg-green-950/10' 
-                      : user.difference > 0 
-                        ? 'bg-red-50/50 dark:bg-red-950/10' 
-                        : ''
-                  }>
-                    <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                {sortedUsers.map((user) => (
+                  <TableRow 
+                    key={user.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setSelectedUserId(user.id);
+                      setSelectedUserName(user.display_name);
+                    }}
+                  >
                     <TableCell>
-                      <button 
-                        onClick={() => {
-                          setSelectedUserId(user.id);
-                          setSelectedUserName(user.display_name);
-                        }}
-                        className="flex items-center gap-2 hover:bg-muted/50 rounded-lg p-1 -m-1 transition-colors cursor-pointer group"
-                      >
+                      <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={user.avatar_url || ''} />
                           <AvatarFallback>{user.display_name?.charAt(0) || '?'}</AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-sm truncate max-w-[120px] text-blue-600 group-hover:underline">
-                          {user.display_name}
-                        </span>
-                      </button>
+                        <span className="font-medium truncate max-w-[180px]">{user.display_name}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatNumber(user.current_pending)}
@@ -526,42 +359,22 @@ export function RewardComparisonTable() {
                     </TableCell>
                     <TableCell className="text-right">
                       {user.difference === 0 ? (
-                        <Badge variant="outline" className="font-mono">0</Badge>
+                        <Badge variant="secondary">Giống</Badge>
                       ) : user.difference > 0 ? (
-                        <Badge variant="destructive" className="font-mono">
-                          <ArrowDown className="h-3 w-3 mr-1" />
-                          -{formatNumber(user.difference)}
-                        </Badge>
+                        <Badge variant="destructive">-{formatNumber(user.difference)}</Badge>
                       ) : (
-                        <Badge className="bg-green-500 font-mono">
-                          <ArrowUp className="h-3 w-3 mr-1" />
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200">
                           +{formatNumber(Math.abs(user.difference))}
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1 justify-center text-xs">
-                        {user.welcome_bonus > 0 && (
-                          <Badge variant="secondary" className="text-[10px]">W:{formatNumber(user.welcome_bonus)}</Badge>
-                        )}
-                        {user.wallet_bonus > 0 && (
-                          <Badge variant="secondary" className="text-[10px]">💰:{formatNumber(user.wallet_bonus)}</Badge>
-                        )}
-                        {user.quality_posts > 0 && (
-                          <Badge variant="outline" className="text-[10px]">📝:{user.quality_posts}</Badge>
-                        )}
-                        {user.likes_received > 0 && (
-                          <Badge variant="outline" className="text-[10px]">👍:{user.likes_received}</Badge>
-                        )}
-                        {user.quality_comments > 0 && (
-                          <Badge variant="outline" className="text-[10px]">💬:{user.quality_comments}</Badge>
-                        )}
-                        {user.shares_received > 0 && (
-                          <Badge variant="outline" className="text-[10px]">🔄:{user.shares_received}</Badge>
-                        )}
-                        {user.friendships > 0 && (
-                          <Badge variant="outline" className="text-[10px]">🤝:{user.friendships}</Badge>
-                        )}
+                    <TableCell className="text-center">
+                      <div className="flex gap-1 justify-center text-xs text-muted-foreground">
+                        <span title="Bài CL">📝{user.quality_posts}</span>
+                        <span title="Like">❤️{user.likes_received}</span>
+                        <span title="Cmt CL">💬{user.quality_comments}</span>
+                        <span title="Share">🔄{user.shares_received}</span>
+                        <span title="Bạn bè">👥{user.friendships}</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -569,15 +382,10 @@ export function RewardComparisonTable() {
               </TableBody>
             </Table>
           </div>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <Scale className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p>Nhấn "Tải dữ liệu" để so sánh điểm Honor Board với V3.0</p>
-          </div>
         )}
       </CardContent>
-      
-      {/* User Reward Detail Modal */}
+
+      {/* User Detail Modal */}
       <UserRewardDetailModal
         open={!!selectedUserId}
         onClose={() => setSelectedUserId(null)}

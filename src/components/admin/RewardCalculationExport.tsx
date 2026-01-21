@@ -8,21 +8,10 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
-  DAILY_REWARD_CAP, 
-  QUALITY_POST_REWARD, 
-  LIKE_REWARD, 
-  QUALITY_COMMENT_REWARD, 
-  SHARE_REWARD, 
-  FRIENDSHIP_REWARD,
-  WELCOME_BONUS,
-  WALLET_CONNECT_BONUS,
-  MAX_POSTS_PER_DAY,
-  MAX_LIKES_PER_DAY,
-  MAX_COMMENTS_PER_DAY,
-  MAX_SHARES_PER_DAY,
-  MAX_FRIENDSHIPS_PER_DAY
-} from "@/lib/constants";
-import { toVietnamDate, groupByVietnamDate, applyDailyLimit as applyDailyLimitVN, applyDailyCap as applyDailyCapVN } from "@/lib/dateUtils";
+  calculateAllUsersRewards,
+  RewardCalculationResult,
+  REWARD_RATES
+} from "@/lib/rewardCalculationService";
 
 interface UserRewardCalculation {
   id: string;
@@ -159,194 +148,47 @@ export function RewardCalculationExport() {
   const fetchCalculations = async () => {
     setLoading(true);
     try {
-      const { data: profiles, error: profileError } = await supabase
+      // Use centralized reward calculation service
+      const results = await calculateAllUsersRewards();
+
+      // Fetch additional profile data for wallet_address and is_verified
+      const { data: profiles } = await supabase
         .from('profiles')
-        .select('*')
-        .order('pending_reward', { ascending: false });
+        .select('id, wallet_address, is_verified, camly_balance, welcome_bonus_claimed, wallet_bonus_claimed');
 
-      if (profileError) throw profileError;
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
 
-      // Use Vietnam timezone helpers from dateUtils.ts
-      const applyDailyLimit = applyDailyLimitVN;
-      const applyDailyCap = (rewardsByDate: Map<string, number>): number => applyDailyCapVN(rewardsByDate, DAILY_REWARD_CAP);
-
-      // Get existing user IDs - filter out banned users
-      const { data: existingUsers } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('banned', false);
-      const existingUserIds = new Set((existingUsers || []).map(u => u.id));
-
-      // Calculate rewards for each user
-      const calculations = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const rewardsByDate = new Map<string, number>();
-          
-          const addRewardForDate = (date: string, amount: number) => {
-            const current = rewardsByDate.get(date) || 0;
-            rewardsByDate.set(date, current + amount);
-          };
-
-          // Dynamic cutoff - calculate to current time
-          const cutoffDate = new Date().toISOString();
-          
-          // Get ALL posts
-          const { data: allPosts } = await supabase
-            .from('posts')
-            .select('id, content, images, video_url, created_at, post_type')
-            .eq('author_id', profile.id)
-            .lte('created_at', cutoffDate)
-            .order('created_at', { ascending: true });
-
-          // Quality posts only: >100 chars + media = 10,000 CLC (includes 'post' and 'product', excludes 'share')
-          const qualityPostsData = (allPosts || []).filter(p => {
-            const hasContent = (p.content?.length || 0) > 100;
-            const hasMedia = (p.images && p.images.length > 0) || p.video_url;
-            const isOriginalContent = p.post_type === 'post' || p.post_type === 'product';
-            return hasContent && hasMedia && isOriginalContent;
-          });
-
-          const rewardableQualityPosts = applyDailyLimit(qualityPostsData, p => p.created_at, MAX_POSTS_PER_DAY);
-          const qualityPosts = rewardableQualityPosts.length;
-
-          for (const post of rewardableQualityPosts) {
-            addRewardForDate(toVietnamDate(post.created_at), QUALITY_POST_REWARD);
-          }
-
-          // V3.1: Interactions are rewarded on ALL quality posts (not just the first 10/day)
-          const qualityPostIds = qualityPostsData.map(p => p.id);
-          
-          let likesReceived = 0;
-          let qualityComments = 0;
-          let sharesReceived = 0;
-
-          if (qualityPostIds.length > 0) {
-            // Likes received on QUALITY posts only
-            const { data: likesData } = await supabase
-              .from('post_likes')
-              .select('user_id, post_id, created_at')
-              .in('post_id', qualityPostIds)
-              .neq('user_id', profile.id)
-              .lte('created_at', cutoffDate)
-              .order('created_at', { ascending: true });
-
-            const validLikes = (likesData || []).filter(l => existingUserIds.has(l.user_id));
-
-            // Quality comments (>20 chars) on QUALITY posts only
-            const { data: commentsData } = await supabase
-              .from('comments')
-              .select('author_id, post_id, content, created_at')
-              .in('post_id', qualityPostIds)
-              .neq('author_id', profile.id)
-              .lte('created_at', cutoffDate)
-              .order('created_at', { ascending: true });
-
-            const validQualityComments = (commentsData || []).filter(c => 
-              existingUserIds.has(c.author_id) && (c.content?.length || 0) > 20
-            );
-
-            // V3.1: Apply SEPARATE daily limits - 50 likes/day AND 50 comments/day
-            const rewardableLikes = applyDailyLimit(validLikes, l => l.created_at, MAX_LIKES_PER_DAY);
-            const rewardableComments = applyDailyLimit(validQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
-            
-            // Add likes rewards
-            for (const like of rewardableLikes) {
-              const vnDate = toVietnamDate(like.created_at);
-              likesReceived++;
-              addRewardForDate(vnDate, LIKE_REWARD);
-            }
-
-            // Add comments rewards
-            for (const comment of rewardableComments) {
-              const vnDate = toVietnamDate(comment.created_at);
-              qualityComments++;
-              addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-            }
-
-            // Shares received on QUALITY posts only - limit 5/day
-            const { data: sharesData } = await supabase
-              .from('post_shares')
-              .select('user_id, post_id, created_at')
-              .in('post_id', qualityPostIds)
-              .neq('user_id', profile.id)
-              .lte('created_at', cutoffDate)
-              .order('created_at', { ascending: true });
-
-            const validShares = (sharesData || []).filter(s => existingUserIds.has(s.user_id));
-            const rewardableShares = applyDailyLimit(validShares, s => s.created_at, MAX_SHARES_PER_DAY);
-            sharesReceived = rewardableShares.length;
-
-            for (const share of rewardableShares) {
-              addRewardForDate(toVietnamDate(share.created_at), SHARE_REWARD);
-            }
-          }
-
-          // Friendships - 10k each, limit 10/day
-          const { data: friendshipsData } = await supabase
-            .from('followers')
-            .select('follower_id, following_id, created_at')
-            .or(`follower_id.eq.${profile.id},following_id.eq.${profile.id}`)
-            .eq('status', 'accepted')
-            .lte('created_at', cutoffDate)
-            .order('created_at', { ascending: true });
-          
-          const validFriendships = (friendshipsData || []).filter(f => {
-            const friendId = f.follower_id === profile.id ? f.following_id : f.follower_id;
-            return existingUserIds.has(friendId);
-          });
-          
-          const rewardableFriendships = applyDailyLimit(validFriendships, f => f.created_at, MAX_FRIENDSHIPS_PER_DAY);
-          const friendships = rewardableFriendships.length;
-
-          for (const friendship of rewardableFriendships) {
-            addRewardForDate(toVietnamDate(friendship.created_at), FRIENDSHIP_REWARD);
-          }
-
-          // Calculate rewards
-          const welcomeBonus = profile.welcome_bonus_claimed ? WELCOME_BONUS : 0;
-          const walletBonus = profile.wallet_bonus_claimed ? WALLET_CONNECT_BONUS : 0;
-          
-          // Apply daily cap (excludes welcome + wallet)
-          const dailyRewardsTotal = applyDailyCap(rewardsByDate);
-          
-          const postReward = qualityPosts * QUALITY_POST_REWARD;
-          const likeReward = likesReceived * LIKE_REWARD;
-          const commentReward = qualityComments * QUALITY_COMMENT_REWARD;
-          const shareReward = sharesReceived * SHARE_REWARD;
-          const friendshipReward = friendships * FRIENDSHIP_REWARD;
-
-          // Total = one-time + capped daily
-          const calculatedTotal = welcomeBonus + walletBonus + dailyRewardsTotal;
-
-          return {
-            id: profile.id,
-            display_name: profile.display_name || 'N/A',
-            wallet_address: profile.wallet_address || '',
-            pending_reward: profile.pending_reward || 0,
-            approved_reward: profile.approved_reward || 0,
-            camly_balance: profile.camly_balance || 0,
-            current_total: (profile.pending_reward || 0) + (profile.approved_reward || 0) + (profile.camly_balance || 0),
-            welcome_bonus_claimed: profile.welcome_bonus_claimed,
-            wallet_bonus_claimed: profile.wallet_bonus_claimed,
-            is_verified: profile.is_verified,
-            quality_posts: qualityPosts,
-            likes_received: likesReceived,
-            quality_comments: qualityComments,
-            shares_received: sharesReceived,
-            friendships: friendships,
-            welcome_bonus: welcomeBonus,
-            wallet_bonus: walletBonus,
-            post_reward: postReward,
-            like_reward: likeReward,
-            comment_reward: commentReward,
-            share_reward: shareReward,
-            friendship_reward: friendshipReward,
-            daily_rewards_total: dailyRewardsTotal,
-            calculated_total: calculatedTotal,
-            created_at: profile.created_at
-          };
-        })
-      );
+      // Map results to component format
+      const calculations: UserRewardCalculation[] = results.map((r: RewardCalculationResult) => {
+        const profile = profileMap.get(r.userId);
+        return {
+          id: r.userId,
+          display_name: r.displayName,
+          wallet_address: profile?.wallet_address || '',
+          pending_reward: r.currentPending,
+          approved_reward: r.currentApproved,
+          camly_balance: profile?.camly_balance || 0,
+          current_total: r.currentTotal + (profile?.camly_balance || 0),
+          welcome_bonus_claimed: profile?.welcome_bonus_claimed || false,
+          wallet_bonus_claimed: profile?.wallet_bonus_claimed || false,
+          is_verified: profile?.is_verified || false,
+          quality_posts: r.qualityPosts,
+          likes_received: r.likesReceived,
+          quality_comments: r.qualityComments,
+          shares_received: r.sharesReceived,
+          friendships: r.friendships,
+          welcome_bonus: r.welcomeBonus,
+          wallet_bonus: r.walletBonus,
+          post_reward: r.postReward,
+          like_reward: r.likeReward,
+          comment_reward: r.commentReward,
+          share_reward: r.shareReward,
+          friendship_reward: r.friendshipReward,
+          daily_rewards_total: r.dailyRewardsTotal,
+          calculated_total: r.calculatedTotal,
+          created_at: r.createdAt
+        };
+      });
 
       setUsers(calculations);
       const now = new Date();
@@ -475,265 +317,230 @@ export function RewardCalculationExport() {
 
   const getDifferenceColor = (diff: number) => {
     if (diff > 100000) return 'text-red-500 font-bold';
-    if (diff < -100000) return 'text-green-500 font-bold';
+    if (diff > 0) return 'text-red-400';
+    if (diff < 0) return 'text-green-500';
     return 'text-muted-foreground';
   };
+
+  const summary = getActionTypeSummary();
+  const totalCalculated = users.reduce((sum, u) => sum + u.calculated_total, 0);
+  const totalCurrent = users.reduce((sum, u) => sum + u.current_total, 0);
+
+  // Find users with big discrepancies
+  const bigDiscrepancies = users.filter(u => Math.abs(u.current_total - u.calculated_total) > 100000);
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              📊 Bảng Tính Điểm Thưởng v3.0 (Daily Cap: {formatNumber(DAILY_REWARD_CAP)} CLC)
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button onClick={fetchCalculations} disabled={loading} variant="outline">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>📊 Reward System v3.0 - Tính toán chi tiết</span>
+            {lastUpdated && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {lastUpdated.toLocaleString('vi-VN')}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={fetchCalculations} disabled={loading} size="sm">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Tải dữ liệu
             </Button>
-            <Button onClick={exportToCSV} disabled={users.length === 0} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              CSV
+            <Button onClick={exportToCSV} disabled={users.length === 0} size="sm" variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Xuất CSV
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={users.length === 0 || resetting}>
-                  {resetting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
-                  Reset All v3.0
+                <Button disabled={resetting || users.length === 0} size="sm" variant="destructive">
+                  {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                  Reset All
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>⚠️ Reset theo Reward System v3.0</AlertDialogTitle>
+                  <AlertDialogTitle>Xác nhận Reset All Rewards?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Hành động này sẽ tính lại thưởng theo công thức mới:
+                    Thao tác này sẽ tính lại TOÀN BỘ thưởng của tất cả users theo Reward System v3.0.
                     <br /><br />
-                    <strong>Không tính Daily Cap:</strong> Welcome (50k) + Wallet (50k)
-                    <br />
-                    <strong>Tính Daily Cap 500k/ngày:</strong>
-                    <br />• Bài CL: {formatNumber(QUALITY_POST_REWARD)} (max {MAX_POSTS_PER_DAY}/ngày)
-                    <br />• Like: {formatNumber(LIKE_REWARD)}/like (max {MAX_LIKES_PER_DAY}/ngày)
-                    <br />• Comment CL: {formatNumber(QUALITY_COMMENT_REWARD)} (max {MAX_COMMENTS_PER_DAY}/ngày)
-                    <br />• Share: {formatNumber(SHARE_REWARD)} (max {MAX_SHARES_PER_DAY}/ngày)
-                    <br />• Kết bạn: {formatNumber(FRIENDSHIP_REWARD)}/người (max {MAX_FRIENDSHIPS_PER_DAY}/ngày)
+                    <strong>Không thể hoàn tác!</strong>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={resetAllRewards} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Xác nhận Reset v3.0
+                  <AlertDialogAction onClick={resetAllRewards} className="bg-destructive text-destructive-foreground">
+                    Xác nhận Reset
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-              </AlertDialog>
-              <Button onClick={clearCache} variant="ghost" size="icon" title="Xóa cache">
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
+            </AlertDialog>
+            <Button onClick={clearCache} size="sm" variant="ghost">
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
-          {lastUpdated && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              <span>Cập nhật lúc: {lastUpdated.toLocaleTimeString('vi-VN')} - {lastUpdated.toLocaleDateString('vi-VN')}</span>
-            </div>
-          )}
-        </div>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        {users.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Nhấn "Tải dữ liệu" để xem bảng tính điểm thưởng v3.0</p>
-          </div>
-        ) : (
+        {users.length > 0 && (
           <>
             {/* Summary stats */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-500/10 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-500">{users.length}</div>
-                <div className="text-sm text-muted-foreground">Tổng users</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card className="bg-muted/50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">Tổng users</p>
+                  <p className="text-2xl font-bold">{users.length}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">Tổng v3.0 tính lại</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatNumber(totalCalculated)}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">Tổng hiện tại (DB)</p>
+                  <p className="text-2xl font-bold">{formatNumber(totalCurrent)}</p>
+                </CardContent>
+              </Card>
+              <Card className={totalCurrent > totalCalculated ? "bg-red-50 dark:bg-red-950/30" : "bg-green-50 dark:bg-green-950/30"}>
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">Chênh lệch</p>
+                  <p className={`text-2xl font-bold ${totalCurrent > totalCalculated ? 'text-red-600' : 'text-green-600'}`}>
+                    {formatNumber(totalCurrent - totalCalculated)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action type breakdown */}
+            <div className="grid grid-cols-3 md:grid-cols-7 gap-2 mb-6 text-center text-sm">
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded">
+                <p className="font-medium">Welcome</p>
+                <p className="text-xs">{summary.welcome.count} users</p>
+                <p className="text-amber-600 font-bold">{formatNumber(summary.welcome.amount)}</p>
               </div>
-              <div className="bg-green-500/10 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-500">
-                  {formatNumber(users.reduce((sum, u) => sum + u.calculated_total, 0))}
-                </div>
-                <div className="text-sm text-muted-foreground">Tổng tính lại (CLC)</div>
+              <div className="p-2 bg-cyan-50 dark:bg-cyan-950/30 rounded">
+                <p className="font-medium">Wallet</p>
+                <p className="text-xs">{summary.wallet.count} users</p>
+                <p className="text-cyan-600 font-bold">{formatNumber(summary.wallet.amount)}</p>
               </div>
-              <div className="bg-orange-500/10 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-orange-500">
-                  {formatNumber(users.reduce((sum, u) => sum + u.current_total, 0))}
-                </div>
-                <div className="text-sm text-muted-foreground">Tổng hiện tại (CLC)</div>
+              <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
+                <p className="font-medium">Bài CL</p>
+                <p className="text-xs">{summary.post.count} bài</p>
+                <p className="text-blue-600 font-bold">{formatNumber(summary.post.amount)}</p>
               </div>
-              <div className="bg-red-500/10 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-red-500">
-                  {formatNumber(users.reduce((sum, u) => sum + (u.current_total - u.calculated_total), 0))}
-                </div>
-                <div className="text-sm text-muted-foreground">Tổng chênh lệch (CLC)</div>
+              <div className="p-2 bg-pink-50 dark:bg-pink-950/30 rounded">
+                <p className="font-medium">Like nhận</p>
+                <p className="text-xs">{summary.like.count} likes</p>
+                <p className="text-pink-600 font-bold">{formatNumber(summary.like.amount)}</p>
+              </div>
+              <div className="p-2 bg-green-50 dark:bg-green-950/30 rounded">
+                <p className="font-medium">Cmt CL</p>
+                <p className="text-xs">{summary.comment.count} cmts</p>
+                <p className="text-green-600 font-bold">{formatNumber(summary.comment.amount)}</p>
+              </div>
+              <div className="p-2 bg-indigo-50 dark:bg-indigo-950/30 rounded">
+                <p className="font-medium">Share nhận</p>
+                <p className="text-xs">{summary.share.count} shares</p>
+                <p className="text-indigo-600 font-bold">{formatNumber(summary.share.amount)}</p>
+              </div>
+              <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
+                <p className="font-medium">Kết bạn</p>
+                <p className="text-xs">{summary.friendship.count} bạn</p>
+                <p className="text-purple-600 font-bold">{formatNumber(summary.friendship.amount)}</p>
               </div>
             </div>
 
-            {/* Action Type Summary */}
-            {(() => {
-              const summary = getActionTypeSummary();
-              return (
-                <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                  <h3 className="font-semibold mb-3">📈 Tổng kết theo loại hành động (Reward v3.0)</h3>
-                  <div className="grid grid-cols-4 gap-3 text-sm">
-                    <div className="flex justify-between border-b pb-1">
-                      <span>🎁 Welcome (không cap)</span>
-                      <span className="font-mono">{summary.welcome.count} users = {formatNumber(summary.welcome.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span>💳 Wallet (không cap)</span>
-                      <span className="font-mono">{summary.wallet.count} users = {formatNumber(summary.wallet.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span>📝 Bài CL ({formatNumber(QUALITY_POST_REWARD)}/bài)</span>
-                      <span className="font-mono">{summary.post.count} bài = {formatNumber(summary.post.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span>❤️ Like ({formatNumber(LIKE_REWARD)}/like)</span>
-                      <span className="font-mono">{summary.like.count} = {formatNumber(summary.like.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span>💬 Comment CL ({formatNumber(QUALITY_COMMENT_REWARD)})</span>
-                      <span className="font-mono">{summary.comment.count} = {formatNumber(summary.comment.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span>🔄 Share ({formatNumber(SHARE_REWARD)})</span>
-                      <span className="font-mono">{summary.share.count} = {formatNumber(summary.share.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span>🤝 Kết bạn ({formatNumber(FRIENDSHIP_REWARD)})</span>
-                      <span className="font-mono">{summary.friendship.count} = {formatNumber(summary.friendship.amount)}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1 font-bold">
-                      <span>📊 Daily Cap</span>
-                      <span className="font-mono">{formatNumber(DAILY_REWARD_CAP)}/ngày</span>
-                    </div>
-                  </div>
+            {/* Big discrepancies warning */}
+            {bigDiscrepancies.length > 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400 font-medium mb-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  {bigDiscrepancies.length} users có chênh lệch &gt; 100k CLC
                 </div>
-              );
-            })()}
+                <div className="flex flex-wrap gap-2">
+                  {bigDiscrepancies.slice(0, 5).map(u => (
+                    <Badge key={u.id} variant="secondary" className="text-xs">
+                      {u.display_name}: {formatNumber(u.current_total - u.calculated_total)}
+                    </Badge>
+                  ))}
+                  {bigDiscrepancies.length > 5 && (
+                    <Badge variant="outline">+{bigDiscrepancies.length - 5} more</Badge>
+                  )}
+                </div>
+              </div>
+            )}
 
-            {/* Users needing review */}
-            <div className="mb-4">
-              <Badge variant="destructive" className="mr-2">
-                <AlertTriangle className="w-3 h-3 mr-1" />
-                {users.filter(u => Math.abs(u.current_total - u.calculated_total) > 100000).length} users chênh lệch &gt; 100k
-              </Badge>
-              <Badge variant="secondary">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                {users.filter(u => Math.abs(u.current_total - u.calculated_total) <= 100000).length} users OK
-              </Badge>
-            </div>
-
-            <div className="overflow-x-auto max-h-[600px]">
+            {/* Data table */}
+            <div className="border rounded-lg overflow-auto max-h-[500px]">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    <TableHead className="sticky top-0 bg-background">Tên</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Bài CL</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Like</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Cmt CL</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Share</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Bạn bè</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Pending</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Approved</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Tổng cũ</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Tính lại</TableHead>
-                    <TableHead className="sticky top-0 bg-background">Chênh lệch</TableHead>
-                    <TableHead className="sticky top-0 bg-background text-center">Thao tác</TableHead>
+                    <TableHead className="w-[200px]">User</TableHead>
+                    <TableHead className="text-center">Bài CL</TableHead>
+                    <TableHead className="text-center">Like</TableHead>
+                    <TableHead className="text-center">Cmt CL</TableHead>
+                    <TableHead className="text-center">Share</TableHead>
+                    <TableHead className="text-center">Bạn</TableHead>
+                    <TableHead className="text-right">Pending</TableHead>
+                    <TableHead className="text-right">Approved</TableHead>
+                    <TableHead className="text-right">V3.0</TableHead>
+                    <TableHead className="text-right">Chênh lệch</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => {
-                    const diff = user.current_total - user.calculated_total;
-                    return (
-                      <TableRow key={user.id} className={Math.abs(diff) > 100000 ? 'bg-red-500/5' : ''}>
-                        <TableCell className="font-medium">
-                          <div>{user.display_name}</div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[150px]">
-                            {user.wallet_address?.slice(0, 10)}...
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{user.quality_posts}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.post_reward)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{user.likes_received}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.like_reward)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{user.quality_comments}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.comment_reward)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{user.shares_received}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.share_reward)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{user.friendships}</div>
-                          <div className="text-xs text-green-500">+{formatNumber(user.friendship_reward)}</div>
-                        </TableCell>
-                        <TableCell className="font-mono text-muted-foreground">
-                          {formatNumber(user.pending_reward)}
-                        </TableCell>
-                        <TableCell className="font-mono text-muted-foreground">
-                          {formatNumber(user.approved_reward)}
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {formatNumber(user.current_total)}
-                        </TableCell>
-                        <TableCell className="font-mono text-primary font-bold">
-                          {formatNumber(user.calculated_total)}
-                        </TableCell>
-                        <TableCell className={`font-mono ${getDifferenceColor(diff)}`}>
-                          {diff > 0 ? '+' : ''}{formatNumber(diff)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                disabled={resettingUserId === user.id || diff === 0}
-                                className="h-7 px-2"
-                              >
-                                {resettingUserId === user.id ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <RotateCcw className="w-3 h-3" />
-                                )}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Reset pending_reward cho {user.display_name}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Đặt <strong>pending_reward = {formatNumber(user.calculated_total)} CLC</strong>
-                                  <br />
-                                  (Hiện tại: {formatNumber(user.pending_reward)} | Chênh lệch: {diff > 0 ? '+' : ''}{formatNumber(diff)})
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => resetSingleUser(user.id, user.calculated_total)}>
-                                  Xác nhận
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {user.is_verified && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                          <span className="font-medium truncate max-w-[150px]">{user.display_name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">{user.quality_posts}</TableCell>
+                      <TableCell className="text-center">{user.likes_received}</TableCell>
+                      <TableCell className="text-center">{user.quality_comments}</TableCell>
+                      <TableCell className="text-center">{user.shares_received}</TableCell>
+                      <TableCell className="text-center">{user.friendships}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(user.pending_reward)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(user.approved_reward)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-blue-600">
+                        {formatNumber(user.calculated_total)}
+                      </TableCell>
+                      <TableCell className={`text-right font-mono ${getDifferenceColor(user.current_total - user.calculated_total)}`}>
+                        {formatNumber(user.current_total - user.calculated_total)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.pending_reward !== user.calculated_total && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={resettingUserId === user.id}
+                            onClick={() => resetSingleUser(user.id, user.calculated_total)}
+                          >
+                            {resettingUserId === user.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-3 w-3" />
+                            )}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
           </>
+        )}
+
+        {users.length === 0 && !loading && (
+          <p className="text-center text-muted-foreground py-8">
+            Nhấn "Tải dữ liệu" để tính toán chi tiết theo Reward System v3.0
+          </p>
         )}
       </CardContent>
     </Card>
