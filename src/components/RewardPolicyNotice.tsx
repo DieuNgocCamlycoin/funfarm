@@ -12,7 +12,8 @@ import {
   TOTAL_WELCOME_BONUS,
   DAILY_REWARD_CAP,
   MAX_POSTS_PER_DAY,
-  MAX_INTERACTIONS_PER_DAY,
+  MAX_LIKES_PER_DAY,
+  MAX_COMMENTS_PER_DAY,
   MAX_SHARES_PER_DAY,
   MAX_FRIENDSHIPS_PER_DAY,
   LIVESTREAM_REWARD,
@@ -32,7 +33,7 @@ export const RewardPolicyNotice = ({ isAffected = false, showFullPolicy = false 
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Gift className="h-5 w-5 text-primary" />
-            Chính sách Phước Lành v3.0 - FUN FARM
+            Chính sách Phước Lành v3.1 - FUN FARM
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
@@ -41,7 +42,7 @@ export const RewardPolicyNotice = ({ isAffected = false, showFullPolicy = false 
             <p className="font-medium text-amber-600 dark:text-amber-400 mb-2">⚠️ Quy tắc chung</p>
             <ul className="space-y-1 text-muted-foreground text-xs">
               <li>• Mỗi hành động chỉ được thưởng <strong>1 lần duy nhất</strong> cho 1 bài viết</li>
-              <li>• Giới hạn: <strong>{MAX_POSTS_PER_DAY} bài đăng/ngày</strong>, <strong>{MAX_INTERACTIONS_PER_DAY} tương tác/ngày</strong> (like + comment), <strong>{MAX_FRIENDSHIPS_PER_DAY} kết bạn/ngày</strong></li>
+              <li>• Giới hạn: <strong>{MAX_POSTS_PER_DAY} bài đăng/ngày</strong>, <strong>{MAX_LIKES_PER_DAY} like/ngày</strong>, <strong>{MAX_COMMENTS_PER_DAY} comment CL/ngày</strong>, <strong>{MAX_FRIENDSHIPS_PER_DAY} kết bạn/ngày</strong></li>
               <li>• Giới hạn thưởng mỗi ngày: <strong>{DAILY_REWARD_CAP.toLocaleString()} CLC</strong> (không tính bonus chào mừng)</li>
               <li>• Lạm dụng sẽ bị cảnh báo và khóa tài khoản</li>
             </ul>
@@ -90,7 +91,7 @@ export const RewardPolicyNotice = ({ isAffected = false, showFullPolicy = false 
                 <p className="font-medium text-foreground">❤️ Nhận Like trên bài chất lượng</p>
                 <p className="text-xs text-muted-foreground">
                   • Mỗi like nhận được: +{LIKE_REWARD.toLocaleString()} CLC<br/>
-                  • Giới hạn: {MAX_INTERACTIONS_PER_DAY} tương tác/ngày (like + comment)
+                  • Giới hạn: {MAX_LIKES_PER_DAY} like/ngày
                 </p>
               </div>
             </div>
@@ -102,7 +103,7 @@ export const RewardPolicyNotice = ({ isAffected = false, showFullPolicy = false 
                 <p className="font-medium text-foreground">💬 Nhận Bình luận chất lượng trên bài gốc</p>
                 <p className="text-xs text-muted-foreground">
                   • Comment chất lượng (&gt;20 ký tự): +{QUALITY_COMMENT_REWARD.toLocaleString()} CLC<br/>
-                  • Giới hạn: {MAX_INTERACTIONS_PER_DAY} tương tác/ngày (like + comment)
+                  • Giới hạn: {MAX_COMMENTS_PER_DAY} comment CL/ngày
                 </p>
               </div>
             </div>

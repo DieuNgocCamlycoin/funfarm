@@ -22,8 +22,8 @@ export const BonusRequestButton = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Only show if post has quality indicators
-  const isQualityPost = hasLocation && hasImages && hasContent;
+  // V3.1: Quality post = content + images (location is NOT a criteria)
+  const isQualityPost = hasContent && hasImages;
   
   if (!isQualityPost) return null;
 
