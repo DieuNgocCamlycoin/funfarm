@@ -1424,6 +1424,37 @@ export function UserDailyActivityStats() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {/* TỔNG Row - Sticky ngay dưới Header */}
+                    <TableRow className="bg-muted/80 font-semibold sticky top-[41px] z-10 border-b-2 border-primary/30 shadow-sm">
+                      <TableCell className="sticky left-0 bg-muted/80 z-20 font-bold text-primary">TỔNG</TableCell>
+                      {/* Posts */}
+                      <TableCell className="text-center text-muted-foreground">{totals.totalPosts}</TableCell>
+                      <TableCell className="text-center font-semibold">{totals.qualityPosts}</TableCell>
+                      <TableCell className="text-right text-blue-600 font-semibold">{formatCLC(totals.postReward)}</TableCell>
+                      {/* Likes */}
+                      <TableCell className="text-center text-muted-foreground">{totals.reactGiven}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.totalReactReceived}</TableCell>
+                      <TableCell className="text-center font-semibold">{totals.reactReceived}</TableCell>
+                      <TableCell className="text-right text-pink-600 font-semibold">{formatCLC(totals.reactReceivedReward)}</TableCell>
+                      {/* Comments */}
+                      <TableCell className="text-center text-muted-foreground">{totals.cmtGiven}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.totalCmtReceived}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.cmtFromQualityPosts}</TableCell>
+                      <TableCell className="text-center font-semibold">{totals.qualityCmtReceived}</TableCell>
+                      <TableCell className="text-right text-green-600 font-semibold">{formatCLC(totals.cmtReceivedReward)}</TableCell>
+                      {/* Shares */}
+                      <TableCell className="text-center text-muted-foreground">{totals.shareGiven}</TableCell>
+                      <TableCell className="text-center text-muted-foreground">{totals.totalShareReceived}</TableCell>
+                      <TableCell className="text-center font-semibold">{totals.shareReceived}</TableCell>
+                      <TableCell className="text-right text-purple-600 font-semibold">{formatCLC(totals.shareReceivedReward)}</TableCell>
+                      {/* Friends */}
+                      <TableCell className="text-center font-semibold">{totals.friends}</TableCell>
+                      <TableCell className="text-right text-orange-600 font-semibold">{formatCLC(totals.friendReward)}</TableCell>
+                      {/* Total */}
+                      <TableCell className="text-right font-bold text-primary text-base">{formatCLC(totals.grandTotal)}</TableCell>
+                    </TableRow>
+                    
+                    {/* Data Rows */}
                     {activityData.map((row) => (
                       <TableRow key={row.date} className={row.dailyTotalBeforeCap > DAILY_CAP ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
                         <TableCell className="sticky left-0 bg-background font-medium">
@@ -1459,35 +1490,6 @@ export function UserDailyActivityStats() {
                         <TableCell className="text-right font-bold">{formatCLC(row.dailyTotal)}</TableCell>
                       </TableRow>
                     ))}
-                    {/* Totals Row */}
-                    <TableRow className="bg-muted/50 font-semibold sticky bottom-0">
-                      <TableCell className="sticky left-0 bg-muted/50">TỔNG</TableCell>
-                      {/* Posts */}
-                      <TableCell className="text-center text-muted-foreground">{totals.totalPosts}</TableCell>
-                      <TableCell className="text-center">{totals.qualityPosts}</TableCell>
-                      <TableCell className="text-right text-blue-600">{formatCLC(totals.postReward)}</TableCell>
-                      {/* Likes */}
-                      <TableCell className="text-center text-muted-foreground">{totals.reactGiven}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">{totals.totalReactReceived}</TableCell>
-                      <TableCell className="text-center">{totals.reactReceived}</TableCell>
-                      <TableCell className="text-right text-pink-600">{formatCLC(totals.reactReceivedReward)}</TableCell>
-                      {/* Comments */}
-                      <TableCell className="text-center text-muted-foreground">{totals.cmtGiven}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">{totals.totalCmtReceived}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">{totals.cmtFromQualityPosts}</TableCell>
-                      <TableCell className="text-center">{totals.qualityCmtReceived}</TableCell>
-                      <TableCell className="text-right text-green-600">{formatCLC(totals.cmtReceivedReward)}</TableCell>
-                      {/* Shares */}
-                      <TableCell className="text-center text-muted-foreground">{totals.shareGiven}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">{totals.totalShareReceived}</TableCell>
-                      <TableCell className="text-center">{totals.shareReceived}</TableCell>
-                      <TableCell className="text-right text-purple-600">{formatCLC(totals.shareReceivedReward)}</TableCell>
-                      {/* Friends */}
-                      <TableCell className="text-center">{totals.friends}</TableCell>
-                      <TableCell className="text-right text-orange-600">{formatCLC(totals.friendReward)}</TableCell>
-                      {/* Total */}
-                      <TableCell className="text-right font-bold text-primary">{formatCLC(totals.grandTotal)}</TableCell>
-                    </TableRow>
                   </TableBody>
                 </Table>
               </div>
