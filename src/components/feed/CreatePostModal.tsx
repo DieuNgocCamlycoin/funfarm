@@ -308,8 +308,13 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
 
       if (error) throw error;
 
-      // Reward depends on content quality (>100 chars + media = quality post)
-      const hasMedia = images.length > 0;
+      // V3.1: Reward depends on content quality (>100 chars + media = quality post)
+      // Media includes both images and videos
+      const hasMedia = images.length > 0 || images.some(url => 
+        url.toLowerCase().includes('.mp4') || 
+        url.toLowerCase().includes('.webm') || 
+        url.toLowerCase().includes('.mov')
+      );
       const hasQualityContent = content.trim().length > 100;
       const rewardMsg = hasMedia && hasQualityContent 
         ? `Đã đăng bài viết thành công! +${QUALITY_POST_REWARD.toLocaleString()} CAMLY 🎉` 

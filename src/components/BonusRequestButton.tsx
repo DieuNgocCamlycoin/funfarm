@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 interface BonusRequestButtonProps {
   postId: string;
   userId: string;
-  hasLocation?: boolean;
   hasImages?: boolean;
   hasContent?: boolean;
 }
@@ -15,7 +14,6 @@ interface BonusRequestButtonProps {
 export const BonusRequestButton = ({ 
   postId, 
   userId,
-  hasLocation = false,
   hasImages = false,
   hasContent = false
 }: BonusRequestButtonProps) => {
