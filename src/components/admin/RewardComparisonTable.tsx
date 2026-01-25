@@ -42,6 +42,9 @@ export function RewardComparisonTable() {
   // Modal state for user detail view
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
+  
+  // Snapshot timestamp for consistent data between table and modal
+  const [cutoffTimestamp, setCutoffTimestamp] = useState<string | null>(null);
 
   // Load from cache on mount
   useEffect(() => {
@@ -63,8 +66,14 @@ export function RewardComparisonTable() {
   const fetchComparison = async () => {
     setLoading(true);
     try {
-      // Use centralized reward calculation service
-      const results = await calculateAllUsersRewards();
+      // Capture snapshot timestamp BEFORE fetching for data consistency
+      const snapshotTime = new Date().toISOString();
+      setCutoffTimestamp(snapshotTime);
+      
+      // Use centralized reward calculation service with consistent cutoff
+      const results = await calculateAllUsersRewards({
+        cutoffTimestamp: snapshotTime
+      });
 
       // Map results to comparison data format
       const calculations: ComparisonData[] = results
@@ -385,12 +394,13 @@ export function RewardComparisonTable() {
         )}
       </CardContent>
 
-      {/* User Detail Modal */}
+      {/* User Detail Modal - uses same cutoff timestamp for data consistency */}
       <UserRewardDetailModal
         open={!!selectedUserId}
         onClose={() => setSelectedUserId(null)}
         userId={selectedUserId || ''}
         userName={selectedUserName}
+        cutoffTimestamp={cutoffTimestamp}
       />
     </Card>
   );

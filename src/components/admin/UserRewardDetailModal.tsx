@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Download, FileText, Heart, MessageSquare, Share2, Users, Wallet, Gift, Calendar, Trophy } from 'lucide-react';
+import { Download, FileText, Heart, MessageSquare, Share2, Users, Wallet, Gift, Calendar, Trophy, Clock } from 'lucide-react';
 import { 
   calculateUserReward, 
   getValidUserIds,
@@ -20,11 +20,12 @@ interface UserRewardDetailModalProps {
   onClose: () => void;
   userId: string;
   userName: string;
+  cutoffTimestamp?: string | null;
 }
 
 const formatNumber = (num: number) => num.toLocaleString('vi-VN');
 
-export function UserRewardDetailModal({ open, onClose, userId, userName }: UserRewardDetailModalProps) {
+export function UserRewardDetailModal({ open, onClose, userId, userName, cutoffTimestamp }: UserRewardDetailModalProps) {
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<RewardCalculationResult | null>(null);
 
@@ -32,17 +33,19 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
     if (open && userId) {
       loadUserDetails();
     }
-  }, [open, userId]);
+  }, [open, userId, cutoffTimestamp]);
 
   const loadUserDetails = async () => {
     setLoading(true);
     try {
       const validUserIds = await getValidUserIds();
       
+      // Use cutoffTimestamp from parent to ensure data consistency
       const calculationResult = await calculateUserReward({
         userId,
         validUserIds,
-        includeDailyBreakdown: true
+        includeDailyBreakdown: true,
+        cutoffTimestamp: cutoffTimestamp || undefined
       });
 
       setResult(calculationResult);
@@ -125,6 +128,14 @@ export function UserRewardDetailModal({ open, onClose, userId, userName }: UserR
               )}
             </div>
           </DialogTitle>
+          
+          {/* Snapshot timestamp indicator for data consistency */}
+          {cutoffTimestamp && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded flex items-center gap-1 mt-2">
+              <Clock className="h-3 w-3" />
+              <span>Dữ liệu snapshot: {new Date(cutoffTimestamp).toLocaleString('vi-VN')}</span>
+            </div>
+          )}
         </DialogHeader>
 
         {loading ? (
