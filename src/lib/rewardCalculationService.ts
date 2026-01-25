@@ -814,6 +814,7 @@ export interface CalculateAllUsersOptions {
   onProgress?: (current: number, total: number) => void;
   filterStartDate?: Date;
   filterEndDate?: Date;
+  cutoffTimestamp?: string;
 }
 
 /**
@@ -822,7 +823,10 @@ export interface CalculateAllUsersOptions {
 export async function calculateAllUsersRewards(
   options?: CalculateAllUsersOptions
 ): Promise<RewardCalculationResult[]> {
-  const { onProgress, filterStartDate, filterEndDate } = options || {};
+  const { onProgress, filterStartDate, filterEndDate, cutoffTimestamp } = options || {};
+
+  // Use provided cutoff or generate new one (for snapshot consistency)
+  const cutoff = cutoffTimestamp || new Date().toISOString();
 
   // Fetch all profiles
   const { data: profiles, error } = await supabase
@@ -835,7 +839,6 @@ export async function calculateAllUsersRewards(
 
   // Get valid user IDs
   const validUserIds = await getValidUserIds();
-  const cutoff = new Date().toISOString();
 
   const results: RewardCalculationResult[] = [];
   const total = (profiles || []).length;
