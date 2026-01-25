@@ -163,8 +163,13 @@ const CommentSection = ({ postId, isOpen, onCommentAdded }: CommentSectionProps)
       // Notify parent about new comment
       onCommentAdded?.();
 
-      // Show reward notification for quality comment (v3.0)
-      toast.success(`+${QUALITY_COMMENT_REWARD.toLocaleString()} CAMLY cho comment chất lượng! 💬`, { duration: 2000 });
+      // V3.1: Only show reward notification for quality comments (>20 characters)
+      const isQualityComment = newComment.trim().length > 20;
+      if (isQualityComment) {
+        toast.success(`+${QUALITY_COMMENT_REWARD.toLocaleString()} CAMLY cho comment chất lượng! 💬`, { duration: 2000 });
+      } else {
+        toast.success('Đã gửi bình luận thành công! 🌱', { duration: 2000 });
+      }
 
     } catch (error) {
       console.error('Error adding comment:', error);

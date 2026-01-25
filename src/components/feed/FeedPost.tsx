@@ -714,9 +714,8 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
           <BonusRequestButton
             postId={post.id}
             userId={user?.id || ''}
-            hasLocation={!!(post.location || post.location_address)}
-            hasImages={post.images.length > 0}
-            hasContent={post.content.length > 50}
+            hasImages={(post.images?.length || 0) > 0 || !!(post.video?.trim())}
+            hasContent={(post.content?.length || 0) > 100}
           />
         </div>
       )}
