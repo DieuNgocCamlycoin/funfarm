@@ -143,16 +143,19 @@ describe('V3.1 Maximum Daily Reward Calculation', () => {
 
 describe('V3.1 vs V3.0 Comparison', () => {
   /**
-   * V3.0 had combined 50 interactions limit (likes + comments together)
-   * V3.1 separates them into independent 50-item pools each
+   * V3.0 (deprecated): Combined 50 interactions limit (likes + comments shared same pool)
+   * V3.1 (current):    Separate pools - 50 likes/day + 50 comments/day
    * 
-   * This effectively increases max interaction rewards from 100k to 150k
+   * Impact: Max interaction rewards increased from ~100k to 150k
+   * Note: MAX_INTERACTIONS_PER_DAY has been removed from constants.ts
    */
-  it('V3.1 allows more interaction rewards than combined limit would', () => {
-    // V3.0 combined: 50 interactions max → worst case 50 × 1k = 50k
-    // V3.1 separate: 50 likes + 50 comments → 50k + 100k = 150k
+  const V3_0_COMBINED_LIMIT = 50; // Historical reference only
+  
+  it('V3.1 allows more interaction rewards than V3.0 combined limit', () => {
+    // V3.0: 50 interactions shared → worst case 50 × 1k = 50k, best 50 × 2k = 100k
+    // V3.1: 50 likes + 50 comments → 50k + 100k = 150k
     
-    const v30CombinedMax = 50 * Math.max(LIKE_REWARD, QUALITY_COMMENT_REWARD);
+    const v30CombinedMax = V3_0_COMBINED_LIMIT * Math.max(LIKE_REWARD, QUALITY_COMMENT_REWARD);
     const v31SeparateMax = (MAX_LIKES_PER_DAY * LIKE_REWARD) + 
                            (MAX_COMMENTS_PER_DAY * QUALITY_COMMENT_REWARD);
     

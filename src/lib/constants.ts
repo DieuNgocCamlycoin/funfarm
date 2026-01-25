@@ -1,5 +1,5 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
-// Reward System v3.0
+// Reward System V3.1 - Separate Like/Comment Pools
 
 // CAMLY Token Contract Address
 export const CAMLY_CONTRACT = '0x0910320181889feFDE0BB1Ca63962b0A8882e413';
@@ -51,8 +51,6 @@ export const LIVESTREAM_MIN_DURATION = 15; // Phút
 // ============================================
 
 export const MAX_POSTS_PER_DAY = 10;
-/** @deprecated V3.1: Use MAX_LIKES_PER_DAY + MAX_COMMENTS_PER_DAY instead */
-export const MAX_INTERACTIONS_PER_DAY = 50;
 export const MAX_LIKES_PER_DAY = 50; // V3.1: Separate limit for likes
 export const MAX_COMMENTS_PER_DAY = 50; // V3.1: Separate limit for quality comments
 export const MAX_SHARES_PER_DAY = 5;
