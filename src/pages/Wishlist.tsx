@@ -38,7 +38,8 @@ const Wishlist = () => {
   useEffect(() => {
     if (user?.id) {
       fetchWishlist();
-      subscribeToChanges();
+      const cleanup = subscribeToChanges();
+      return cleanup;
     } else {
       setLoading(false);
     }
