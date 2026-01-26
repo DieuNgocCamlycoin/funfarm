@@ -81,12 +81,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </button>
 
         {/* Sold Out Overlay */}
-        {product.product_status === 'sold_out' && (
+        {(product.product_status === 'sold_out' || product.quantity_kg <= 0) && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
             <Badge variant="destructive" className="text-lg px-4 py-2">
               HẾT HÀNG
             </Badge>
           </div>
+        )}
+
+        {/* Low Stock Badge */}
+        {product.quantity_kg > 0 && product.quantity_kg <= 5 && product.product_status !== 'sold_out' && (
+          <Badge className="absolute bottom-2 left-2 bg-amber-500 text-white border-0">
+            ⚠️ Còn {product.quantity_kg} kg
+          </Badge>
         )}
       </div>
 
@@ -183,12 +190,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Buy Button */}
         <Button 
           onClick={handleBuyClick}
-          disabled={product.product_status === 'sold_out'}
+          disabled={product.product_status === 'sold_out' || product.quantity_kg <= 0}
           className="w-full mt-2 gap-2"
           size="sm"
         >
           <ShoppingCart className="w-4 h-4" />
-          Mua ngay
+          {product.product_status === 'sold_out' || product.quantity_kg <= 0 ? 'Hết hàng' : 'Mua ngay'}
         </Button>
 
         {/* Link to original post */}

@@ -132,8 +132,14 @@ export const NotificationBell = () => {
       if (notification.from_user_id) {
         navigate(`/user/${notification.from_user_id}`);
       }
+    } else if (notification.type === 'new_order') {
+      // Seller nhận thông báo đơn mới -> đến trang seller
+      navigate('/seller');
+    } else if (notification.type === 'order_status') {
+      // Buyer nhận thông báo trạng thái đơn -> đến trang my-orders
+      navigate('/my-orders');
     } else if (notification.post_id) {
-      // For post-related notifications, navigate to feed (could be improved to scroll to specific post)
+      // For post-related notifications, navigate to feed
       navigate('/feed');
     }
   };
@@ -146,6 +152,11 @@ export const NotificationBell = () => {
       case 'share': return '🔄';
       case 'friend_request': return '👋';
       case 'friend_accepted': return '🎉';
+      case 'new_order': return '🛒';
+      case 'order_status': return '📦';
+      case 'order_message': return '💬';
+      case 'gift': return '🎁';
+      case 'gift_post': return '🎁';
       default: return '🔔';
     }
   };
