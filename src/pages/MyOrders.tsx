@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Order, OrderStatus } from "@/types/marketplace";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { OrderDetailModal } from "@/components/order/OrderDetailModal";
-import { Package, ShoppingBag, Clock, Truck, CheckCircle, XCircle, MapPin, Store } from "lucide-react";
+import { Package, ShoppingBag, Clock, Truck, CheckCircle, XCircle, MapPin, Store, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -20,6 +21,7 @@ const MyOrders = () => {
   const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reviewedOrders, setReviewedOrders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -71,6 +73,22 @@ const MyOrders = () => {
         }));
 
         setOrders(ordersWithDetails);
+
+        // Check which delivered orders have been reviewed
+        const deliveredOrderIds = ordersData
+          .filter(o => o.status === 'delivered')
+          .map(o => o.id);
+
+        if (deliveredOrderIds.length > 0) {
+          const { data: reviews } = await supabase
+            .from('product_reviews')
+            .select('order_id')
+            .in('order_id', deliveredOrderIds);
+          
+          if (reviews) {
+            setReviewedOrders(new Set(reviews.map(r => r.order_id)));
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -227,7 +245,21 @@ const MyOrders = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <h4 className="font-semibold truncate">{order.product_name}</h4>
-                            <OrderStatusBadge status={order.status} size="sm" />
+                            <div className="flex flex-col items-end gap-1">
+                              <OrderStatusBadge status={order.status} size="sm" />
+                              {/* Badge for orders that need review */}
+                              {order.status === 'delivered' && !reviewedOrders.has(order.id) && (
+                                <Badge variant="outline" className="text-amber-600 border-amber-400 text-[10px]">
+                                  <Star className="w-2.5 h-2.5 mr-0.5" />
+                                  Chưa đánh giá
+                                </Badge>
+                              )}
+                              {order.status === 'delivered' && reviewedOrders.has(order.id) && (
+                                <Badge variant="outline" className="text-green-600 border-green-400 text-[10px]">
+                                  ✓ Đã đánh giá
+                                </Badge>
+                              )}
+                            </div>
                           </div>
 
                           <p className="text-sm text-muted-foreground">

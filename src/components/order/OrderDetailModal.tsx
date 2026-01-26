@@ -1,12 +1,17 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Order, OrderStatus } from "@/types/marketplace";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { OrderTimeline } from "./OrderTimeline";
-import { MapPin, Phone, MessageSquare, ExternalLink, Package, User, Store, CreditCard } from "lucide-react";
+import { ProductReviewForm } from "./ProductReviewForm";
+import { MapPin, Phone, MessageSquare, ExternalLink, Package, User, Store, CreditCard, Loader2, Star, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface OrderDetailModalProps {
   order: Order | null;
@@ -15,6 +20,7 @@ interface OrderDetailModalProps {
   role: 'buyer' | 'seller';
   onUpdateStatus?: (orderId: string, newStatus: OrderStatus) => void;
   onCancelOrder?: (orderId: string, reason: string) => void;
+  onRefresh?: () => void;
 }
 
 export const OrderDetailModal = ({ 
@@ -23,13 +29,51 @@ export const OrderDetailModal = ({
   onOpenChange, 
   role,
   onUpdateStatus,
-  onCancelOrder 
+  onCancelOrder,
+  onRefresh 
 }: OrderDetailModalProps) => {
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [checkingReview, setCheckingReview] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+
+  const isDelivered = order?.status === 'delivered';
+
+  // Check if buyer has already reviewed - must be before early return
+  useEffect(() => {
+    if (order && role === 'buyer' && isDelivered) {
+      checkExistingReview();
+    }
+  }, [order?.id, role, isDelivered]);
+
+  const checkExistingReview = async () => {
+    if (!order) return;
+    setCheckingReview(true);
+    try {
+      const { data } = await supabase
+        .from('product_reviews')
+        .select('id')
+        .eq('order_id', order.id)
+        .maybeSingle();
+      
+      setHasReviewed(!!data);
+    } catch (error) {
+      console.error('Error checking review:', error);
+    } finally {
+      setCheckingReview(false);
+    }
+  };
+
   if (!order) return null;
 
   const canCancel = order.status === 'pending' && role === 'buyer';
   const canConfirm = order.status === 'pending' && role === 'seller';
   const canUpdateStatus = role === 'seller' && !['delivered', 'cancelled'].includes(order.status);
+  const canReview = role === 'buyer' && isDelivered && !hasReviewed;
+  
+  // Seller can confirm payment when proof is uploaded
+  const canConfirmPayment = role === 'seller' && 
+    order.payment_status === 'proof_uploaded' && 
+    order.payment_proof_url;
 
   const getNextStatus = (): OrderStatus | null => {
     const statusFlow: Record<OrderStatus, OrderStatus | null> = {
@@ -44,7 +88,34 @@ export const OrderDetailModal = ({
     return statusFlow[order.status];
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
+    if (!order) return;
+    setConfirmingPayment(true);
+    
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          payment_status: 'confirmed',
+          payment_confirmed_at: new Date().toISOString(),
+          payment_confirmed_by: order.seller_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast.success('Đã xác nhận nhận tiền thành công!');
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('Không thể xác nhận thanh toán');
+    } finally {
+      setConfirmingPayment(false);
+    }
+  };
+
+  const handleConfirmOrder = () => {
     if (onUpdateStatus) {
       onUpdateStatus(order.id, 'confirmed');
     }
@@ -64,6 +135,11 @@ export const OrderDetailModal = ({
         onCancelOrder(order.id, reason);
       }
     }
+  };
+
+  const handleReviewSubmitted = () => {
+    setHasReviewed(true);
+    toast.success('Đánh giá đã được gửi!');
   };
 
   return (
@@ -171,6 +247,20 @@ export const OrderDetailModal = ({
             <div className="flex items-center gap-2 mb-2">
               <CreditCard className="w-4 h-4 text-muted-foreground" />
               <p className="font-medium text-sm">Thanh toán</p>
+              {order.payment_status && (
+                <Badge variant={
+                  order.payment_status === 'confirmed' || order.payment_status === 'completed' 
+                    ? 'default' 
+                    : order.payment_status === 'proof_uploaded' 
+                      ? 'secondary' 
+                      : 'outline'
+                } className="ml-auto text-xs">
+                  {order.payment_status === 'pending' && '⏳ Chờ thanh toán'}
+                  {order.payment_status === 'proof_uploaded' && '📷 Đã upload proof'}
+                  {order.payment_status === 'confirmed' && '✅ Đã xác nhận'}
+                  {order.payment_status === 'completed' && '🎉 Hoàn tất'}
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground capitalize">
               {order.payment_method || 'Chưa chọn phương thức'}
@@ -186,7 +276,42 @@ export const OrderDetailModal = ({
                 Xem ảnh chuyển khoản
               </a>
             )}
+            {order.payment_confirmed_at && (
+              <p className="text-xs text-muted-foreground mt-2">
+                ✓ Xác nhận lúc {new Date(order.payment_confirmed_at).toLocaleString('vi-VN')}
+              </p>
+            )}
           </div>
+
+          {/* Seller Confirm Payment Button */}
+          {canConfirmPayment && (
+            <div className="p-3 border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-5 h-5 text-amber-600" />
+                <p className="font-medium text-amber-800 dark:text-amber-300">Xác nhận thanh toán</p>
+              </div>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                Người mua đã upload ảnh chuyển khoản. Vui lòng kiểm tra và xác nhận đã nhận được tiền.
+              </p>
+              <Button 
+                onClick={handleConfirmPayment}
+                disabled={confirmingPayment}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {confirmingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang xác nhận...
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    💰 Xác nhận đã nhận tiền
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* Notes */}
           {(order.buyer_note || order.seller_note) && (
@@ -215,6 +340,33 @@ export const OrderDetailModal = ({
             updatedAt={order.updated_at}
           />
 
+          {/* Review Section for Buyer (only when delivered) */}
+          {canReview && (
+            <div className="pt-4 border-t">
+              <ProductReviewForm 
+                order={order} 
+                onReviewSubmitted={handleReviewSubmitted}
+              />
+            </div>
+          )}
+
+          {/* Already Reviewed Badge */}
+          {role === 'buyer' && isDelivered && hasReviewed && (
+            <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg text-center">
+              <Star className="w-5 h-5 text-green-600 mx-auto mb-1" />
+              <p className="text-sm text-green-700 dark:text-green-400">
+                Bạn đã đánh giá đơn hàng này
+              </p>
+            </div>
+          )}
+
+          {/* Checking Review State */}
+          {role === 'buyer' && isDelivered && checkingReview && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-2 pt-4 border-t">
             {canCancel && (
@@ -229,7 +381,7 @@ export const OrderDetailModal = ({
             {canConfirm && (
               <Button 
                 className="flex-1 bg-green-600 hover:bg-green-700"
-                onClick={handleConfirmPayment}
+                onClick={handleConfirmOrder}
               >
                 ✅ Xác nhận đơn hàng
               </Button>
