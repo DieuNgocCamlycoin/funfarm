@@ -245,6 +245,7 @@ Tests       95 passed (95)
 - ✅ Sync `rewardCalculationService.ts`
 - ✅ Add 95 unit tests for protection
 - ✅ **2026-01-26**: Xóa hoàn toàn deprecated constant `MAX_INTERACTIONS_PER_DAY` khỏi `constants.ts`
+- ✅ **2026-01-26**: Thêm snapshot indicator vào `UserDailyActivityStats.tsx` - hiển thị thời điểm cutoff và nút Làm mới
 
 ---
 
