@@ -33,7 +33,9 @@ import AngelAI from "./pages/AngelAI";
 import NotFound from "./pages/NotFound";
 import MyOrders from "./pages/MyOrders";
 import SellerDashboard from "./pages/SellerDashboard";
-
+import ProductDetail from "./pages/ProductDetail";
+import SellerShop from "./pages/SellerShop";
+import Wishlist from "./pages/Wishlist";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -67,6 +69,9 @@ const App = () => (
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/post/:postId" element={<PostDetail />} />
                   <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/product/:productId" element={<ProductDetail />} />
+                  <Route path="/shop/:sellerId" element={<SellerShop />} />
+                  <Route path="/wishlist" element={<Wishlist />} />
                   <Route path="/angel-ai" element={<AngelAI />} />
                   <Route path="/my-orders" element={<MyOrders />} />
                   <Route path="/seller" element={<SellerDashboard />} />
