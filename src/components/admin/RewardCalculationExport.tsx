@@ -200,7 +200,7 @@ export function RewardCalculationExport() {
         timestamp: now.toISOString()
       }));
       
-      toast.success(`Đã tải ${calculations.length} users (Reward System v3.0)`);
+      toast.success(`Đã tải ${calculations.length} users (Reward System V3.1)`);
     } catch (error) {
       console.error('Error fetching calculations:', error);
       toast.error('Lỗi khi tải dữ liệu');

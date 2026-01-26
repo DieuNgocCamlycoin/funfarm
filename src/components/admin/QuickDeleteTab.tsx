@@ -145,7 +145,7 @@ const QuickDeleteTab = ({ adminId, onRefresh }: QuickDeleteTabProps) => {
         const reasons: string[] = [];
         let riskScore = 0;
 
-        // V3.0: Sử dụng DAILY_REWARD_CAP (500k) và TOTAL_WELCOME_BONUS (100k) làm ngưỡng
+        // V3.1: Sử dụng DAILY_REWARD_CAP (500k) và TOTAL_WELCOME_BONUS (100k) làm ngưỡng
         
         // 1. Pending cao bất thường (> 1 ngày cap)
         if (user.pending_reward > DAILY_REWARD_CAP) {
