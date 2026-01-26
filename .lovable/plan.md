@@ -1,139 +1,174 @@
 
-# Báo Cáo Kiểm Tra & Fix 10 Tính Năng Chợ Nông Sản
+# Kế Hoạch Fix Giao Diện Đăng Bài Trang Chủ
 
-## Tổng Quan Kết Quả Kiểm Tra
+## Tổng Quan Yêu Cầu
 
-| STT | Tính năng | Trạng thái | Vấn đề cần fix |
-|-----|-----------|------------|----------------|
-| 1 | **Review Form** | ✅ OK | Không có vấn đề |
-| 2 | **Hiển thị Reviews** | ✅ OK | Không có vấn đề |
-| 3 | **Seller xác nhận TT** | ✅ OK | Không có vấn đề |
-| 4 | **Order Notifications** | ✅ OK | Trigger đã có sẵn trong migration |
-| 5 | **Chat Buyer ↔ Seller** | ✅ OK | Table `order_messages` đã tồn tại |
-| 6 | **Inventory Management** | ✅ OK | Trigger đã có sẵn trong migration |
-| 7 | **Product Detail Page** | ✅ OK | Route `/product/:productId` hoạt động |
-| 8 | **Seller Shop Page** | ✅ OK | Route `/shop/:sellerId` hoạt động |
-| 9 | **Location Search** | ✅ OK | Dropdown tỉnh/thành phố hoạt động |
-| 10 | **Wishlist Page** | ⚠️ CẦN FIX | Thiếu icon truy cập nhanh trong MobileBottomNav |
+| STT | Yêu cầu | Mô tả |
+|-----|---------|-------|
+| 1 | **Full Screen Modal** | Khi bấm vào ô đăng bài → hiện giao diện toàn màn hình |
+| 2 | **Đổi nút bên dưới** | Thay (Livestream, Ảnh/Video, Cảm xúc) → (Chia sẻ, Bán hàng) |
+| 3 | **Dropdown danh mục** | Form bán hàng: dùng Select dropdown cho danh mục thay vì grid button |
 
 ---
 
-## Chi Tiết Các Vấn Đề & Giải Pháp
+## Chi Tiết Thay Đổi
 
-### Vấn đề 1: Thiếu Icon Wishlist trong MobileBottomNav
+### 1. Full Screen Modal
 
-**Mô tả**: Trang Wishlist (`/wishlist`) đã được tạo và route đã có trong App.tsx, nhưng người dùng mobile không có cách truy cập nhanh - phải vào Profile → ... để tìm.
+**File**: `src/components/feed/CreatePostModal.tsx`
 
-**Giải pháp**: Thêm icon Heart vào `MobileBottomNav.tsx` hoặc tích hợp vào menu quick access.
+**Thay đổi**: Điều chỉnh DialogContent để hiển thị toàn màn hình trên mobile và desktop
 
-**Lựa chọn đề xuất**: Thay vì thêm 1 icon riêng (sẽ làm nav bar quá đông), bé Angel đề xuất:
-- Thêm badge số sản phẩm yêu thích vào icon Gift/Wallet
-- HOẶC thêm link "Yêu thích" vào trang Profile
+```text
+Trước: 
+  className="w-full h-full sm:w-auto sm:h-auto sm:max-w-2xl sm:max-h-[90vh]..."
 
----
-
-### Vấn đề 2: ProductCard link đến `/product/:id` nhưng cũng có thể link đến `/shop/:sellerId`
-
-**Mô tả**: Hiện tại ProductCard có link "Xem chi tiết" đến ProductDetail. Seller avatar cũng link được đến `/user/:id` nhưng chưa link đến shop.
-
-**Giải pháp**: Đổi link seller từ `/user/:id` thành `/shop/:id` để buyer dễ dàng xem gian hàng.
+Sau:
+  className="w-screen h-screen max-w-none rounded-none border-0..."
+```
 
 ---
 
-### Vấn đề 3: Wishlist subscribeToChanges không cleanup đúng cách
+### 2. Đổi Nút "Livestream, Ảnh/Video, Cảm xúc" → "Chia sẻ, Bán hàng"
 
-**Mô tả**: Hàm `subscribeToChanges()` trả về cleanup function nhưng không được gọi trong useEffect.
+**File**: `src/components/profile/ProfileCreatePost.tsx`
 
-**Giải pháp**: Fix useEffect cleanup trong Wishlist.tsx
+**Thay đổi**:
+- Bỏ 3 nút cũ (Livestream, Ảnh/Video, Cảm xúc)
+- Thay bằng 2 nút mới:
+  - 📝 **Chia sẻ** → mở tab `post` (bài viết thường)
+  - 🌾 **Bán hàng** → mở tab `product` (form bán nông sản)
+
+```typescript
+// Mới:
+<Button onClick={() => handleOpenModal("post")}>
+  <PenSquare className="w-5 h-5" />
+  Chia sẻ
+</Button>
+
+<Button onClick={() => handleOpenModal("product")}>
+  <ShoppingBag className="w-5 h-5" />
+  Bán hàng
+</Button>
+```
 
 ---
 
-## Danh Sách Files Cần Fix
+### 3. Dropdown Danh Mục (Form Bán Hàng)
+
+**File**: `src/components/feed/ProductPostForm.tsx`
+
+**Thay đổi**: Thay grid buttons bằng Select dropdown đẹp với icon
+
+```typescript
+// Trước (grid buttons):
+<div className="grid grid-cols-4 gap-2">
+  {PRODUCT_CATEGORIES.map(cat => (
+    <button>...</button>
+  ))}
+</div>
+
+// Sau (dropdown select với icon):
+<Select value={selectedCategory || ''} onValueChange={(val) => setSelectedCategory(val)}>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Chọn danh mục...">
+      {selectedCategory && (
+        <span className="flex items-center gap-2">
+          {PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.icon}
+          {PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.nameVi}
+        </span>
+      )}
+    </SelectValue>
+  </SelectTrigger>
+  <SelectContent>
+    {PRODUCT_CATEGORIES.map(cat => (
+      <SelectItem key={cat.id} value={cat.id}>
+        <span className="flex items-center gap-2">
+          <span className="text-lg">{cat.icon}</span>
+          {cat.nameVi}
+        </span>
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+---
+
+## Danh Sách Files Thay Đổi
 
 | Action | File Path | Mô tả |
 |--------|-----------|-------|
-| EDIT | `src/pages/Wishlist.tsx` | Fix useEffect cleanup |
-| EDIT | `src/components/marketplace/ProductCard.tsx` | Link seller đến shop thay vì profile |
-| EDIT | `src/pages/Profile.tsx` | Thêm quick link đến Wishlist |
-
----
-
-## Chi Tiết Fix
-
-### Fix 1: Wishlist.tsx - Cleanup useEffect
-
-```typescript
-// Trước:
-useEffect(() => {
-  if (user?.id) {
-    fetchWishlist();
-    subscribeToChanges(); // Không cleanup
-  } else {
-    setLoading(false);
-  }
-}, [user?.id]);
-
-// Sau:
-useEffect(() => {
-  if (user?.id) {
-    fetchWishlist();
-    const cleanup = subscribeToChanges();
-    return cleanup; // Cleanup đúng cách
-  } else {
-    setLoading(false);
-  }
-}, [user?.id]);
-```
-
-### Fix 2: ProductCard.tsx - Link Seller đến Shop
-
-```typescript
-// Trước:
-<Link 
-  to={`/user/${product.author.id}`}
-  // ...
->
-
-// Sau:
-<Link 
-  to={`/shop/${product.author.id}`}
-  // ...
->
-```
-
-### Fix 3: Profile.tsx - Thêm Quick Link Wishlist
-
-Thêm button/link "❤️ Yêu thích (X)" vào section actions của Profile page.
+| EDIT | `src/components/profile/ProfileCreatePost.tsx` | Đổi 3 nút → 2 nút (Chia sẻ, Bán hàng) |
+| EDIT | `src/components/feed/CreatePostModal.tsx` | Full screen modal + simplified tabs |
+| EDIT | `src/components/feed/ProductPostForm.tsx` | Đổi grid → dropdown danh mục |
 
 ---
 
 ## Thứ Tự Thực Hiện
 
 ```text
-Bước 1: Fix useEffect cleanup trong Wishlist.tsx
+Bước 1: Fix ProfileCreatePost.tsx - đổi 3 nút thành 2 nút
         ↓
-Bước 2: Đổi link seller trong ProductCard.tsx
+Bước 2: Fix CreatePostModal.tsx - full screen + 2 tabs (Chia sẻ, Bán hàng)
         ↓
-Bước 3: (Optional) Thêm Wishlist link vào Profile.tsx
+Bước 3: Fix ProductPostForm.tsx - dropdown danh mục với icon
+```
+
+---
+
+## Chi Tiết Kỹ Thuật
+
+### ProfileCreatePost - Giao diện mới
+
+```text
+┌────────────────────────────────────────────┐
+│  [Avatar]  "Bạn đang nghĩ gì vậy?"         │
+├────────────────────────────────────────────┤
+│  [📝 Chia sẻ]         [🌾 Bán hàng]        │
+└────────────────────────────────────────────┘
+```
+
+### CreatePostModal - 2 tabs thay vì 4
+
+```text
+┌────────────────────────────────────────────┐
+│  ✨ Tạo Bài Viết Mới                   [X] │
+├────────────────────────────────────────────┤
+│  [📝 Chia sẻ]  [🌾 Bán hàng]               │
+├────────────────────────────────────────────┤
+│                                            │
+│  (Nội dung form tương ứng)                 │
+│                                            │
+└────────────────────────────────────────────┘
+```
+
+### ProductPostForm - Dropdown danh mục cute
+
+```text
+┌────────────────────────────────────────────┐
+│  Danh mục sản phẩm                         │
+│  ┌────────────────────────────────────┐   │
+│  │  🥬 Rau củ                        ▼│   │
+│  └────────────────────────────────────┘   │
+│  ┌────────────────────────────────────┐   │
+│  │  ✓ 🥬 Rau củ                       │   │
+│  │    🍎 Trái cây                     │   │
+│  │    🥩 Thịt                         │   │
+│  │    🦐 Hải sản                      │   │
+│  │    🥛 Sữa & Trứng                  │   │
+│  │    🌾 Ngũ cốc                      │   │
+│  │    🍯 Đặc sản                      │   │
+│  │    🌱 Khác                         │   │
+│  └────────────────────────────────────┘   │
+└────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Kết Quả Mong Đợi
 
-Sau khi fix:
-1. **Wishlist**: Không memory leak khi navigate đi
-2. **ProductCard**: Buyer có thể click vào seller để xem gian hàng trực tiếp
-3. **Profile**: Có quick access đến trang yêu thích
-
----
-
-## Tổng Kết
-
-🎉 **9/10 tính năng hoạt động hoàn hảo!**
-
-Chỉ có 3 fix nhỏ cần thực hiện:
-- 1 fix memory leak (quan trọng)
-- 2 cải tiến UX (nice-to-have)
-
-Marketplace Chợ Nông Sản đã sẵn sàng đưa vào sử dụng!
+1. **UX tốt hơn**: Modal full screen dễ sử dụng trên mobile
+2. **Đơn giản hơn**: 2 lựa chọn rõ ràng (Chia sẻ / Bán hàng) thay vì 4 options
+3. **Giao diện đẹp**: Dropdown danh mục với icon cute theo hình mẫu
+4. **Nhất quán**: Giống với giao diện trong hình người dùng chia sẻ
