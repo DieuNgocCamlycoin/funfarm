@@ -42,6 +42,7 @@ export interface MarketplaceFilters {
   minPrice?: number;
   maxPrice?: number;
   distance?: number; // in km
+  location?: string; // province value
   commitments?: string[];
   sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'nearest' | 'rating';
   search?: string;
@@ -240,3 +241,42 @@ export interface ReviewSummary {
     1: number;
   };
 }
+
+// Vietnam provinces for location filter
+export const VIETNAM_PROVINCES = [
+  { value: 'all', label: 'Toàn quốc' },
+  { value: 'hanoi', label: 'Hà Nội' },
+  { value: 'hcm', label: 'TP. Hồ Chí Minh' },
+  { value: 'danang', label: 'Đà Nẵng' },
+  { value: 'cantho', label: 'Cần Thơ' },
+  { value: 'haiphong', label: 'Hải Phòng' },
+  { value: 'binhduong', label: 'Bình Dương' },
+  { value: 'dongnai', label: 'Đồng Nai' },
+  { value: 'longan', label: 'Long An' },
+  { value: 'tiengiang', label: 'Tiền Giang' },
+  { value: 'lamdong', label: 'Lâm Đồng' },
+  { value: 'khanhhoa', label: 'Khánh Hòa' },
+  { value: 'baria', label: 'Bà Rịa - Vũng Tàu' },
+  { value: 'thanhhoa', label: 'Thanh Hóa' },
+  { value: 'nghean', label: 'Nghệ An' },
+  { value: 'hatinh', label: 'Hà Tĩnh' },
+  { value: 'quangninh', label: 'Quảng Ninh' },
+  { value: 'thaibinh', label: 'Thái Bình' },
+  { value: 'namdinh', label: 'Nam Định' },
+  { value: 'hungyen', label: 'Hưng Yên' },
+  { value: 'haiduong', label: 'Hải Dương' },
+  { value: 'bacninh', label: 'Bắc Ninh' },
+  { value: 'vinhphuc', label: 'Vĩnh Phúc' },
+  { value: 'phutho', label: 'Phú Thọ' },
+  { value: 'thainguyen', label: 'Thái Nguyên' },
+  { value: 'bentre', label: 'Bến Tre' },
+  { value: 'vinhlong', label: 'Vĩnh Long' },
+  { value: 'angiang', label: 'An Giang' },
+  { value: 'dongthap', label: 'Đồng Tháp' },
+  { value: 'kiengiang', label: 'Kiên Giang' },
+  { value: 'camau', label: 'Cà Mau' },
+  { value: 'soctrang', label: 'Sóc Trăng' },
+  { value: 'baclieu', label: 'Bạc Liêu' },
+  { value: 'haugiang', label: 'Hậu Giang' },
+  { value: 'travinh', label: 'Trà Vinh' },
+];

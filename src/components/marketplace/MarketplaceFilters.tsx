@@ -26,6 +26,7 @@ import {
   DISTANCE_OPTIONS, 
   PRICE_RANGES, 
   SORT_OPTIONS,
+  VIETNAM_PROVINCES,
   ProductCategory
 } from '@/types/marketplace';
 
@@ -94,10 +95,34 @@ export const MarketplaceFilters: React.FC<MarketplaceFiltersProps> = ({
 
       <Separator />
 
+      {/* Location */}
+      <div>
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          📍 Khu vực
+        </h3>
+        <Select
+          value={filters.location || 'all'}
+          onValueChange={(value) => updateFilter('location', value === 'all' ? undefined : value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Chọn khu vực" />
+          </SelectTrigger>
+          <SelectContent>
+            {VIETNAM_PROVINCES.map((province) => (
+              <SelectItem key={province.value} value={province.value}>
+                {province.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Separator />
+
       {/* Distance */}
       <div>
         <h3 className="font-semibold mb-3 flex items-center gap-2">
-          📍 Khoảng cách
+          🎯 Khoảng cách
         </h3>
         <div className="flex flex-wrap gap-2">
           {DISTANCE_OPTIONS.map((option) => (

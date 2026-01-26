@@ -198,13 +198,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.product_status === 'sold_out' || product.quantity_kg <= 0 ? 'Hết hàng' : 'Mua ngay'}
         </Button>
 
-        {/* Link to original post */}
+        {/* Link to product detail */}
         <Link 
-          to={`/post/${product.id}`}
+          to={`/product/${product.id}`}
           onClick={(e) => e.stopPropagation()}
           className="block text-center text-xs text-muted-foreground hover:text-primary mt-2 transition-colors"
         >
-          Xem bài viết gốc →
+          Xem chi tiết →
         </Link>
       </CardContent>
     </Card>

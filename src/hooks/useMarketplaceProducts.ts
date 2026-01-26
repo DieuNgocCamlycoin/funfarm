@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { MarketplaceProduct, MarketplaceFilters, ProductCategory } from '@/types/marketplace';
+import { MarketplaceProduct, MarketplaceFilters, ProductCategory, VIETNAM_PROVINCES } from '@/types/marketplace';
 import { useAuth } from '@/hooks/useAuth';
 
 interface UseMarketplaceProductsReturn {
@@ -117,6 +117,14 @@ export function useMarketplaceProducts(
 
       if (filters.commitments && filters.commitments.length > 0) {
         query = query.overlaps('commitments', filters.commitments);
+      }
+
+      // Location filter
+      if (filters.location && filters.location !== 'all') {
+        const province = VIETNAM_PROVINCES.find(p => p.value === filters.location);
+        if (province) {
+          query = query.ilike('location_address', `%${province.label}%`);
+        }
       }
 
       // Pagination
