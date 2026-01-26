@@ -823,6 +823,28 @@ export function UserDailyActivityStats() {
               </div>
             </div>
 
+            {/* Snapshot Indicator Banner */}
+            {dataCutoffTime && (
+              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2.5">
+                <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+                  <Clock className="h-4 w-4" />
+                  <span className="font-medium">Dữ liệu snapshot:</span>
+                  <span>{format(dataCutoffTime, "HH:mm:ss 'ngày' dd/MM/yyyy", { locale: vi })}</span>
+                  <span className="text-amber-600/70 dark:text-amber-400/70 text-xs">(làm tròn 5 phút)</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => selectedUser && handleSelectUser(selectedUser)}
+                  disabled={isLoading}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/50"
+                >
+                  <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+                  Làm mới
+                </Button>
+              </div>
+            )}
+
             {/* Summary Stats */}
             {activityData.length > 0 && (
               <div className="space-y-3">
