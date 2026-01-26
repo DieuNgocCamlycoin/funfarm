@@ -5,6 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import LocationPicker from "@/components/map/LocationPicker";
 import { 
   Leaf, 
@@ -291,30 +298,41 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         </div>
       </div>
 
-      {/* Category Picker */}
+      {/* Category Picker - Dropdown */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <Tag className="h-4 w-4 text-orange-500" />
           Danh mục sản phẩm
         </Label>
-        <div className="grid grid-cols-4 gap-2">
-          {PRODUCT_CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setSelectedCategory(cat.id)}
-              className={cn(
-                "p-2 rounded-lg border text-center transition-all hover:scale-105",
-                selectedCategory === cat.id 
-                  ? "border-primary bg-primary/10 shadow-sm" 
-                  : "border-gray-200 hover:border-primary/50"
+        <Select 
+          value={selectedCategory || ''} 
+          onValueChange={(val) => setSelectedCategory(val as ProductCategory)}
+        >
+          <SelectTrigger className="w-full h-12 border-orange-200 focus:border-orange-400 bg-background">
+            <SelectValue placeholder="🌾 Chọn danh mục sản phẩm...">
+              {selectedCategory && (
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">{PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.icon}</span>
+                  <span className="font-medium">{PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.nameVi}</span>
+                </span>
               )}
-            >
-              <span className="text-2xl block">{cat.icon}</span>
-              <p className="text-xs mt-1 text-muted-foreground">{cat.nameVi}</p>
-            </button>
-          ))}
-        </div>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background border shadow-lg z-50">
+            {PRODUCT_CATEGORIES.map(cat => (
+              <SelectItem 
+                key={cat.id} 
+                value={cat.id}
+                className="cursor-pointer hover:bg-orange-50 focus:bg-orange-50 py-3"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">{cat.icon}</span>
+                  <span className="font-medium">{cat.nameVi}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Price */}
