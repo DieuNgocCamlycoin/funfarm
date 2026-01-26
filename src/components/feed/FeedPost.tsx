@@ -214,7 +214,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
         setLikes(prev => prev + 1);
         
         // Only show reward notification if this is the FIRST time liking this post
-        // V3.0: Flat rate 1.000 CLC/like (không phân biệt thứ tự)
+        // V3.1: Flat rate 1.000 CLC/like (không phân biệt thứ tự)
         if (!hasBeenRewardedForLike && user.id !== post.author.id) {
           toast.success(`+1.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
           setHasBeenRewardedForLike(true);
@@ -266,7 +266,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
         setLikes(prev => prev + 1);
         
         // Only show reward notification if this is the FIRST time reacting
-        // V3.0: Flat rate 1.000 CLC/like (không phân biệt thứ tự)
+        // V3.1: Flat rate 1.000 CLC/like (không phân biệt thứ tự)
         if (!hasBeenRewardedForLike && user.id !== post.author.id) {
           toast.success(`+1.000 CAMLY cho chủ bài viết! 🎉`, { duration: 2000 });
           setHasBeenRewardedForLike(true);
