@@ -1,174 +1,147 @@
 
-# Kế Hoạch Fix Giao Diện Đăng Bài Trang Chủ
 
-## Tổng Quan Yêu Cầu
+# Kế Hoạch: Modal Đăng Bài Căn Giữa & Giao Diện Facebook-Style
 
-| STT | Yêu cầu | Mô tả |
-|-----|---------|-------|
-| 1 | **Full Screen Modal** | Khi bấm vào ô đăng bài → hiện giao diện toàn màn hình |
-| 2 | **Đổi nút bên dưới** | Thay (Livestream, Ảnh/Video, Cảm xúc) → (Chia sẻ, Bán hàng) |
-| 3 | **Dropdown danh mục** | Form bán hàng: dùng Select dropdown cho danh mục thay vì grid button |
+## Mục Tiêu
+1. **Căn giữa modal** khi người dùng nhấp "Tạo bài viết" (thay vì full-screen)
+2. **Thiết kế giao diện chia sẻ** tương tự Facebook (như hình tham khảo)
 
 ---
 
-## Chi Tiết Thay Đổi
+## Phân Tích Hiện Tại
 
-### 1. Full Screen Modal
+**Vấn đề:**
+- `DialogContent` đang dùng `w-screen h-screen` → full-screen trên mọi thiết bị
+- Class `sm:left-0 sm:top-0 sm:translate-x-0 sm:translate-y-0` ghi đè cả trên desktop
 
-**File**: `src/components/feed/CreatePostModal.tsx`
-
-**Thay đổi**: Điều chỉnh DialogContent để hiển thị toàn màn hình trên mobile và desktop
-
-```text
-Trước: 
-  className="w-full h-full sm:w-auto sm:h-auto sm:max-w-2xl sm:max-h-[90vh]..."
-
-Sau:
-  className="w-screen h-screen max-w-none rounded-none border-0..."
-```
+**Thiết kế Facebook cần:**
+- Modal căn giữa với kích thước cố định (~500px width)
+- Header đơn giản: "Tạo bài viết" + nút X
+- Avatar + Tên + Dropdown "Công khai"
+- Textarea không border, placeholder italic
+- Thanh công cụ dưới cùng với icons (Ảnh, Tag bạn bè, Emoji, Vị trí, ...)
+- Nút "Đăng" full-width ở cuối
 
 ---
 
-### 2. Đổi Nút "Livestream, Ảnh/Video, Cảm xúc" → "Chia sẻ, Bán hàng"
+## Thay Đổi Chi Tiết
 
-**File**: `src/components/profile/ProfileCreatePost.tsx`
+### 1. Sửa CreatePostModal.tsx - Responsive Layout
 
-**Thay đổi**:
-- Bỏ 3 nút cũ (Livestream, Ảnh/Video, Cảm xúc)
-- Thay bằng 2 nút mới:
-  - 📝 **Chia sẻ** → mở tab `post` (bài viết thường)
-  - 🌾 **Bán hàng** → mở tab `product` (form bán nông sản)
+**Mobile (< 640px):** Giữ full-screen như cũ (tốt cho UX mobile)
 
-```typescript
-// Mới:
-<Button onClick={() => handleOpenModal("post")}>
-  <PenSquare className="w-5 h-5" />
-  Chia sẻ
-</Button>
+**Desktop (≥ 640px):** Modal căn giữa, kích thước cố định
 
-<Button onClick={() => handleOpenModal("product")}>
-  <ShoppingBag className="w-5 h-5" />
-  Bán hàng
-</Button>
 ```
+DialogContent classes mới:
+- Mobile: w-full h-full max-w-none (full-screen)
+- Desktop: sm:w-[500px] sm:h-auto sm:max-h-[85vh] sm:rounded-xl sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2
+```
+
+### 2. Thiết kế Lại Header (Facebook-Style)
+
+```
+┌──────────────────────────────────────────┐
+│           Tạo bài viết           [X]     │
+├──────────────────────────────────────────┤
+│  [Avatar] Tên Người Dùng                 │
+│           🌐 Công khai ▼                 │
+└──────────────────────────────────────────┘
+```
+
+- Title căn giữa, font đậm
+- Nút X bên phải (có sẵn từ DialogClose)
+- Dropdown "Công khai" dưới tên (UI display only - chưa functional)
+
+### 3. Textarea Facebook-Style
+
+```
+┌──────────────────────────────────────────┐
+│  [Tên] ơi, bạn đang nghĩ gì thế?         │
+│                                          │
+│  (Placeholder italic, không border,      │
+│   background transparent)                │
+└──────────────────────────────────────────┘
+```
+
+- Textarea không có border
+- Background trong suốt
+- Placeholder sử dụng tên người dùng (nếu có)
+- Icon emoji & Aa bên dưới textarea
+
+### 4. Thanh Công Cụ Dưới Cùng
+
+```
+┌──────────────────────────────────────────┐
+│  Thêm vào bài viết của bạn               │
+│        [📷] [👥] [😊] [📍] [📞] [...]    │
+├──────────────────────────────────────────┤
+│              [ Đăng ]                    │
+└──────────────────────────────────────────┘
+```
+
+Icons theo thứ tự Facebook:
+- 📷 Ảnh/Video (xanh lá)
+- 👥 Tag bạn bè (xanh dương)
+- 😊 Cảm xúc (vàng)
+- 📍 Vị trí (đỏ)
+- 📞 WhatsApp/Liên hệ (xanh lá đậm)
+- ... More options
+
+### 5. Giữ Nguyên Tab Chia sẻ/Bán hàng
+
+Tabs "Chia sẻ" và "Bán hàng" vẫn giữ nguyên vị trí, nhưng giao diện mỗi tab sẽ được cập nhật theo style mới.
 
 ---
 
-### 3. Dropdown Danh Mục (Form Bán Hàng)
+## Các File Cần Sửa
 
-**File**: `src/components/feed/ProductPostForm.tsx`
-
-**Thay đổi**: Thay grid buttons bằng Select dropdown đẹp với icon
-
-```typescript
-// Trước (grid buttons):
-<div className="grid grid-cols-4 gap-2">
-  {PRODUCT_CATEGORIES.map(cat => (
-    <button>...</button>
-  ))}
-</div>
-
-// Sau (dropdown select với icon):
-<Select value={selectedCategory || ''} onValueChange={(val) => setSelectedCategory(val)}>
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Chọn danh mục...">
-      {selectedCategory && (
-        <span className="flex items-center gap-2">
-          {PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.icon}
-          {PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.nameVi}
-        </span>
-      )}
-    </SelectValue>
-  </SelectTrigger>
-  <SelectContent>
-    {PRODUCT_CATEGORIES.map(cat => (
-      <SelectItem key={cat.id} value={cat.id}>
-        <span className="flex items-center gap-2">
-          <span className="text-lg">{cat.icon}</span>
-          {cat.nameVi}
-        </span>
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-```
+| File | Thay Đổi |
+|------|----------|
+| `src/components/feed/CreatePostModal.tsx` | Layout modal, header, textarea, toolbar |
 
 ---
 
-## Danh Sách Files Thay Đổi
+## Preview Giao Diện Sau Khi Sửa
 
-| Action | File Path | Mô tả |
-|--------|-----------|-------|
-| EDIT | `src/components/profile/ProfileCreatePost.tsx` | Đổi 3 nút → 2 nút (Chia sẻ, Bán hàng) |
-| EDIT | `src/components/feed/CreatePostModal.tsx` | Full screen modal + simplified tabs |
-| EDIT | `src/components/feed/ProductPostForm.tsx` | Đổi grid → dropdown danh mục |
+### Desktop (≥ 640px)
+```
+┌─────────────────────────────────────────────────┐
+│              Tạo bài viết              [X]      │
+├─────────────────────────────────────────────────┤
+│   ┌────┐                                        │
+│   │ 🖼️ │ ANGEL DIỆU NGỌC                       │
+│   └────┘ 🌐 Công khai ▼                         │
+├─────────────────────────────────────────────────┤
+│                                          [Aa]   │
+│  Ngọc ơi, bạn đang nghĩ gì thế?          [😊]   │
+│                                                 │
+│                                                 │
+│                                                 │
+│  [Grid ảnh đã upload nếu có]                    │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│  Thêm vào bài viết của bạn                      │
+│  ────────────────────────  [📷][👥][😊][📍][…]  │
+├─────────────────────────────────────────────────┤
+│               [      Đăng      ]                │
+└─────────────────────────────────────────────────┘
+         Kích thước: 500px width
+         Căn giữa màn hình
+```
+
+### Mobile (< 640px)
+Giữ nguyên full-screen như hiện tại để đảm bảo UX tốt trên điện thoại.
 
 ---
 
-## Thứ Tự Thực Hiện
+## Lưu Ý Kỹ Thuật
 
-```text
-Bước 1: Fix ProfileCreatePost.tsx - đổi 3 nút thành 2 nút
-        ↓
-Bước 2: Fix CreatePostModal.tsx - full screen + 2 tabs (Chia sẻ, Bán hàng)
-        ↓
-Bước 3: Fix ProductPostForm.tsx - dropdown danh mục với icon
-```
+1. **Dropdown "Công khai"**: Chỉ hiển thị UI, chưa thêm chức năng chọn privacy (có thể mở rộng sau)
 
----
+2. **Giữ nguyên logic upload ảnh/video**: Không thay đổi code xử lý file
 
-## Chi Tiết Kỹ Thuật
+3. **Giữ nguyên auto-save draft**: Tính năng lưu nháp vẫn hoạt động
 
-### ProfileCreatePost - Giao diện mới
+4. **Responsive**: Mobile vẫn full-screen, Desktop căn giữa
 
-```text
-┌────────────────────────────────────────────┐
-│  [Avatar]  "Bạn đang nghĩ gì vậy?"         │
-├────────────────────────────────────────────┤
-│  [📝 Chia sẻ]         [🌾 Bán hàng]        │
-└────────────────────────────────────────────┘
-```
-
-### CreatePostModal - 2 tabs thay vì 4
-
-```text
-┌────────────────────────────────────────────┐
-│  ✨ Tạo Bài Viết Mới                   [X] │
-├────────────────────────────────────────────┤
-│  [📝 Chia sẻ]  [🌾 Bán hàng]               │
-├────────────────────────────────────────────┤
-│                                            │
-│  (Nội dung form tương ứng)                 │
-│                                            │
-└────────────────────────────────────────────┘
-```
-
-### ProductPostForm - Dropdown danh mục cute
-
-```text
-┌────────────────────────────────────────────┐
-│  Danh mục sản phẩm                         │
-│  ┌────────────────────────────────────┐   │
-│  │  🥬 Rau củ                        ▼│   │
-│  └────────────────────────────────────┘   │
-│  ┌────────────────────────────────────┐   │
-│  │  ✓ 🥬 Rau củ                       │   │
-│  │    🍎 Trái cây                     │   │
-│  │    🥩 Thịt                         │   │
-│  │    🦐 Hải sản                      │   │
-│  │    🥛 Sữa & Trứng                  │   │
-│  │    🌾 Ngũ cốc                      │   │
-│  │    🍯 Đặc sản                      │   │
-│  │    🌱 Khác                         │   │
-│  └────────────────────────────────────┘   │
-└────────────────────────────────────────────┘
-```
-
----
-
-## Kết Quả Mong Đợi
-
-1. **UX tốt hơn**: Modal full screen dễ sử dụng trên mobile
-2. **Đơn giản hơn**: 2 lựa chọn rõ ràng (Chia sẻ / Bán hàng) thay vì 4 options
-3. **Giao diện đẹp**: Dropdown danh mục với icon cute theo hình mẫu
-4. **Nhất quán**: Giống với giao diện trong hình người dùng chia sẻ
