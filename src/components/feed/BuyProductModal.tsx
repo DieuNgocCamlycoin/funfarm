@@ -183,6 +183,16 @@ export default function BuyProductModal({
       return;
     }
 
+    // Check if product is sold out
+    if (maxQuantity <= 0) {
+      toast({
+        title: "Sản phẩm đã hết hàng",
+        description: "Rất tiếc, sản phẩm này hiện không còn hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (quantityNum <= 0 || quantityNum > maxQuantity) {
       toast({
         title: "Số lượng không hợp lệ",
