@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Video, Image, Smile } from "lucide-react";
+import { PenSquare, ShoppingBag } from "lucide-react";
 import CreatePostModal from "@/components/feed/CreatePostModal";
 
 interface ProfileCreatePostProps {
@@ -46,32 +46,25 @@ export const ProfileCreatePost = ({
           </button>
         </div>
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-          <Button 
-            variant="ghost" 
-            className="flex-1 gap-2 text-destructive hover:bg-destructive/10"
-            onClick={() => handleOpenModal("live")}
-          >
-            <Video className="w-5 h-5" />
-            <span className="hidden sm:inline">Livestream</span>
-          </Button>
-          
+        <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border">
           <Button 
             variant="ghost" 
             className="flex-1 gap-2 text-primary hover:bg-primary/10"
-            onClick={() => handleOpenModal("photo")}
+            onClick={() => handleOpenModal("post")}
           >
-            <Image className="w-5 h-5" />
-            <span className="hidden sm:inline">Ảnh/Video</span>
+            <PenSquare className="w-5 h-5" />
+            <span>Chia sẻ</span>
           </Button>
+          
+          <div className="w-px h-6 bg-border" />
           
           <Button 
             variant="ghost" 
-            className="flex-1 gap-2 text-accent hover:bg-accent/10"
-            onClick={() => handleOpenModal("post")}
+            className="flex-1 gap-2 text-green-600 hover:bg-green-100/50"
+            onClick={() => handleOpenModal("product")}
           >
-            <Smile className="w-5 h-5" />
-            <span className="hidden sm:inline">Cảm xúc</span>
+            <ShoppingBag className="w-5 h-5" />
+            <span>Bán hàng</span>
           </Button>
         </div>
       </div>

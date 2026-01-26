@@ -44,10 +44,8 @@ interface CreatePostModalProps {
 }
 
 const postTypes = [
-  { id: "post", label: "Bài viết", icon: Sparkles, color: "text-primary" },
-  { id: "product", label: "Bán nông sản", icon: Leaf, color: "text-green-600" },
-  { id: "photo", label: "Ảnh/Video", icon: Image, color: "text-blue-500" },
-  { id: "live", label: "Livestream", icon: Radio, color: "text-destructive" },
+  { id: "post", label: "Chia sẻ", icon: Sparkles, color: "text-primary" },
+  { id: "product", label: "Bán hàng", icon: Leaf, color: "text-green-600" },
 ];
 
 const DRAFT_STORAGE_KEY = "fun_farm_post_draft";
@@ -338,7 +336,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full h-full sm:w-auto sm:h-auto sm:max-w-2xl sm:max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-card via-card to-primary/5 border-primary/20 flex flex-col overflow-hidden">
+      <DialogContent className="w-screen h-screen max-w-none rounded-none border-0 p-0 gap-0 bg-gradient-to-br from-card via-card to-primary/5 flex flex-col overflow-hidden sm:left-0 sm:top-0 sm:translate-x-0 sm:translate-y-0">
         {/* Header with gradient - fixed */}
         <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b border-border flex-shrink-0">
           <DialogTitle className="flex items-center gap-3 font-display text-lg sm:text-xl">
@@ -355,18 +353,18 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Post Type Tabs */}
           <Tabs value={postType} onValueChange={setPostType}>
-            <TabsList className="grid grid-cols-4 bg-muted/50">
+            <TabsList className="grid grid-cols-2 bg-muted/50 w-full max-w-md mx-auto">
               {postTypes.map((type) => (
                 <TabsTrigger
                   key={type.id}
                   value={type.id}
                   className={cn(
-                    "gap-2 data-[state=active]:bg-background",
+                    "gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-md",
                     type.color
                   )}
                 >
-                  <type.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{type.label}</span>
+                  <type.icon className="w-5 h-5" />
+                  <span className="font-medium">{type.label}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -396,35 +394,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
               )}
             </TabsContent>
 
-            <TabsContent value="photo" className="space-y-4 mt-4">
-              <PostContent
-                content={content}
-                setContent={setContent}
-                placeholder="Chia sẻ hình ảnh sản phẩm tươi ngon... 📸"
-                profile={profile}
-              />
-            </TabsContent>
-
-            <TabsContent value="live" className="space-y-4 mt-4">
-              <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-6 text-center">
-                <Radio className="w-12 h-12 mx-auto text-destructive mb-3 animate-pulse" />
-                <h3 className="font-display font-semibold text-lg text-foreground mb-2">
-                  Livestream từ Nông Trại
-                </h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Phát trực tiếp từ vườn, biển để bà con thấy sản phẩm thật!
-                </p>
-                <Badge variant="outline" className="border-destructive text-destructive">
-                  Tính năng sắp ra mắt - Powered by Livepeer
-                </Badge>
-              </div>
-              <PostContent
-                content={content}
-                setContent={setContent}
-                placeholder="Mô tả livestream của bạn..."
-                profile={profile}
-              />
-            </TabsContent>
+            {/* Removed photo and live tabs - simplified to just post and product */}
           </Tabs>
 
           {/* Image Upload Section */}
