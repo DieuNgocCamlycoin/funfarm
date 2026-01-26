@@ -144,7 +144,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Seller Info */}
         {product.author && (
           <Link 
-            to={`/user/${product.author.id}`}
+            to={`/shop/${product.author.id}`}
             className="flex items-center gap-2 pt-2 border-t border-border/50"
             onClick={(e) => e.stopPropagation()}
           >

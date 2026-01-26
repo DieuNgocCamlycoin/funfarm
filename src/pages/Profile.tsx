@@ -28,7 +28,8 @@ import {
   Gift,
   BadgeCheck,
   Wallet,
-  Loader2
+  Loader2,
+  Heart
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -581,6 +582,12 @@ const Profile = () => {
                   <Button className="gradient-hero border-0 gap-2">
                     <Edit className="w-4 h-4" />
                     Chỉnh sửa hồ sơ
+                  </Button>
+                </Link>
+                <Link to="/wishlist">
+                  <Button variant="outline" className="gap-2">
+                    <Heart className="w-4 h-4 text-destructive" />
+                    Yêu thích
                   </Button>
                 </Link>
                 {/* Link Fun-ID button for users without fun_id */}
