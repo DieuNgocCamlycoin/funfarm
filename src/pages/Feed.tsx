@@ -40,6 +40,7 @@ const Feed = () => {
   const { setOnCreatePost } = useAngel();
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [initialModalTab, setInitialModalTab] = useState("post");
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -649,7 +650,13 @@ const Feed = () => {
 
                 {/* Create Post Box - Facebook style - Hide if banned */}
                 {!profile?.banned && (
-                  <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
+                  <CreatePost 
+                    onOpenModal={() => setIsCreateModalOpen(true)} 
+                    onOpenModalWithTab={(tab) => {
+                      setInitialModalTab(tab);
+                      setIsCreateModalOpen(true);
+                    }}
+                  />
                 )}
 
                 {/* Mobile Honor Board & Top Ranking */}
@@ -724,7 +731,12 @@ const Feed = () => {
 
       {/* Create Post Modal - Hide if banned */}
       {!profile?.banned && (
-        <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
+        <CreatePostModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          onPost={handleNewPost}
+          initialTab={initialModalTab}
+        />
       )}
 
       {/* Mobile Bottom Navigation */}
