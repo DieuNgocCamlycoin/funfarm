@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Video, Image, Smile } from "lucide-react";
+import { PenSquare, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import defaultAvatarGirl from "@/assets/default-avatar-girl.jpeg";
 
@@ -15,10 +15,19 @@ const profileTypeEmojis: Record<string, string> = {
 
 interface CreatePostProps {
   onOpenModal?: () => void;
+  onOpenModalWithTab?: (tab: string) => void;
 }
 
-const CreatePost = ({ onOpenModal }: CreatePostProps) => {
+const CreatePost = ({ onOpenModal, onOpenModalWithTab }: CreatePostProps) => {
   const { profile } = useAuth();
+
+  const handleOpenTab = (tab: string) => {
+    if (onOpenModalWithTab) {
+      onOpenModalWithTab(tab);
+    } else if (onOpenModal) {
+      onOpenModal();
+    }
+  };
 
   return (
     <div className="bg-card rounded-2xl shadow-card border border-border p-4">
@@ -32,7 +41,7 @@ const CreatePost = ({ onOpenModal }: CreatePostProps) => {
         </Avatar>
 
         <button
-          onClick={onOpenModal}
+          onClick={() => handleOpenTab("post")}
           className="flex-1 text-left px-4 py-3 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
         >
           Bạn đang nghĩ gì vậy?
@@ -42,37 +51,26 @@ const CreatePost = ({ onOpenModal }: CreatePostProps) => {
       {/* Divider */}
       <div className="border-t border-border mt-4 pt-3" />
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-around">
+      {/* Action Buttons - 2 buttons: Chia sẻ & Bán hàng */}
+      <div className="flex items-center justify-center gap-4">
         <Button 
           variant="ghost" 
-          className="flex-1 gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          onClick={onOpenModal}
+          className="flex-1 gap-2 text-primary hover:bg-primary/10"
+          onClick={() => handleOpenTab("post")}
         >
-          <Video className="w-5 h-5 text-destructive" />
-          <span className="font-medium">Livestream</span>
+          <PenSquare className="w-5 h-5" />
+          <span className="font-medium">Chia sẻ</span>
         </Button>
 
         <div className="w-px h-6 bg-border" />
 
         <Button 
           variant="ghost" 
-          className="flex-1 gap-2 text-muted-foreground hover:text-primary hover:bg-primary/10"
-          onClick={onOpenModal}
+          className="flex-1 gap-2 text-green-600 hover:bg-green-100/50"
+          onClick={() => handleOpenTab("product")}
         >
-          <Image className="w-5 h-5 text-primary" />
-          <span className="font-medium">Ảnh/Video</span>
-        </Button>
-
-        <div className="w-px h-6 bg-border" />
-
-        <Button 
-          variant="ghost" 
-          className="flex-1 gap-2 text-muted-foreground hover:text-accent hover:bg-accent/10"
-          onClick={onOpenModal}
-        >
-          <Smile className="w-5 h-5 text-accent" />
-          <span className="font-medium">Cảm xúc</span>
+          <ShoppingBag className="w-5 h-5" />
+          <span className="font-medium">Bán hàng</span>
         </Button>
       </div>
     </div>
