@@ -156,12 +156,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {product.author.is_good_heart && <span className="text-[10px]">💚</span>}
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                {product.average_rating && (
+                {/* Rating & Reviews */}
+                {(product.average_rating !== undefined && product.average_rating > 0) || (product.review_count !== undefined && product.review_count > 0) ? (
                   <span className="flex items-center gap-0.5">
                     <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    {product.average_rating.toFixed(1)}
+                    {product.average_rating ? product.average_rating.toFixed(1) : '0.0'}
+                    {product.review_count !== undefined && product.review_count > 0 && (
+                      <span className="text-muted-foreground">({product.review_count})</span>
+                    )}
                   </span>
-                )}
+                ) : null}
                 {product.distance_km !== undefined && product.distance_km > 0 && (
                   <span className="flex items-center gap-0.5">
                     <MapPin className="w-3 h-3" />

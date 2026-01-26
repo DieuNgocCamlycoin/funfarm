@@ -210,3 +210,33 @@ export const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: st
   delivered: { label: 'Đã giao', color: 'bg-green-500', icon: '🎉' },
   cancelled: { label: 'Đã hủy', color: 'bg-red-500', icon: '❌' },
 };
+
+// Product Review Types
+export interface ProductReview {
+  id: string;
+  order_id: string;
+  reviewer_id: string;
+  seller_id: string;
+  post_id: string;
+  rating: number;
+  comment: string | null;
+  images: string[] | null;
+  created_at: string;
+  reviewer?: {
+    id: string;
+    display_name: string;
+    avatar_url: string;
+  };
+}
+
+export interface ReviewSummary {
+  average_rating: number;
+  total_reviews: number;
+  rating_breakdown: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}

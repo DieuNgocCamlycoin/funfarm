@@ -1,19 +1,56 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Order } from "@/types/marketplace";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
-import { MapPin, Eye, Check, X, ExternalLink } from "lucide-react";
+import { MapPin, Eye, Check, X, ExternalLink, DollarSign, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface NewOrderCardProps {
   order: Order;
   onViewDetail: (order: Order) => void;
   onConfirm: (orderId: string) => void;
   onReject: (orderId: string) => void;
+  onRefresh?: () => void;
 }
 
-export const NewOrderCard = ({ order, onViewDetail, onConfirm, onReject }: NewOrderCardProps) => {
+export const NewOrderCard = ({ order, onViewDetail, onConfirm, onReject, onRefresh }: NewOrderCardProps) => {
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+
+  // Check if payment proof is uploaded and needs confirmation
+  const needsPaymentConfirmation = order.payment_status === 'proof_uploaded' && order.payment_proof_url;
+
+  const handleConfirmPayment = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmingPayment(true);
+    
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          payment_status: 'confirmed',
+          payment_confirmed_at: new Date().toISOString(),
+          payment_confirmed_by: order.seller_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast.success('Đã xác nhận nhận tiền thành công!');
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('Không thể xác nhận thanh toán');
+    } finally {
+      setConfirmingPayment(false);
+    }
+  };
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -31,7 +68,20 @@ export const NewOrderCard = ({ order, onViewDetail, onConfirm, onReject }: NewOr
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-2">
               <h4 className="font-semibold truncate">{order.product_name}</h4>
-              <OrderStatusBadge status={order.status} size="sm" />
+              <div className="flex flex-col items-end gap-1">
+                <OrderStatusBadge status={order.status} size="sm" />
+                {/* Payment Status Badge */}
+                {needsPaymentConfirmation && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-[10px]">
+                    💳 Chờ xác nhận TT
+                  </Badge>
+                )}
+                {order.payment_status === 'confirmed' && (
+                  <Badge variant="outline" className="text-green-600 border-green-400 bg-green-50 dark:bg-green-950/30 text-[10px]">
+                    ✅ Đã nhận tiền
+                  </Badge>
+                )}
+              </div>
             </div>
 
             <div className="text-sm text-muted-foreground space-y-1">
@@ -69,6 +119,7 @@ export const NewOrderCard = ({ order, onViewDetail, onConfirm, onReject }: NewOr
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-2"
+                onClick={(e) => e.stopPropagation()}
               >
                 <ExternalLink className="w-3 h-3" />
                 Xem ảnh chuyển khoản
@@ -81,6 +132,32 @@ export const NewOrderCard = ({ order, onViewDetail, onConfirm, onReject }: NewOr
             </p>
           </div>
         </div>
+
+        {/* Payment Confirmation Banner */}
+        {needsPaymentConfirmation && (
+          <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                📷 Người mua đã upload ảnh chuyển khoản
+              </p>
+              <Button 
+                size="sm"
+                onClick={handleConfirmPayment}
+                disabled={confirmingPayment}
+                className="bg-green-600 hover:bg-green-700 h-7 text-xs"
+              >
+                {confirmingPayment ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <>
+                    <DollarSign className="w-3 h-3 mr-1" />
+                    Xác nhận đã nhận tiền
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-2 mt-4 pt-3 border-t">

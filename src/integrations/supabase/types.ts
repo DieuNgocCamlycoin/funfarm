@@ -1918,6 +1918,12 @@ export type Database = {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
       }
+      count_comments_today_vn: { Args: { p_user_id: string }; Returns: number }
+      count_interactions_today_vn: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      count_likes_today_vn: { Args: { p_user_id: string }; Returns: number }
       get_feed_posts: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
@@ -1975,6 +1981,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_quality_post: { Args: { p_post_id: string }; Returns: boolean }
       is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_user_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_wallet_blacklisted: { Args: { p_wallet: string }; Returns: boolean }
@@ -2016,6 +2023,7 @@ export type Database = {
         Args: { p_action_type: string; p_user_id: string }
         Returns: undefined
       }
+      to_vietnam_date: { Args: { utc_timestamp: string }; Returns: string }
       update_good_heart_badge: { Args: never; Returns: undefined }
     }
     Enums: {
