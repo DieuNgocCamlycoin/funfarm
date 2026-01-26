@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Users, Bug, Copy, RefreshCw, Clock } from 'lucide-react';
+import { Loader2, Search, User, Calendar as CalendarIcon, FileSpreadsheet, Download, X, Users, Bug, Copy, RefreshCw, Clock, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -129,6 +129,12 @@ export function UserDailyActivityStats() {
   // Bonuses state (from service)
   const [userBonuses, setUserBonuses] = useState<{ welcomeBonus: number; walletBonus: number } | null>(null);
   
+  // Auto-refresh states
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [countdown, setCountdown] = useState(300); // 300 seconds = 5 minutes
+  const [isTabVisible, setIsTabVisible] = useState(true);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Calculate cutoff timestamp - round down to nearest 5 minutes
   const calculateCutoffTimestamp = (): Date => {
     const now = new Date();
@@ -137,6 +143,52 @@ export function UserDailyActivityStats() {
     now.setMinutes(roundedMinutes, 0, 0);
     return now;
   };
+
+  // Handle tab visibility change for auto-pause
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Countdown timer logic with auto-pause
+  useEffect(() => {
+    // Only run countdown when all conditions are met
+    const shouldRun = autoRefreshEnabled && isTabVisible && selectedUser && !isLoading && !isExportingAll;
+
+    if (!shouldRun) {
+      // Clear interval if conditions not met
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      return;
+    }
+
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Trigger refresh when countdown reaches 0
+          if (selectedUser) {
+            handleSelectUser(selectedUser);
+          }
+          return 300; // Reset to 5 minutes
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [autoRefreshEnabled, isTabVisible, selectedUser, isLoading, isExportingAll]);
 
   // Search users by name or ID
   const handleSearch = async () => {
@@ -193,6 +245,9 @@ export function UserDailyActivityStats() {
     setDebugPosts([]);
     setDebugQueryInfo(null);
     setUserBonuses(null);
+    
+    // Reset countdown when manually refreshing
+    setCountdown(300);
     
     // Increment request ID to handle race conditions
     const currentRequestId = ++requestIdRef.current;
@@ -823,25 +878,78 @@ export function UserDailyActivityStats() {
               </div>
             </div>
 
-            {/* Snapshot Indicator Banner */}
+            {/* Snapshot Indicator Banner with Auto-Refresh */}
             {dataCutoffTime && (
-              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2.5">
-                <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
-                  <Clock className="h-4 w-4" />
-                  <span className="font-medium">Dữ liệu snapshot:</span>
-                  <span>{format(dataCutoffTime, "HH:mm:ss 'ngày' dd/MM/yyyy", { locale: vi })}</span>
-                  <span className="text-amber-600/70 dark:text-amber-400/70 text-xs">(làm tròn 5 phút)</span>
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3 space-y-3">
+                {/* Row 1: Snapshot time và Làm mới button */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">Dữ liệu snapshot:</span>
+                    <span>{format(dataCutoffTime, "HH:mm:ss 'ngày' dd/MM/yyyy", { locale: vi })}</span>
+                    <span className="text-amber-600/70 dark:text-amber-400/70 text-xs">(làm tròn 5 phút)</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => selectedUser && handleSelectUser(selectedUser)}
+                    disabled={isLoading}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/50"
+                  >
+                    <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+                    Làm mới
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => selectedUser && handleSelectUser(selectedUser)}
-                  disabled={isLoading}
-                  className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/50"
-                >
-                  <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
-                  Làm mới
-                </Button>
+
+                {/* Row 2: Auto-refresh toggle + Countdown + Progress bar */}
+                <div className="flex items-center gap-4">
+                  {/* Toggle auto-refresh */}
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="auto-refresh"
+                      checked={autoRefreshEnabled}
+                      onCheckedChange={(checked) => {
+                        setAutoRefreshEnabled(checked);
+                        if (checked) setCountdown(300);
+                      }}
+                    />
+                    <Label htmlFor="auto-refresh" className="text-xs text-amber-700 dark:text-amber-300 cursor-pointer">
+                      Tự động làm mới
+                    </Label>
+                  </div>
+
+                  {/* Countdown timer display */}
+                  {autoRefreshEnabled && (
+                    <div className="flex-1 flex items-center gap-3">
+                      <span className="text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                        {!isTabVisible ? (
+                          <span className="flex items-center gap-1">
+                            <Pause className="h-3 w-3" />
+                            Đang tạm dừng (tab ẩn)
+                          </span>
+                        ) : isLoading ? (
+                          <span className="flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Đang tải...
+                          </span>
+                        ) : isExportingAll ? (
+                          <span className="flex items-center gap-1">
+                            <Pause className="h-3 w-3" />
+                            Đang export...
+                          </span>
+                        ) : (
+                          <>Làm mới sau: {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}</>
+                        )}
+                      </span>
+                      
+                      {/* Progress bar */}
+                      <Progress 
+                        value={isTabVisible && !isLoading && !isExportingAll ? ((300 - countdown) / 300) * 100 : 0} 
+                        className="h-1.5 flex-1 bg-amber-200 dark:bg-amber-900"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
