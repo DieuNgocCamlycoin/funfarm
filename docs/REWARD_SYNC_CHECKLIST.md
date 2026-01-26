@@ -244,6 +244,7 @@ Tests       95 passed (95)
 - ✅ Sync Edge Function `reset-all-rewards`
 - ✅ Sync `rewardCalculationService.ts`
 - ✅ Add 95 unit tests for protection
+- ✅ **2026-01-26**: Xóa hoàn toàn deprecated constant `MAX_INTERACTIONS_PER_DAY` khỏi `constants.ts`
 
 ---
 
@@ -361,7 +362,7 @@ Solution: Chỉ apply cap cho daily rewards, không cho one-time bonuses
 
 ---
 
-> **Last Updated**: 2026-01-21
+> **Last Updated**: 2026-01-26
 >
 > **Maintained by**: FUN Ecosystem Team
 >
