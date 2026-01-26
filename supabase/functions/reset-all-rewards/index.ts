@@ -398,6 +398,7 @@ Deno.serve(async (req) => {
     console.log('Admin verified, fetching all data for Reward System v3.0...');
 
     // FETCH ALL DATA UPFRONT
+    // CRITICAL: Add .limit(100000) to ALL queries to override Supabase's default 1000-row limit
     const [
       profilesRes,
       postsRes,
@@ -413,49 +414,59 @@ Deno.serve(async (req) => {
       supabase
         .from('profiles')
         .select('id, display_name, pending_reward, approved_reward, welcome_bonus_claimed, wallet_bonus_claimed')
-        .eq('banned', false),
+        .eq('banned', false)
+        .limit(100000),
       supabase
         .from('posts')
         .select('id, author_id, content, images, video_url, created_at, post_type')
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .limit(100000),
       supabase
         .from('post_likes')
         .select('user_id, post_id, created_at')
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .limit(100000),
       supabase
         .from('comments')
         .select('author_id, post_id, content, created_at')
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .limit(100000),
       supabase
         .from('post_shares')
         .select('user_id, post_id, created_at')
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .limit(100000),
       supabase
         .from('followers')
         .select('id, follower_id, following_id, created_at')
         .eq('status', 'accepted')
         .lte('created_at', CUTOFF_DATE)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .limit(100000),
       supabase
         .from('livestreams')
         .select('id, user_id, started_at, ended_at, duration_minutes')
-        .lte('created_at', CUTOFF_DATE),
+        .lte('created_at', CUTOFF_DATE)
+        .limit(100000),
       supabase
         .from('livestream_likes')
         .select('livestream_id, user_id, created_at')
-        .lte('created_at', CUTOFF_DATE),
+        .lte('created_at', CUTOFF_DATE)
+        .limit(100000),
       supabase
         .from('livestream_comments')
         .select('livestream_id, author_id, content, created_at')
-        .lte('created_at', CUTOFF_DATE),
+        .lte('created_at', CUTOFF_DATE)
+        .limit(100000),
       supabase
         .from('livestream_shares')
         .select('livestream_id, user_id, created_at')
         .lte('created_at', CUTOFF_DATE)
+        .limit(100000)
     ]);
 
     if (profilesRes.error) throw profilesRes.error;
