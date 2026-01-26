@@ -29,7 +29,7 @@ const MAX_FRIENDSHIPS_PER_DAY = 10;
 const MAX_LIVESTREAMS_PER_DAY = 5;
 const DAILY_REWARD_CAP = 500000;
 
-// Reward amounts v3.0
+// Reward amounts V3.1
 const WELCOME_BONUS = 50000;
 const WALLET_BONUS = 50000;
 const QUALITY_POST_REWARD = 10000;

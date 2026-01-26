@@ -71,7 +71,7 @@ interface UserReviewTabProps {
   onRefresh: () => void;
 }
 
-// Tiêu chí nghi ngờ lạm dụng - V3.0: Dựa trên DAILY_REWARD_CAP (500k) và TOTAL_WELCOME_BONUS (100k)
+// Tiêu chí nghi ngờ lạm dụng - V3.1: Dựa trên DAILY_REWARD_CAP (500k) và TOTAL_WELCOME_BONUS (100k)
 const getSuspicionScore = (user: UserData): number => {
   let score = 0;
   

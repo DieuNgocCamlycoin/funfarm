@@ -33,7 +33,7 @@ export async function getValidUserIds(): Promise<string[]> {
 /**
  * Fetch reactions received on user's posts, excluding self-likes
  * and optionally filtering by valid user IDs (excludes banned/deleted users)
- * per v3.0 reward logic (self-interactions don't count for rewards)
+ * per V3.1 reward logic (self-interactions don't count for rewards)
  */
 export async function fetchReactionsReceived({ userId, userPostIds, validUserIds }: HonorBoardQueryParams): Promise<number> {
   if (userPostIds.length === 0) return 0;
@@ -56,7 +56,7 @@ export async function fetchReactionsReceived({ userId, userPostIds, validUserIds
 /**
  * Fetch comments received on user's posts, excluding self-comments
  * and optionally filtering by valid user IDs (excludes banned/deleted users)
- * per v3.0 reward logic (self-interactions don't count for rewards)
+ * per V3.1 reward logic (self-interactions don't count for rewards)
  */
 export async function fetchCommentsReceived({ userId, userPostIds, validUserIds }: HonorBoardQueryParams): Promise<number> {
   if (userPostIds.length === 0) return 0;
@@ -79,7 +79,7 @@ export async function fetchCommentsReceived({ userId, userPostIds, validUserIds 
 /**
  * Fetch shares received on user's posts, excluding self-shares
  * and optionally filtering by valid user IDs (excludes banned/deleted users)
- * per v3.0 reward logic (self-interactions don't count for rewards)
+ * per V3.1 reward logic (self-interactions don't count for rewards)
  */
 export async function fetchSharesReceived({ userId, userPostIds, validUserIds }: HonorBoardQueryParams): Promise<number> {
   if (userPostIds.length === 0) return 0;
