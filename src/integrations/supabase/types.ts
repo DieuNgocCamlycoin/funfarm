@@ -1563,6 +1563,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_backup_20260126: {
+        Row: {
+          approved_reward: number | null
+          backup_at: string | null
+          camly_balance: number | null
+          display_name: string | null
+          id: string | null
+          pending_reward: number | null
+          verification_bonus_claimed: boolean | null
+          wallet_bonus_claimed: boolean | null
+          welcome_bonus_claimed: boolean | null
+        }
+        Insert: {
+          approved_reward?: number | null
+          backup_at?: string | null
+          camly_balance?: number | null
+          display_name?: string | null
+          id?: string | null
+          pending_reward?: number | null
+          verification_bonus_claimed?: boolean | null
+          wallet_bonus_claimed?: boolean | null
+          welcome_bonus_claimed?: boolean | null
+        }
+        Update: {
+          approved_reward?: number | null
+          backup_at?: string | null
+          camly_balance?: number | null
+          display_name?: string | null
+          id?: string | null
+          pending_reward?: number | null
+          verification_bonus_claimed?: boolean | null
+          wallet_bonus_claimed?: boolean | null
+          welcome_bonus_claimed?: boolean | null
+        }
+        Relationships: []
+      }
       reward_bans: {
         Row: {
           banned_at: string
