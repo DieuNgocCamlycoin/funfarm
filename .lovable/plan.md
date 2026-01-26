@@ -1,147 +1,105 @@
 
 
-# Kế Hoạch: Modal Đăng Bài Căn Giữa & Giao Diện Facebook-Style
+# Kế Hoạch: Đổi Giao Diện Trang Chủ - 2 Nút Chia Sẻ & Bán Hàng
 
-## Mục Tiêu
-1. **Căn giữa modal** khi người dùng nhấp "Tạo bài viết" (thay vì full-screen)
-2. **Thiết kế giao diện chia sẻ** tương tự Facebook (như hình tham khảo)
+## Vấn Đề Hiện Tại
+
+Trang chủ (Feed) đang hiển thị 3 nút cũ:
+- Livestream
+- Ảnh/Video  
+- Cảm xúc
+
+## Thay Đổi Mong Muốn
+
+Đổi thành 2 nút giống như đã làm ở `ProfileCreatePost.tsx`:
+- **Chia sẻ** (mở tab đăng bài thường)
+- **Bán hàng** (mở tab đăng sản phẩm)
+
+## Giao Diện Sau Khi Sửa
+
+```
+┌─────────────────────────────────────────────────────┐
+│  [Avatar]  Bạn đang nghĩ gì vậy?                    │
+├─────────────────────────────────────────────────────┤
+│      [✏️ Chia sẻ]     |     [🛒 Bán hàng]          │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Phân Tích Hiện Tại
+## Chi Tiết Kỹ Thuật
 
-**Vấn đề:**
-- `DialogContent` đang dùng `w-screen h-screen` → full-screen trên mọi thiết bị
-- Class `sm:left-0 sm:top-0 sm:translate-x-0 sm:translate-y-0` ghi đè cả trên desktop
+### File cần sửa: `src/components/feed/CreatePost.tsx`
 
-**Thiết kế Facebook cần:**
-- Modal căn giữa với kích thước cố định (~500px width)
-- Header đơn giản: "Tạo bài viết" + nút X
-- Avatar + Tên + Dropdown "Công khai"
-- Textarea không border, placeholder italic
-- Thanh công cụ dưới cùng với icons (Ảnh, Tag bạn bè, Emoji, Vị trí, ...)
-- Nút "Đăng" full-width ở cuối
+**Thay đổi:**
 
----
+1. **Cập nhật imports:**
+   - Xóa: `Video`, `Image`, `Smile`
+   - Thêm: `PenSquare`, `ShoppingBag`
 
-## Thay Đổi Chi Tiết
+2. **Thêm props mới:**
+   - `onOpenModalWithTab?: (tab: string) => void` để mở modal với tab cụ thể
 
-### 1. Sửa CreatePostModal.tsx - Responsive Layout
+3. **Thay 3 nút cũ thành 2 nút mới:**
 
-**Mobile (< 640px):** Giữ full-screen như cũ (tốt cho UX mobile)
+| Nút Cũ | Nút Mới | Icon | Màu sắc |
+|--------|---------|------|---------|
+| Livestream | Chia sẻ | PenSquare | text-primary (xanh dương) |
+| Ảnh/Video | - | - | - |
+| Cảm xúc | Bán hàng | ShoppingBag | text-green-600 (xanh lá) |
 
-**Desktop (≥ 640px):** Modal căn giữa, kích thước cố định
+4. **Logic click:**
+   - Nút "Chia sẻ" → Gọi `onOpenModalWithTab("post")`
+   - Nút "Bán hàng" → Gọi `onOpenModalWithTab("product")`
 
-```
-DialogContent classes mới:
-- Mobile: w-full h-full max-w-none (full-screen)
-- Desktop: sm:w-[500px] sm:h-auto sm:max-h-[85vh] sm:rounded-xl sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2
-```
+### File cần sửa: `src/pages/Feed.tsx`
 
-### 2. Thiết kế Lại Header (Facebook-Style)
-
-```
-┌──────────────────────────────────────────┐
-│           Tạo bài viết           [X]     │
-├──────────────────────────────────────────┤
-│  [Avatar] Tên Người Dùng                 │
-│           🌐 Công khai ▼                 │
-└──────────────────────────────────────────┘
-```
-
-- Title căn giữa, font đậm
-- Nút X bên phải (có sẵn từ DialogClose)
-- Dropdown "Công khai" dưới tên (UI display only - chưa functional)
-
-### 3. Textarea Facebook-Style
-
-```
-┌──────────────────────────────────────────┐
-│  [Tên] ơi, bạn đang nghĩ gì thế?         │
-│                                          │
-│  (Placeholder italic, không border,      │
-│   background transparent)                │
-└──────────────────────────────────────────┘
-```
-
-- Textarea không có border
-- Background trong suốt
-- Placeholder sử dụng tên người dùng (nếu có)
-- Icon emoji & Aa bên dưới textarea
-
-### 4. Thanh Công Cụ Dưới Cùng
-
-```
-┌──────────────────────────────────────────┐
-│  Thêm vào bài viết của bạn               │
-│        [📷] [👥] [😊] [📍] [📞] [...]    │
-├──────────────────────────────────────────┤
-│              [ Đăng ]                    │
-└──────────────────────────────────────────┘
-```
-
-Icons theo thứ tự Facebook:
-- 📷 Ảnh/Video (xanh lá)
-- 👥 Tag bạn bè (xanh dương)
-- 😊 Cảm xúc (vàng)
-- 📍 Vị trí (đỏ)
-- 📞 WhatsApp/Liên hệ (xanh lá đậm)
-- ... More options
-
-### 5. Giữ Nguyên Tab Chia sẻ/Bán hàng
-
-Tabs "Chia sẻ" và "Bán hàng" vẫn giữ nguyên vị trí, nhưng giao diện mỗi tab sẽ được cập nhật theo style mới.
+**Thay đổi:**
+- Cập nhật cách gọi `CreatePost` component với prop mới để mở đúng tab
 
 ---
 
-## Các File Cần Sửa
+## Code Thay Đổi
 
-| File | Thay Đổi |
-|------|----------|
-| `src/components/feed/CreatePostModal.tsx` | Layout modal, header, textarea, toolbar |
+### CreatePost.tsx (Sau khi sửa)
+
+```tsx
+// Imports mới
+import { PenSquare, ShoppingBag } from "lucide-react";
+
+// Props mới
+interface CreatePostProps {
+  onOpenModal?: () => void;
+  onOpenModalWithTab?: (tab: string) => void;
+}
+
+// Buttons mới
+<Button 
+  variant="ghost" 
+  className="flex-1 gap-2 text-primary hover:bg-primary/10"
+  onClick={() => onOpenModalWithTab?.("post") || onOpenModal?.()}
+>
+  <PenSquare className="w-5 h-5" />
+  <span className="font-medium">Chia sẻ</span>
+</Button>
+
+<div className="w-px h-6 bg-border" />
+
+<Button 
+  variant="ghost" 
+  className="flex-1 gap-2 text-green-600 hover:bg-green-100/50"
+  onClick={() => onOpenModalWithTab?.("product") || onOpenModal?.()}
+>
+  <ShoppingBag className="w-5 h-5" />
+  <span className="font-medium">Bán hàng</span>
+</Button>
+```
 
 ---
 
-## Preview Giao Diện Sau Khi Sửa
+## Kết Quả
 
-### Desktop (≥ 640px)
-```
-┌─────────────────────────────────────────────────┐
-│              Tạo bài viết              [X]      │
-├─────────────────────────────────────────────────┤
-│   ┌────┐                                        │
-│   │ 🖼️ │ ANGEL DIỆU NGỌC                       │
-│   └────┘ 🌐 Công khai ▼                         │
-├─────────────────────────────────────────────────┤
-│                                          [Aa]   │
-│  Ngọc ơi, bạn đang nghĩ gì thế?          [😊]   │
-│                                                 │
-│                                                 │
-│                                                 │
-│  [Grid ảnh đã upload nếu có]                    │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│  Thêm vào bài viết của bạn                      │
-│  ────────────────────────  [📷][👥][😊][📍][…]  │
-├─────────────────────────────────────────────────┤
-│               [      Đăng      ]                │
-└─────────────────────────────────────────────────┘
-         Kích thước: 500px width
-         Căn giữa màn hình
-```
-
-### Mobile (< 640px)
-Giữ nguyên full-screen như hiện tại để đảm bảo UX tốt trên điện thoại.
-
----
-
-## Lưu Ý Kỹ Thuật
-
-1. **Dropdown "Công khai"**: Chỉ hiển thị UI, chưa thêm chức năng chọn privacy (có thể mở rộng sau)
-
-2. **Giữ nguyên logic upload ảnh/video**: Không thay đổi code xử lý file
-
-3. **Giữ nguyên auto-save draft**: Tính năng lưu nháp vẫn hoạt động
-
-4. **Responsive**: Mobile vẫn full-screen, Desktop căn giữa
+- Giao diện trang chủ đồng bộ với `ProfileCreatePost`
+- 2 nút rõ ràng: Chia sẻ (bài thường) và Bán hàng (sản phẩm)
+- Người dùng có thể nhanh chóng chọn loại bài muốn đăng
 
