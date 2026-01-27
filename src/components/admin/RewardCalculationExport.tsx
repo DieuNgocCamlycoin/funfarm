@@ -47,40 +47,20 @@ interface UserRewardCalculation {
 const CACHE_KEY = 'admin_reward_calculations';
 const CACHE_TIMESTAMP_KEY = 'admin_reward_calculations_timestamp';
 
-export function RewardCalculationExport() {
-  const [users, setUsers] = useState<UserRewardCalculation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-
-  // Load from cache on mount - NO auto-fetch
-  useEffect(() => {
-    const cached = localStorage.getItem(CACHE_KEY);
-    const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-    
-    if (cached) {
-      try {
-        const parsedData = JSON.parse(cached);
-        setUsers(parsedData);
-        setLastUpdated(timestamp || null);
-      } catch (e) {
-        console.error('Error parsing cache:', e);
-      }
-    }
-  }, []);
 interface CachedData {
   data: UserRewardCalculation[];
   timestamp: string;
 }
 
-const CACHE_KEY = 'admin_reward_calculations';
-
 const getCachedData = (): CachedData | null => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
+    const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
     if (cached) {
-      return JSON.parse(cached);
+      return {
+        data: JSON.parse(cached),
+        timestamp: timestamp || new Date().toISOString()
+      };
     }
   } catch (e) {
     console.error('Error reading cache:', e);
@@ -93,7 +73,7 @@ export function RewardCalculationExport() {
   const cachedData = getCachedData();
   
   const [users, setUsers] = useState<UserRewardCalculation[]>(cachedData?.data || []);
-  const [loading, setLoading] = useState(false); // Don't show loading if we have cache
+  const [loading, setLoading] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(cachedData?.timestamp || null);
@@ -742,7 +722,6 @@ export function RewardCalculationExport() {
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
               📊 Bảng Tính Điểm Thưởng (đến 31/12/2025)
@@ -754,11 +733,6 @@ export function RewardCalculationExport() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-                Cập nhật lần cuối: {formatLastUpdated(lastUpdated)}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap">
             <Button onClick={fetchCalculations} disabled={loading} variant="outline">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Tải dữ liệu
