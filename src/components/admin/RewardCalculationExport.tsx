@@ -69,6 +69,36 @@ export function RewardCalculationExport() {
       }
     }
   }, []);
+interface CachedData {
+  data: UserRewardCalculation[];
+  timestamp: string;
+}
+
+const CACHE_KEY = 'admin_reward_calculations';
+
+const getCachedData = (): CachedData | null => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    console.error('Error reading cache:', e);
+  }
+  return null;
+};
+
+export function RewardCalculationExport() {
+  // Initialize from cache immediately
+  const cachedData = getCachedData();
+  
+  const [users, setUsers] = useState<UserRewardCalculation[]>(cachedData?.data || []);
+  const [loading, setLoading] = useState(false); // Don't show loading if we have cache
+  const [resetting, setResetting] = useState(false);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(cachedData?.timestamp || null);
+
+  // No auto-load - user must click "Tải dữ liệu" to refresh
 
   const resetSingleUser = async (userId: string, calculatedTotal: number) => {
     setResettingUserId(userId);
@@ -439,11 +469,43 @@ export function RewardCalculationExport() {
         
         setUsers(calculations);
         toast.success(`Đã cập nhật ${calculations.length} users`);
+        
+        // Save to localStorage cache
+        const timestamp = new Date().toISOString();
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: calculations,
+          timestamp
+        }));
+        setLastUpdated(timestamp);
+        
+        toast.success(`Đã tải ${calculations.length} users`);
     } catch (error) {
       console.error('Error fetching calculations:', error);
       toast.error('Lỗi khi tải dữ liệu');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearCache = () => {
+    localStorage.removeItem(CACHE_KEY);
+    setUsers([]);
+    setLastUpdated(null);
+    toast.success('Đã xóa cache');
+  };
+
+  const formatLastUpdated = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return isoString;
     }
   };
 
@@ -680,6 +742,7 @@ export function RewardCalculationExport() {
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
               📊 Bảng Tính Điểm Thưởng (đến 31/12/2025)
@@ -691,9 +754,17 @@ export function RewardCalculationExport() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
+                Cập nhật lần cuối: {formatLastUpdated(lastUpdated)}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={fetchCalculations} disabled={loading} variant="outline">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Tải dữ liệu
+            </Button>
+            <Button onClick={clearCache} disabled={users.length === 0} variant="ghost" size="sm" className="text-muted-foreground">
+              Xóa cache
             </Button>
             <Button onClick={exportToCSV} disabled={users.length === 0} variant="outline">
               <Download className="w-4 h-4 mr-2" />

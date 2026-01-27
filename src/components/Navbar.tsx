@@ -41,34 +41,23 @@ const Navbar = () => {
   const isHomePage = location.pathname === "/";
   const { user, profile, signOut, isLoading } = useAuth();
   const { t } = useTranslation();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canAccessAdmin, setCanAccessAdmin] = useState(false);
 
-  // Check admin role (including owner)
+  // Check admin or owner role
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!user?.id) {
-        setIsAdmin(false);
+        setCanAccessAdmin(false);
         return;
       }
       try {
-        // Check if user is owner first
-        const { data: ownerData } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'owner'
-        });
-        if (ownerData === true) {
-          setIsAdmin(true);
-          return;
-        }
-        
-        // Check if user is admin
-        const { data } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'admin'
-        });
-        setIsAdmin(data === true);
+        const [adminResult, ownerResult] = await Promise.all([
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'owner' })
+        ]);
+        setCanAccessAdmin(adminResult.data === true || ownerResult.data === true);
       } catch {
-        setIsAdmin(false);
+        setCanAccessAdmin(false);
       }
     };
     checkAdminRole();
@@ -239,7 +228,7 @@ const Navbar = () => {
                         ⚙️ {t('nav.editProfile')}
                       </Link>
                     </DropdownMenuItem>
-                    {isAdmin && (
+                    {canAccessAdmin && (
                       <DropdownMenuItem asChild>
                         <Link to="/admin" className="cursor-pointer text-primary">
                           <Shield className="w-4 h-4 mr-2" />
@@ -345,7 +334,7 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-              {isAdmin && (
+              {canAccessAdmin && (
                 <Link 
                   to="/admin" 
                   className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium"

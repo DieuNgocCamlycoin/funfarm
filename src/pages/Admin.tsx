@@ -50,6 +50,7 @@ import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
 import AdminManagementTab from "@/components/admin/AdminManagementTab";
+import { AdminManagementTab } from "@/components/admin/AdminManagementTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
 import { GitMerge, Send, Crown } from "lucide-react";
@@ -140,7 +141,7 @@ const Admin = () => {
   const [blockchainLastUpdated, setBlockchainLastUpdated] = useState<string | null>(null);
   const [blockchainError, setBlockchainError] = useState<string | null>(null);
 
-  // Check admin role
+  // Check admin or owner role
   useEffect(() => {
     if (authLoading) return;
 
@@ -169,8 +170,14 @@ const Admin = () => {
           _user_id: user.id,
           _role: 'admin'
         });
+        const [adminResult, ownerResult] = await Promise.all([
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'owner' })
+        ]);
 
-        if (error || !data) {
+        const hasAccess = adminResult.data === true || ownerResult.data === true;
+
+        if (!hasAccess) {
           toast.error('Bạn không có quyền truy cập trang này');
           navigate('/feed');
           return;
@@ -741,6 +748,10 @@ const Admin = () => {
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="admin-management" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Crown className="h-4 w-4 text-yellow-500" />
+              <span className="text-yellow-600 font-medium">Quản lý Admin</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1819,6 +1830,11 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Admin Management Tab */}
+          <TabsContent value="admin-management" className="mt-4">
+            <AdminManagementTab />
           </TabsContent>
         </Tabs>
       </div>

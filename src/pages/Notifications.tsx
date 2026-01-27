@@ -39,8 +39,13 @@ const Notifications = () => {
       navigate('/auth');
       return;
     }
+    // Guard: Redirect if email not verified
+    if (profile && !profile.email_verified) {
+      navigate('/auth');
+      return;
+    }
     fetchNotifications();
-  }, [user]);
+  }, [user, profile]);
 
   const fetchNotifications = async () => {
     if (!user) return;

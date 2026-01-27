@@ -13,6 +13,12 @@ const Auth = () => {
 
   useEffect(() => {
     if (!isLoading && user && profile) {
+      // CRITICAL: Only redirect if email is verified (OTP completed)
+      // If email not verified, stay on auth page to complete OTP flow
+      if (!profile.email_verified) {
+        return; // Stay on auth page - ConnectWallet will handle OTP modal
+      }
+      
       if (!profile.welcome_bonus_claimed) {
         // Chưa hoàn tất profile → chuyển đến profile-setup
         navigate('/profile-setup');
