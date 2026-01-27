@@ -758,6 +758,59 @@ export type Database = {
         }
         Relationships: []
       }
+      order_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          order_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          order_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "exportable_user_stats"
+            referencedColumns: ["local_id"]
+          },
+          {
+            foreignKeyName: "order_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           buyer_id: string
@@ -765,6 +818,9 @@ export type Database = {
           cancelled_by: string | null
           cancelled_reason: string | null
           created_at: string
+          crypto_amount: number | null
+          crypto_currency: string | null
+          crypto_tx_hash: string | null
           delivery_address: string | null
           delivery_lat: number | null
           delivery_lng: number | null
@@ -794,6 +850,9 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          crypto_amount?: number | null
+          crypto_currency?: string | null
+          crypto_tx_hash?: string | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
@@ -823,6 +882,9 @@ export type Database = {
           cancelled_by?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          crypto_amount?: number | null
+          crypto_currency?: string | null
+          crypto_tx_hash?: string | null
           delivery_address?: string | null
           delivery_lat?: number | null
           delivery_lng?: number | null
@@ -1189,6 +1251,9 @@ export type Database = {
           avatar_url: string | null
           avatar_verified: boolean
           ban_reason: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           banned: boolean
           banned_at: string | null
           bio: string | null
@@ -1217,6 +1282,7 @@ export type Database = {
           location_lng: number | null
           merge_request_id: string | null
           merged_at: string | null
+          momo_phone: string | null
           pending_reward: number
           phone: string | null
           profile_type: Database["public"]["Enums"]["profile_type"]
@@ -1233,12 +1299,16 @@ export type Database = {
           wallet_bonus_claimed: boolean
           wallet_connected: boolean
           welcome_bonus_claimed: boolean
+          zalopay_phone: string | null
         }
         Insert: {
           approved_reward?: number
           avatar_url?: string | null
           avatar_verified?: boolean
           ban_reason?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           banned?: boolean
           banned_at?: string | null
           bio?: string | null
@@ -1267,6 +1337,7 @@ export type Database = {
           location_lng?: number | null
           merge_request_id?: string | null
           merged_at?: string | null
+          momo_phone?: string | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -1283,12 +1354,16 @@ export type Database = {
           wallet_bonus_claimed?: boolean
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
+          zalopay_phone?: string | null
         }
         Update: {
           approved_reward?: number
           avatar_url?: string | null
           avatar_verified?: boolean
           ban_reason?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           banned?: boolean
           banned_at?: string | null
           bio?: string | null
@@ -1317,6 +1392,7 @@ export type Database = {
           location_lng?: number | null
           merge_request_id?: string | null
           merged_at?: string | null
+          momo_phone?: string | null
           pending_reward?: number
           phone?: string | null
           profile_type?: Database["public"]["Enums"]["profile_type"]
@@ -1333,6 +1409,7 @@ export type Database = {
           wallet_bonus_claimed?: boolean
           wallet_connected?: boolean
           welcome_bonus_claimed?: boolean
+          zalopay_phone?: string | null
         }
         Relationships: []
       }
@@ -1483,6 +1560,42 @@ export type Database = {
           reviewed_at?: string | null
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      reward_backup_20260126: {
+        Row: {
+          approved_reward: number | null
+          backup_at: string | null
+          camly_balance: number | null
+          display_name: string | null
+          id: string | null
+          pending_reward: number | null
+          verification_bonus_claimed: boolean | null
+          wallet_bonus_claimed: boolean | null
+          welcome_bonus_claimed: boolean | null
+        }
+        Insert: {
+          approved_reward?: number | null
+          backup_at?: string | null
+          camly_balance?: number | null
+          display_name?: string | null
+          id?: string | null
+          pending_reward?: number | null
+          verification_bonus_claimed?: boolean | null
+          wallet_bonus_claimed?: boolean | null
+          welcome_bonus_claimed?: boolean | null
+        }
+        Update: {
+          approved_reward?: number | null
+          backup_at?: string | null
+          camly_balance?: number | null
+          display_name?: string | null
+          id?: string | null
+          pending_reward?: number | null
+          verification_bonus_claimed?: boolean | null
+          wallet_bonus_claimed?: boolean | null
+          welcome_bonus_claimed?: boolean | null
         }
         Relationships: []
       }
@@ -1894,6 +2007,12 @@ export type Database = {
         Args: { p_order_id: string; p_shipper_id: string }
         Returns: boolean
       }
+      count_comments_today_vn: { Args: { p_user_id: string }; Returns: number }
+      count_interactions_today_vn: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      count_likes_today_vn: { Args: { p_user_id: string }; Returns: number }
       get_feed_posts: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
@@ -1951,6 +2070,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_quality_post: { Args: { p_post_id: string }; Returns: boolean }
       is_reward_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_user_banned: { Args: { p_user_id: string }; Returns: boolean }
       is_wallet_blacklisted: { Args: { p_wallet: string }; Returns: boolean }
@@ -1992,6 +2112,7 @@ export type Database = {
         Args: { p_action_type: string; p_user_id: string }
         Returns: undefined
       }
+      to_vietnam_date: { Args: { utc_timestamp: string }; Returns: string }
       update_good_heart_badge: { Args: never; Returns: undefined }
     }
     Enums: {

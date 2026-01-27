@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift, Sprout } from "lucide-react";
+import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift, Sprout, ShoppingBag } from "lucide-react";
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +136,15 @@ const Navbar = () => {
               <Home className="w-4 h-4" />
               Trang Chủ
             </Link>
+            <Link 
+              to="/marketplace" 
+              className={`flex items-center gap-2 transition-colors font-medium ${
+                location.pathname === '/marketplace' ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Chợ Nông Sản
+            </Link>
           </div>
 
           {/* Auth Buttons / User Menu */}
@@ -197,6 +206,16 @@ const Navbar = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/" className="cursor-pointer">
                         🏠 Trang Chủ
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-orders" className="cursor-pointer">
+                        📦 Đơn hàng của tôi
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/seller" className="cursor-pointer">
+                        🏪 Quản lý bán hàng
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -286,6 +305,14 @@ const Navbar = () => {
               >
                 <Home className="w-4 h-4" />
                 Trang Chủ
+              </Link>
+              <Link 
+                to="/marketplace" 
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 transition-colors font-medium"
+                onClick={() => setIsOpen(false)}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                🛒 Chợ Nông Sản
               </Link>
               {user && profile && (
                 <>

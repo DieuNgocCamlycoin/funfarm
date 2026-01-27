@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import FeedPost from '@/components/feed/FeedPost';
 import Navbar from '@/components/Navbar';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import { ProductReviewList } from '@/components/marketplace/ProductReviewList';
 import type { Post } from '@/types/feed';
 
 const PostDetail = () => {
@@ -219,10 +220,17 @@ const PostDetail = () => {
             </Button>
           </div>
         ) : post ? (
-          <FeedPost
-            post={post}
-            onCountsUpdate={handlePostUpdate}
-          />
+          <div className="space-y-6">
+            <FeedPost
+              post={post}
+              onCountsUpdate={handlePostUpdate}
+            />
+            
+            {/* Product Reviews Section - Only for product posts */}
+            {post.is_product_post && postId && (
+              <ProductReviewList postId={postId} />
+            )}
+          </div>
         ) : null}
       </main>
       

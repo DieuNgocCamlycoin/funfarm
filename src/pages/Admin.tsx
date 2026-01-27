@@ -49,6 +49,7 @@ import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
+import AdminManagementTab from "@/components/admin/AdminManagementTab";
 import { AdminManagementTab } from "@/components/admin/AdminManagementTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
@@ -122,6 +123,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [pendingUsers, setPendingUsers] = useState<PendingRewardUser[]>([]);
   const [allUsers, setAllUsers] = useState<AllUserReward[]>([]);
@@ -150,6 +152,24 @@ const Admin = () => {
       }
 
       try {
+        // Check if user is owner first
+        const { data: ownerData } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'owner'
+        });
+
+        if (ownerData) {
+          setIsOwner(true);
+          setIsAdmin(true);
+          setCheckingAdmin(false);
+          return;
+        }
+
+        // Check if user is admin
+        const { data, error } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
         const [adminResult, ownerResult] = await Promise.all([
           supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
           supabase.rpc('has_role', { _user_id: user.id, _role: 'owner' })
@@ -652,8 +672,13 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="reward-calc" className="w-full">
+        <Tabs defaultValue="admin-management" className="w-full">
           <TabsList className="flex flex-wrap h-auto gap-1 p-2 bg-muted/50">
+            {/* Tab Quản lý Admin đầu tiên */}
+            <TabsTrigger value="admin-management" className="flex items-center gap-1.5 px-3 py-2 text-xs">
+              <Crown className="h-4 w-4 text-yellow-500" />
+              <span className="text-yellow-600 font-medium">Quản lý Admin</span>
+            </TabsTrigger>
             {/* Hàng 1: Quản lý & Công cụ */}
             <TabsTrigger value="reward-calc" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Download className="h-4 w-4 text-purple-500" />
@@ -986,6 +1011,11 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Admin Management Tab */}
+          <TabsContent value="admin-management" className="mt-4">
+            <AdminManagementTab currentUserId={user?.id} isOwner={isOwner} />
           </TabsContent>
 
           {/* Approved Users Tab */}

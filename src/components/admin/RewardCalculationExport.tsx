@@ -43,6 +43,32 @@ interface UserRewardCalculation {
   created_at: string;
 }
 
+// Cache keys
+const CACHE_KEY = 'admin_reward_calculations';
+const CACHE_TIMESTAMP_KEY = 'admin_reward_calculations_timestamp';
+
+export function RewardCalculationExport() {
+  const [users, setUsers] = useState<UserRewardCalculation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  // Load from cache on mount - NO auto-fetch
+  useEffect(() => {
+    const cached = localStorage.getItem(CACHE_KEY);
+    const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+    
+    if (cached) {
+      try {
+        const parsedData = JSON.parse(cached);
+        setUsers(parsedData);
+        setLastUpdated(timestamp || null);
+      } catch (e) {
+        console.error('Error parsing cache:', e);
+      }
+    }
+  }, []);
 interface CachedData {
   data: UserRewardCalculation[];
   timestamp: string;
@@ -435,7 +461,14 @@ export function RewardCalculationExport() {
           })
         );
 
+        // Save to cache
+        const now = new Date().toISOString();
+        localStorage.setItem(CACHE_KEY, JSON.stringify(calculations));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, now);
+        setLastUpdated(now);
+        
         setUsers(calculations);
+        toast.success(`Đã cập nhật ${calculations.length} users`);
         
         // Save to localStorage cache
         const timestamp = new Date().toISOString();
@@ -708,6 +741,7 @@ export function RewardCalculationExport() {
   return (
     <Card>
       <CardHeader>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
@@ -715,6 +749,11 @@ export function RewardCalculationExport() {
             </CardTitle>
             {lastUpdated && (
               <p className="text-sm text-muted-foreground mt-1">
+                ⏱️ Cập nhật lần cuối: {new Date(lastUpdated).toLocaleString('vi-VN')}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
                 Cập nhật lần cuối: {formatLastUpdated(lastUpdated)}
               </p>
             )}
@@ -763,7 +802,12 @@ export function RewardCalculationExport() {
         </div>
       </CardHeader>
       <CardContent>
-        {users.length === 0 ? (
+        {loading && users.length === 0 ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Đang tính toán rewards...</p>
+          </div>
+        ) : users.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>Nhấn "Tải dữ liệu" để xem bảng tính điểm thưởng</p>
           </div>

@@ -5,6 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import LocationPicker from "@/components/map/LocationPicker";
 import { 
   Leaf, 
@@ -18,11 +25,14 @@ import {
   Camera,
   X,
   ImagePlus,
-  MapPinned
+  MapPinned,
+  Tag
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadToR2 } from "@/lib/r2Upload";
 import { toast } from "sonner";
+import { PRODUCT_CATEGORIES, ProductCategory } from "@/types/marketplace";
+import { cn } from "@/lib/utils";
 
 interface ProductPostFormProps {
   userId: string;
@@ -72,6 +82,7 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSavedLocation, setHasSavedLocation] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null);
 
   // Load saved location from profile
   useEffect(() => {
@@ -196,6 +207,8 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         commitments: selectedCommitments,
         images: uploadedUrls.length > 0 ? uploadedUrls : null,
         hashtags: selectedHashtags,
+        category: selectedCategory,
+        product_status: 'active',
       });
 
       if (error) throw error;
@@ -283,6 +296,43 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
             </div>
           )}
         </div>
+      </div>
+
+      {/* Category Picker - Dropdown */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <Tag className="h-4 w-4 text-orange-500" />
+          Danh mục sản phẩm
+        </Label>
+        <Select 
+          value={selectedCategory || ''} 
+          onValueChange={(val) => setSelectedCategory(val as ProductCategory)}
+        >
+          <SelectTrigger className="w-full h-12 border-orange-200 focus:border-orange-400 bg-background">
+            <SelectValue placeholder="🌾 Chọn danh mục sản phẩm...">
+              {selectedCategory && (
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">{PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.icon}</span>
+                  <span className="font-medium">{PRODUCT_CATEGORIES.find(c => c.id === selectedCategory)?.nameVi}</span>
+                </span>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="bg-background border shadow-lg z-50">
+            {PRODUCT_CATEGORIES.map(cat => (
+              <SelectItem 
+                key={cat.id} 
+                value={cat.id}
+                className="cursor-pointer hover:bg-orange-50 focus:bg-orange-50 py-3"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">{cat.icon}</span>
+                  <span className="font-medium">{cat.nameVi}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Price */}
