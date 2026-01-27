@@ -20,7 +20,7 @@
  * - UserRewardDetailModal.tsx
  * - reset-all-rewards Edge Function (must be manually synced)
  * 
- * Last updated: 2026-01-21
+ * Last updated: 2026-01-27 (row limits 100k sync)
  * ============================================
  */
 
@@ -435,7 +435,7 @@ export async function calculateUserReward(
     .select('created_at')
     .eq('user_id', userId)
     .lte('created_at', cutoff)
-    .limit(50000);
+    .limit(100000);
   
   if (startDateStr) likesGivenQuery = likesGivenQuery.gte('created_at', startDateStr);
   if (endDateStr) likesGivenQuery = likesGivenQuery.lte('created_at', endDateStr);
@@ -456,7 +456,7 @@ export async function calculateUserReward(
     .select('created_at')
     .eq('author_id', userId)
     .lte('created_at', cutoff)
-    .limit(50000);
+    .limit(100000);
   
   if (startDateStr) commentsGivenQuery = commentsGivenQuery.gte('created_at', startDateStr);
   if (endDateStr) commentsGivenQuery = commentsGivenQuery.lte('created_at', endDateStr);
@@ -478,7 +478,7 @@ export async function calculateUserReward(
     .eq('author_id', userId)
     .eq('post_type', 'share')
     .lte('created_at', cutoff)
-    .limit(50000);
+    .limit(100000);
   
   if (startDateStr) sharesGivenQuery = sharesGivenQuery.gte('created_at', startDateStr);
   if (endDateStr) sharesGivenQuery = sharesGivenQuery.lte('created_at', endDateStr);
@@ -510,7 +510,7 @@ export async function calculateUserReward(
       .neq('user_id', userId)
       .in('user_id', validUserIdArray)
       .lte('created_at', cutoff)
-      .limit(50000);
+      .limit(100000);
     
     if (startDateStr) totalLikesQuery = totalLikesQuery.gte('created_at', startDateStr);
     if (endDateStr) totalLikesQuery = totalLikesQuery.lte('created_at', endDateStr);
@@ -532,7 +532,7 @@ export async function calculateUserReward(
       .neq('author_id', userId)
       .in('author_id', validUserIdArray)
       .lte('created_at', cutoff)
-      .limit(50000);
+      .limit(100000);
     
     if (startDateStr) totalCommentsQuery = totalCommentsQuery.gte('created_at', startDateStr);
     if (endDateStr) totalCommentsQuery = totalCommentsQuery.lte('created_at', endDateStr);
@@ -554,7 +554,7 @@ export async function calculateUserReward(
       .neq('user_id', userId)
       .in('user_id', validUserIdArray)
       .lte('created_at', cutoff)
-      .limit(50000);
+      .limit(100000);
     
     if (startDateStr) totalSharesQuery = totalSharesQuery.gte('created_at', startDateStr);
     if (endDateStr) totalSharesQuery = totalSharesQuery.lte('created_at', endDateStr);
@@ -588,7 +588,7 @@ export async function calculateUserReward(
       .in('user_id', validUserIdArray)
       .lte('created_at', cutoff)
       .order('created_at', { ascending: true })
-      .limit(50000);
+      .limit(100000);
     
     if (startDateStr) likesQuery = likesQuery.gte('created_at', startDateStr);
     if (endDateStr) likesQuery = likesQuery.lte('created_at', endDateStr);
@@ -605,7 +605,7 @@ export async function calculateUserReward(
       .in('author_id', validUserIdArray)
       .lte('created_at', cutoff)
       .order('created_at', { ascending: true })
-      .limit(50000);
+      .limit(100000);
     
     if (startDateStr) commentsQuery = commentsQuery.gte('created_at', startDateStr);
     if (endDateStr) commentsQuery = commentsQuery.lte('created_at', endDateStr);
@@ -654,7 +654,7 @@ export async function calculateUserReward(
       .in('user_id', validUserIdArray)
       .lte('created_at', cutoff)
       .order('created_at', { ascending: true })
-      .limit(50000);
+      .limit(100000);
     
     if (startDateStr) sharesQuery = sharesQuery.gte('created_at', startDateStr);
     if (endDateStr) sharesQuery = sharesQuery.lte('created_at', endDateStr);
@@ -683,7 +683,7 @@ export async function calculateUserReward(
     .eq('status', 'accepted')
     .lte('created_at', cutoff)
     .order('created_at', { ascending: true })
-    .limit(50000);
+    .limit(100000);
   
   if (startDateStr) friendshipsQuery = friendshipsQuery.gte('created_at', startDateStr);
   if (endDateStr) friendshipsQuery = friendshipsQuery.lte('created_at', endDateStr);

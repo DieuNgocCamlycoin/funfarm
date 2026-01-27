@@ -8,7 +8,7 @@
  * This Edge Function MUST stay in sync with the frontend service.
  * If you update logic here, update the service file as well.
  * 
- * Last synced: 2026-01-21
+ * Last synced: 2026-01-27 (hasMedia validation + row limits)
  * ============================================
  */
 
@@ -135,7 +135,11 @@ async function processUser(
   
   const qualityPosts = userPosts.filter(p => {
     const hasContent = (p.content?.length || 0) > 100;
-    const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+    // V3.1 SYNC: Strict media validation - must have non-empty strings
+    const hasImages = p.images && Array.isArray(p.images) && 
+      p.images.some((url: string) => typeof url === 'string' && url.trim() !== '');
+    const hasVideo = typeof p.video_url === 'string' && p.video_url.trim() !== '';
+    const hasMedia = hasImages || hasVideo;
     return hasContent && hasMedia;
   });
   
