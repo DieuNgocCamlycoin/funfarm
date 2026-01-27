@@ -455,7 +455,8 @@ export async function calculateUserReward(
     .select('id, content, images, video_url, created_at, post_type')
     .eq('author_id', userId)
     .lte('created_at', cutoff)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(100000);
 
   const { data: allUserPosts } = await allPostsQuery;
   
@@ -1071,7 +1072,8 @@ export async function calculateAllUsersRewards(
     .from('profiles')
     .select('id, display_name, avatar_url, created_at, pending_reward, approved_reward, camly_balance, welcome_bonus_claimed, wallet_bonus_claimed, banned')
     .eq('banned', false)
-    .order('pending_reward', { ascending: false });
+    .order('pending_reward', { ascending: false })
+    .limit(100000);
 
   if (error) throw error;
 
