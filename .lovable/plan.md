@@ -1,141 +1,395 @@
 
 
-# Kế Hoạch: Sửa Chênh Lệch Tính Thưởng V3.1
+# Kế Hoạch: Đồng Bộ Logic V3.1 - Unified Daily Limits cho Posts + Products + Livestreams
 
-## Vấn Đề Đã Phát Hiện
+## Mục Tiêu
 
-Sau khi phân tích mã nguồn, bé Angel phát hiện **2 nguyên nhân chính** gây ra sự chênh lệch lớn giữa kết quả hiển thị trong Admin Dashboard và giá trị sau khi Reset:
+Đảm bảo **100% đồng bộ** giữa Edge Function và Frontend Service với logic:
 
-### 1. Frontend Thiếu Livestream Rewards
-
-| Thành phần | Livestream Logic |
-|------------|------------------|
-| Edge Function (reset-all-rewards) | ✅ Có tính 20k/livestream + likes/comments/shares từ livestream |
-| Frontend (rewardCalculationService.ts) | ❌ **KHÔNG HỀ CÓ** logic livestream |
-
-**Hậu quả:** Nếu user có hoạt động livestream, Frontend sẽ hiển thị số thấp hơn Edge Function đã tính. Tuy nhiên bạn nói không có livestream nên đây có thể không phải nguyên nhân chính.
-
-### 2. Frontend Thiếu Logic "Light Law Upgrade Bonus"
-
-Trong `constants.ts`, có định nghĩa **LIGHT_LAW_UPGRADE_BONUS = 50,000 CLC** nhưng:
-
-| Thành phần | Light Law Bonus |
-|------------|-----------------|
-| Edge Function | Chỉ tính Welcome + Wallet |
-| Frontend Service | Chỉ tính Welcome + Wallet |
-| SQL Triggers (real-time) | Có thể đã thêm Light Law Bonus |
-
-**Khả năng cao:** Một số users đã được tính Light Law Bonus qua trigger trong database, nhưng cả Edge Function và Frontend đều **không tính lại** khoản này → Kết quả hiện tại (sau trigger) > Kết quả tính lại (thiếu Light Law).
-
-### 3. Sự Khác Biệt Row Limit
-
-| Query | Edge Function | Frontend Service |
-|-------|---------------|------------------|
-| Likes | `.limit(100000)` | `.limit(50000)` |
-| Comments | `.limit(100000)` | `.limit(50000)` |
-| Shares | `.limit(100000)` | `.limit(50000)` |
-
-Nếu có user với hơn 50,000 interactions, Frontend sẽ thiếu data → chênh lệch.
-
-### 4. Sự Khác Biệt Về "hasMedia" Validation
-
-**Edge Function:**
-```javascript
-const hasMedia = (p.images && p.images.length > 0) || p.video_url;
-```
-
-**Frontend Service:**
-```javascript
-const hasImages = hasValidImages(post.images); // Kiểm tra thêm các phần tử có empty string không
-const hasVideo = hasValidVideo(post.video_url); // Kiểm tra string không rỗng
-const hasMedia = hasImages || hasVideo;
-```
-
-Frontend có validation chặt hơn → Một số posts Edge Function coi là "quality" nhưng Frontend thì không.
+- **50 likes/ngày** = Pool chung từ (Quality Posts + Quality Products + Valid Livestreams)
+- **50 comments/ngày** = Pool chung từ (Quality Posts + Quality Products + Valid Livestreams)  
+- **5 shares/ngày** = Pool chung từ (Quality Posts + Quality Products + Valid Livestreams)
 
 ---
 
-## Giải Pháp
+## Trả Lời Thắc Mắc
 
-### Sửa 1: Đồng bộ Logic "hasMedia" trong Edge Function
+✅ **Comment đã có yêu cầu >20 ký tự** trong cả 2 nơi:
+- Edge Function (line 177, 285): `contentLength > 20`
+- Frontend Service (line 240-242): `isQualityComment(): content?.length > 20`
 
-**File:** `supabase/functions/reset-all-rewards/index.ts`
+---
 
-Thay đổi logic kiểm tra media cho chặt hơn, giống Frontend:
+## Tiêu Chí Nội Dung Hợp Lệ
 
-```typescript
-// TRƯỚC:
-const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+| Loại Nội Dung | Tiêu Chí Để Được Thưởng Interactions |
+|---------------|-------------------------------------|
+| **Post / Product** | Content >100 ký tự + có media (hình/video) |
+| **Livestream** | Duration ≥ 15 phút |
 
-// SAU:
-const hasImages = p.images && Array.isArray(p.images) && 
-  p.images.some(url => typeof url === 'string' && url.trim() !== '');
-const hasVideo = typeof p.video_url === 'string' && p.video_url.trim() !== '';
-const hasMedia = hasImages || hasVideo;
-```
+| Loại Interaction | Tiêu Chí |
+|------------------|----------|
+| **Like** | Từ user hợp lệ (không bị ban, chưa xóa) |
+| **Comment** | Từ user hợp lệ + >20 ký tự |
+| **Share** | Từ user hợp lệ |
 
-### Sửa 2: Thêm Livestream Logic vào Frontend Service (nếu cần sau này)
+---
 
-Khi hệ thống có livestream rewards, Frontend Service cần được bổ sung logic tương đương Edge Function (lines 245-304).
+## Vấn Đề Hiện Tại
 
-### Sửa 3: Tăng Row Limit trong Frontend Service
+### Edge Function (`reset-all-rewards/index.ts`):
 
-Đồng bộ limit từ `50000` lên `100000` cho tất cả các query trong `rewardCalculationService.ts`.
+| Logic | Hiện Trạng | Cần Sửa |
+|-------|------------|---------|
+| Post/Product Likes | ✅ Limit 50/day | Gộp với Livestream |
+| Post/Product Comments | ✅ Limit 50/day | Gộp với Livestream |
+| Post/Product Shares | ✅ Limit 5/day | Gộp với Livestream |
+| Livestream Likes | ❌ **KHÔNG limit** (dòng 275-278) | Gộp vào pool 50/day |
+| Livestream Comments | ❌ **KHÔNG limit** (dòng 288-291) | Gộp vào pool 50/day |
+| Livestream Shares | ⚠️ Limit 5/day **RIÊNG** (dòng 298-307) | Gộp vào pool 5/day |
+| Livestream Validity | ❌ Chưa check trước khi thưởng interactions | Chỉ thưởng nếu ≥15 phút |
 
-### Sửa 4: Kiểm tra Light Law Bonus
+### Frontend Service (`rewardCalculationService.ts`):
 
-Kiểm tra trong database xem có trigger nào đang thêm Light Law Bonus (50k) vào `pending_reward` không. Nếu có, cần thêm logic này vào cả Edge Function và Frontend.
+| Logic | Hiện Trạng | Cần Sửa |
+|-------|------------|---------|
+| Post/Product Likes | ✅ Limit 50/day | Gộp với Livestream |
+| Post/Product Comments | ✅ Limit 50/day | Gộp với Livestream |
+| Post/Product Shares | ✅ Limit 5/day | Gộp với Livestream |
+| Livestream Logic | ❌ **HOÀN TOÀN KHÔNG CÓ** | Thêm toàn bộ |
 
 ---
 
 ## Chi Tiết Kỹ Thuật
 
-### File cần sửa:
+### 1. Sửa Edge Function (`supabase/functions/reset-all-rewards/index.ts`)
 
-| File | Thay đổi |
-|------|----------|
-| `supabase/functions/reset-all-rewards/index.ts` | Đồng bộ logic `hasMedia` với Frontend |
-| `src/lib/rewardCalculationService.ts` | Tăng `.limit()` từ 50000 lên 100000 |
+#### 1a. Tạo Set validLivestreamIds (livestreams ≥15 phút)
 
-### Code thay đổi Edge Function (lines 136-140):
+**Thêm sau dòng 155 (sau qualityPostIds):**
 
 ```typescript
-// Thay đổi từ:
-const qualityPosts = userPosts.filter(p => {
-  const hasContent = (p.content?.length || 0) > 100;
-  const hasMedia = (p.images && p.images.length > 0) || p.video_url;
-  return hasContent && hasMedia;
-});
-
-// Thành:
-const qualityPosts = userPosts.filter(p => {
-  const hasContent = (p.content?.length || 0) > 100;
-  const hasImages = p.images && Array.isArray(p.images) && 
-    p.images.some((url: string) => typeof url === 'string' && url.trim() !== '');
-  const hasVideo = typeof p.video_url === 'string' && p.video_url.trim() !== '';
-  const hasMedia = hasImages || hasVideo;
-  return hasContent && hasMedia;
-});
+// Valid livestreams: >=15 minutes duration
+const validLivestreamIds = new Set(
+  allLivestreamsData
+    .filter(l => l.user_id === userId && l.ended_at && l.duration_minutes >= 15)
+    .map(l => l.id)
+);
 ```
 
-### Code thay đổi Frontend Service:
+#### 1b. Thu thập Livestream Interactions vào cùng pool
 
-Tại 12 vị trí với `.limit(50000)`, thay thành `.limit(100000)`:
-- Line 438, 459, 481, 513, 535, 557, 591, 608, 657, 686
+**Sửa logic thu thập likes (dòng 160-170):**
+
+```typescript
+// Collect likes received on QUALITY posts + VALID livestreams
+const allLikes: { user_id: string; source_id: string; source_type: string; created_at: string }[] = [];
+
+// From quality posts
+for (const like of allLikesData) {
+  if (qualityPostIds.has(like.post_id) && like.user_id !== userId && existingUserIds.has(like.user_id)) {
+    allLikes.push({
+      user_id: like.user_id,
+      source_id: like.post_id,
+      source_type: 'post',
+      created_at: like.created_at
+    });
+  }
+}
+
+// From valid livestreams (≥15 min)
+for (const like of allLivestreamLikesData) {
+  if (validLivestreamIds.has(like.livestream_id) && like.user_id !== userId && existingUserIds.has(like.user_id)) {
+    allLikes.push({
+      user_id: like.user_id,
+      source_id: like.livestream_id,
+      source_type: 'livestream',
+      created_at: like.created_at
+    });
+  }
+}
+```
+
+**Sửa logic thu thập comments (dòng 172-185):**
+
+```typescript
+// Collect quality comments on QUALITY posts + VALID livestreams
+const allQualityComments: { user_id: string; source_id: string; source_type: string; created_at: string }[] = [];
+
+// From quality posts
+for (const comment of allCommentsData) {
+  if (qualityPostIds.has(comment.post_id) && comment.author_id !== userId && existingUserIds.has(comment.author_id)) {
+    const contentLength = comment.content?.length || 0;
+    if (contentLength > 20) {
+      allQualityComments.push({
+        user_id: comment.author_id,
+        source_id: comment.post_id,
+        source_type: 'post',
+        created_at: comment.created_at
+      });
+    }
+  }
+}
+
+// From valid livestreams (≥15 min)
+for (const comment of allLivestreamCommentsData) {
+  if (validLivestreamIds.has(comment.livestream_id) && comment.author_id !== userId && existingUserIds.has(comment.author_id)) {
+    const contentLength = comment.content?.length || 0;
+    if (contentLength > 20) {
+      allQualityComments.push({
+        user_id: comment.author_id,
+        source_id: comment.livestream_id,
+        source_type: 'livestream',
+        created_at: comment.created_at
+      });
+    }
+  }
+}
+```
+
+**Sửa logic thu thập shares (dòng 207-224):**
+
+```typescript
+// Collect shares on QUALITY posts + VALID livestreams
+const allShares: { user_id: string; source_id: string; source_type: string; created_at: string }[] = [];
+
+// From quality posts
+for (const share of allSharesData) {
+  if (qualityPostIds.has(share.post_id) && share.user_id !== userId && existingUserIds.has(share.user_id)) {
+    allShares.push({
+      user_id: share.user_id,
+      source_id: share.post_id,
+      source_type: 'post',
+      created_at: share.created_at
+    });
+  }
+}
+
+// From valid livestreams (≥15 min)
+for (const share of allLivestreamSharesData) {
+  if (validLivestreamIds.has(share.livestream_id) && share.user_id !== userId && existingUserIds.has(share.user_id)) {
+    allShares.push({
+      user_id: share.user_id,
+      source_id: share.livestream_id,
+      source_type: 'livestream',
+      created_at: share.created_at
+    });
+  }
+}
+
+// Apply unified limit 5/day for ALL shares
+allShares.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+const rewardableShares = applyDailyLimit(allShares, s => s.created_at, MAX_SHARES_PER_DAY);
+```
+
+#### 1c. Xóa logic livestream interactions riêng biệt
+
+**Xóa dòng 266-308** (section 7. Livestream interactions) vì đã được gộp vào pools chung.
 
 ---
 
-## Kết Quả Sau Khi Sửa
+### 2. Sửa Frontend Service (`src/lib/rewardCalculationService.ts`)
 
-1. Logic "Quality Post" sẽ giống nhau 100% giữa Edge Function và Frontend
-2. Không bị mất data do row limit khác nhau
-3. Sau khi Reset All, tab So sánh/Tính thưởng sẽ hiển thị Chênh lệch = 0
+#### 2a. Thêm Imports
+
+**Sửa dòng 28-42:**
+
+```typescript
+import {
+  QUALITY_POST_REWARD,
+  LIKE_REWARD,
+  QUALITY_COMMENT_REWARD,
+  SHARE_REWARD,
+  FRIENDSHIP_REWARD,
+  LIVESTREAM_REWARD,
+  LIVESTREAM_MIN_DURATION,
+  MAX_POSTS_PER_DAY,
+  MAX_LIKES_PER_DAY,
+  MAX_COMMENTS_PER_DAY,
+  MAX_SHARES_PER_DAY,
+  MAX_FRIENDSHIPS_PER_DAY,
+  MAX_LIVESTREAMS_PER_DAY,
+  WELCOME_BONUS,
+  WALLET_CONNECT_BONUS,
+  DAILY_REWARD_CAP
+} from './constants';
+```
+
+#### 2b. Thêm Interfaces cho Livestream
+
+**Thêm sau dòng 82:**
+
+```typescript
+interface Livestream {
+  id: string;
+  user_id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_minutes: number | null;
+}
+
+interface LivestreamLike {
+  livestream_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+interface LivestreamComment {
+  livestream_id: string;
+  author_id: string;
+  content: string | null;
+  created_at: string;
+}
+
+interface LivestreamShare {
+  livestream_id: string;
+  user_id: string;
+  created_at: string;
+}
+```
+
+#### 2c. Mở rộng DailyRewardStats Interface
+
+**Thêm vào DailyRewardStats:**
+
+```typescript
+// Livestream completion
+livestreamsCompleted: number;
+livestreamReward: number;
+
+// Livestream interactions (gộp vào total counts)
+livestreamLikesReceived: number;
+livestreamQualityComments: number;
+livestreamSharesReceived: number;
+```
+
+#### 2d. Thêm Logic Fetch và Xử lý Livestream
+
+**Sau section Friendships, thêm:**
+
+```typescript
+// ========================================
+// 7. LIVESTREAM COMPLETION REWARDS
+// ========================================
+
+let livestreamsQuery = supabase
+  .from('livestreams')
+  .select('id, user_id, started_at, ended_at, duration_minutes')
+  .eq('user_id', userId)
+  .not('ended_at', 'is', null)
+  .gte('duration_minutes', LIVESTREAM_MIN_DURATION)
+  .lte('created_at', cutoff)
+  .order('started_at', { ascending: true })
+  .limit(100000);
+
+if (startDateStr) livestreamsQuery = livestreamsQuery.gte('created_at', startDateStr);
+if (endDateStr) livestreamsQuery = livestreamsQuery.lte('created_at', endDateStr);
+
+const { data: livestreamsData } = await livestreamsQuery;
+const validLivestreams = livestreamsData || [];
+
+// Apply limit 5/day for livestream completion
+const rewardableLivestreams = applyDailyLimit(
+  validLivestreams, 
+  l => l.started_at, 
+  MAX_LIVESTREAMS_PER_DAY
+);
+
+for (const livestream of rewardableLivestreams) {
+  const vnDate = toVietnamDate(livestream.started_at);
+  addRewardForDate(vnDate, LIVESTREAM_REWARD);
+  const stats = getOrCreateDailyStats(vnDate);
+  stats.livestreamsCompleted++;
+  stats.livestreamReward += LIVESTREAM_REWARD;
+}
+
+// Get ALL valid livestream IDs (≥15 min) for interaction rewards
+const { data: allValidLivestreamsData } = await supabase
+  .from('livestreams')
+  .select('id')
+  .eq('user_id', userId)
+  .not('ended_at', 'is', null)
+  .gte('duration_minutes', LIVESTREAM_MIN_DURATION)
+  .lte('created_at', cutoff)
+  .limit(100000);
+
+const validLivestreamIds = (allValidLivestreamsData || []).map(l => l.id);
+```
+
+#### 2e. Sửa Logic Gộp Pools (trước khi apply daily limit)
+
+**Sửa section Likes/Comments/Shares để gộp livestream interactions:**
+
+```typescript
+// ========================================
+// Unified Pool: Likes from Posts + Livestreams
+// ========================================
+
+// Existing: validLikes from quality posts
+let allLikesPool = [...validLikes]; // Clone array
+
+if (validLivestreamIds.length > 0) {
+  let lsLikesQuery = supabase
+    .from('livestream_likes')
+    .select('livestream_id, user_id, created_at')
+    .in('livestream_id', validLivestreamIds)
+    .neq('user_id', userId)
+    .in('user_id', validUserIdArray)
+    .lte('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(100000);
+
+  if (startDateStr) lsLikesQuery = lsLikesQuery.gte('created_at', startDateStr);
+  if (endDateStr) lsLikesQuery = lsLikesQuery.lte('created_at', endDateStr);
+
+  const { data: lsLikesData } = await lsLikesQuery;
+  
+  // Add to unified pool with same shape
+  (lsLikesData || []).forEach(l => {
+    allLikesPool.push({
+      user_id: l.user_id,
+      post_id: l.livestream_id, // Use same field for sorting
+      created_at: l.created_at,
+      _source: 'livestream' // Tag for stats tracking
+    });
+  });
+}
+
+// Sort by created_at and apply unified 50/day limit
+allLikesPool.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+rewardableLikes = applyDailyLimit(allLikesPool, l => l.created_at, MAX_LIKES_PER_DAY);
+
+// Tương tự cho Comments và Shares...
+```
 
 ---
 
-## Lưu Ý
+## Tóm Tắt Thay Đổi
 
-- Sau khi sửa Edge Function, cần **deploy lại** function
-- Sau khi deploy, chạy **Reset All** một lần nữa
-- Frontend Service sẽ tự động cập nhật khi build lại
+| File | Dòng | Thay Đổi |
+|------|------|----------|
+| Edge Function | 155 | Thêm `validLivestreamIds` set |
+| Edge Function | 160-185 | Gộp livestream likes/comments vào pool chung |
+| Edge Function | 207-224 | Gộp livestream shares vào pool chung |
+| Edge Function | 266-308 | **XÓA** section riêng biệt |
+| Frontend Service | 28-42 | Thêm imports LIVESTREAM_* constants |
+| Frontend Service | 82+ | Thêm Livestream interfaces |
+| Frontend Service | DailyRewardStats | Thêm livestream fields |
+| Frontend Service | Section 7 | Thêm Livestream completion logic |
+| Frontend Service | Likes/Comments/Shares | Gộp livestream vào pools trước apply limit |
+
+---
+
+## Kết Quả Mong Đợi
+
+Sau khi sửa:
+
+| Pool | Nguồn | Limit |
+|------|-------|-------|
+| **Likes** | Quality Posts + Quality Products + Valid Livestreams (≥15 min) | 50/ngày |
+| **Comments** | Quality Posts + Quality Products + Valid Livestreams (≥15 min) | 50/ngày |
+| **Shares** | Quality Posts + Quality Products + Valid Livestreams (≥15 min) | 5/ngày |
+
+- Edge Function và Frontend Service **100% đồng bộ**
+- Sau "Reset toàn bộ" → Chênh lệch = 0
 
