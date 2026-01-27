@@ -319,11 +319,13 @@ export const getValidUserIds = async (): Promise<Set<string>> => {
   const { data: activeProfiles } = await supabase
     .from('profiles')
     .select('id')
-    .eq('banned', false);
+    .eq('banned', false)
+    .limit(100000);  // Override Supabase's default 1000-row limit
   
   const { data: deletedUsers } = await supabase
     .from('deleted_users')
-    .select('user_id');
+    .select('user_id')
+    .limit(100000);  // Override Supabase's default 1000-row limit
   
   const deletedUserIds = new Set(deletedUsers?.map(d => d.user_id) || []);
   

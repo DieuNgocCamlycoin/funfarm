@@ -24,8 +24,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Reward System v3.1 Constants - Dynamic cutoff to current time
-const CUTOFF_DATE = new Date().toISOString();
+// Reward System v3.1 Constants
+// NOTE: CUTOFF_DATE is now computed per-request inside Deno.serve() to avoid stale values
 const MAX_POSTS_PER_DAY = 10;
 const MAX_LIKES_PER_DAY = 50; // V3.1: Unified limit (posts + products + livestreams)
 const MAX_COMMENTS_PER_DAY = 50; // V3.1: Unified limit (posts + products + livestreams)
@@ -445,7 +445,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Admin verified, fetching all data for Reward System v3.1 (Unified Pools)...');
+    // CRITICAL: Compute cutoff timestamp fresh per request to avoid stale module-scoped value
+    const CUTOFF_DATE = new Date().toISOString();
+    console.log(`Admin verified, fetching all data for Reward System v3.1 (Unified Pools)... Cutoff: ${CUTOFF_DATE}`);
 
     // FETCH ALL DATA UPFRONT
     // CRITICAL: Add .limit(100000) to ALL queries to override Supabase's default 1000-row limit
@@ -536,6 +538,7 @@ Deno.serve(async (req) => {
     const existingUserIds = new Set(profiles.map(p => p.id));
 
     console.log(`Processing ${profiles.length} users with Reward System v3.1 (Unified Pools)...`);
+    console.log(`Data loaded: ${allPostsData.length} posts, ${allLikesData.length} likes, ${allCommentsData.length} comments, ${allSharesData.length} shares, ${allFriendshipsData.length} friendships`);
 
     const results: any[] = [];
 
