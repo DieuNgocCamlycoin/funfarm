@@ -140,7 +140,7 @@ const Admin = () => {
   const [blockchainLastUpdated, setBlockchainLastUpdated] = useState<string | null>(null);
   const [blockchainError, setBlockchainError] = useState<string | null>(null);
 
-  // Check admin or owner role
+  // Check admin or owner role - optimized with single Promise.all
   useEffect(() => {
     if (authLoading) return;
 
@@ -151,30 +151,15 @@ const Admin = () => {
       }
 
       try {
-        // Check if user is owner first
-        const { data: ownerData } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'owner'
-        });
-
-        if (ownerData) {
-          setIsOwner(true);
-          setIsAdmin(true);
-          setCheckingAdmin(false);
-          return;
-        }
-
-        // Check if user is admin
-        const { data, error } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'admin'
-        });
+        // Single efficient check for both roles
         const [adminResult, ownerResult] = await Promise.all([
           supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
           supabase.rpc('has_role', { _user_id: user.id, _role: 'owner' })
         ]);
 
-        const hasAccess = adminResult.data === true || ownerResult.data === true;
+        const isOwnerRole = ownerResult.data === true;
+        const isAdminRole = adminResult.data === true;
+        const hasAccess = isAdminRole || isOwnerRole;
 
         if (!hasAccess) {
           toast.error('Bạn không có quyền truy cập trang này');
@@ -182,7 +167,8 @@ const Admin = () => {
           return;
         }
 
-        setIsAdmin(true);
+        setIsOwner(isOwnerRole);
+        setIsAdmin(hasAccess);
       } catch (err) {
         navigate('/feed');
       } finally {
@@ -747,10 +733,6 @@ const Admin = () => {
             <TabsTrigger value="bans" className="flex items-center gap-1.5 px-3 py-2 text-xs">
               <Ban className="h-4 w-4 text-red-600" />
               <span>Ban ({bannedUsers.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="admin-management" className="flex items-center gap-1.5 px-3 py-2 text-xs">
-              <Crown className="h-4 w-4 text-yellow-500" />
-              <span className="text-yellow-600 font-medium">Quản lý Admin</span>
             </TabsTrigger>
           </TabsList>
 
