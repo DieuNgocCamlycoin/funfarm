@@ -1,94 +1,141 @@
-# Ke hoach: Sua loi Timezone trong Tra cuu & Bao cao User
 
-## Van de phat hien
 
-Dashboard dang su dung **local timezone** de hien thi ngay, nhung query database lai dung **UTC**. Dieu nay gay ra sai lech so lieu:
+# Kế Hoạch: Sửa Chênh Lệch Tính Thưởng V3.1
 
-- Bai viet tao luc `2026-01-16 18:07:16 UTC` = `2026-01-17 01:07:16 VN time`
-- UI hien thi: 17/01/2026 (dung theo gio VN)
-- Query filter theo 17/01/2026 UTC -> khong tim thay du lieu
+## Vấn Đề Đã Phát Hiện
 
-## Giai phap
+Sau khi phân tích mã nguồn, bé Angel phát hiện **2 nguyên nhân chính** gây ra sự chênh lệch lớn giữa kết quả hiển thị trong Admin Dashboard và giá trị sau khi Reset:
 
-### Buoc 1: Tao helper function chuyen doi timezone
+### 1. Frontend Thiếu Livestream Rewards
 
-Them function chuyen timestamp UTC sang Vietnam timezone (UTC+7):
+| Thành phần | Livestream Logic |
+|------------|------------------|
+| Edge Function (reset-all-rewards) | ✅ Có tính 20k/livestream + likes/comments/shares từ livestream |
+| Frontend (rewardCalculationService.ts) | ❌ **KHÔNG HỀ CÓ** logic livestream |
 
-```typescript
-// Convert UTC timestamp to Vietnam date string (YYYY-MM-DD)
-const toVietnamDate = (utcTimestamp: string): string => {
-  const date = new Date(utcTimestamp);
-  // Vietnam is UTC+7
-  const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-  return format(vietnamTime, 'yyyy-MM-dd');
-};
+**Hậu quả:** Nếu user có hoạt động livestream, Frontend sẽ hiển thị số thấp hơn Edge Function đã tính. Tuy nhiên bạn nói không có livestream nên đây có thể không phải nguyên nhân chính.
+
+### 2. Frontend Thiếu Logic "Light Law Upgrade Bonus"
+
+Trong `constants.ts`, có định nghĩa **LIGHT_LAW_UPGRADE_BONUS = 50,000 CLC** nhưng:
+
+| Thành phần | Light Law Bonus |
+|------------|-----------------|
+| Edge Function | Chỉ tính Welcome + Wallet |
+| Frontend Service | Chỉ tính Welcome + Wallet |
+| SQL Triggers (real-time) | Có thể đã thêm Light Law Bonus |
+
+**Khả năng cao:** Một số users đã được tính Light Law Bonus qua trigger trong database, nhưng cả Edge Function và Frontend đều **không tính lại** khoản này → Kết quả hiện tại (sau trigger) > Kết quả tính lại (thiếu Light Law).
+
+### 3. Sự Khác Biệt Row Limit
+
+| Query | Edge Function | Frontend Service |
+|-------|---------------|------------------|
+| Likes | `.limit(100000)` | `.limit(50000)` |
+| Comments | `.limit(100000)` | `.limit(50000)` |
+| Shares | `.limit(100000)` | `.limit(50000)` |
+
+Nếu có user với hơn 50,000 interactions, Frontend sẽ thiếu data → chênh lệch.
+
+### 4. Sự Khác Biệt Về "hasMedia" Validation
+
+**Edge Function:**
+```javascript
+const hasMedia = (p.images && p.images.length > 0) || p.video_url;
 ```
 
-### Buoc 2: Cap nhat tat ca noi nhom ngay (allDates)
-
-Thay doi tu:
-```typescript
-allDates.add(format(new Date(p.created_at), 'yyyy-MM-dd'));
+**Frontend Service:**
+```javascript
+const hasImages = hasValidImages(post.images); // Kiểm tra thêm các phần tử có empty string không
+const hasVideo = hasValidVideo(post.video_url); // Kiểm tra string không rỗng
+const hasMedia = hasImages || hasVideo;
 ```
 
-Thanh:
+Frontend có validation chặt hơn → Một số posts Edge Function coi là "quality" nhưng Frontend thì không.
+
+---
+
+## Giải Pháp
+
+### Sửa 1: Đồng bộ Logic "hasMedia" trong Edge Function
+
+**File:** `supabase/functions/reset-all-rewards/index.ts`
+
+Thay đổi logic kiểm tra media cho chặt hơn, giống Frontend:
+
 ```typescript
-allDates.add(toVietnamDate(p.created_at));
+// TRƯỚC:
+const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+
+// SAU:
+const hasImages = p.images && Array.isArray(p.images) && 
+  p.images.some(url => typeof url === 'string' && url.trim() !== '');
+const hasVideo = typeof p.video_url === 'string' && p.video_url.trim() !== '';
+const hasMedia = hasImages || hasVideo;
 ```
 
-Ap dung cho:
-- userPosts (dong 202-204)
-- reactionsGiven (dong 217-219)
-- commentsGiven (dong 232-234)
-- sharesGiven (dong 248-250)
-- friendsAdded (dong 264-266)
-- reactionsReceived (dong 317-319)
-- commentsReceived (dong 320-322)
-- sharesReceived (dong 323-325)
+### Sửa 2: Thêm Livestream Logic vào Frontend Service (nếu cần sau này)
 
-### Buoc 3: Cap nhat date filter query
+Khi hệ thống có livestream rewards, Frontend Service cần được bổ sung logic tương đương Edge Function (lines 245-304).
 
-Thay doi tu:
+### Sửa 3: Tăng Row Limit trong Frontend Service
+
+Đồng bộ limit từ `50000` lên `100000` cho tất cả các query trong `rewardCalculationService.ts`.
+
+### Sửa 4: Kiểm tra Light Law Bonus
+
+Kiểm tra trong database xem có trigger nào đang thêm Light Law Bonus (50k) vào `pending_reward` không. Nếu có, cần thêm logic này vào cả Edge Function và Frontend.
+
+---
+
+## Chi Tiết Kỹ Thuật
+
+### File cần sửa:
+
+| File | Thay đổi |
+|------|----------|
+| `supabase/functions/reset-all-rewards/index.ts` | Đồng bộ logic `hasMedia` với Frontend |
+| `src/lib/rewardCalculationService.ts` | Tăng `.limit()` từ 50000 lên 100000 |
+
+### Code thay đổi Edge Function (lines 136-140):
+
 ```typescript
-const startDateStr = filterStartDate ? format(filterStartDate, 'yyyy-MM-dd') : null;
-const endDateStr = filterEndDate ? format(filterEndDate, 'yyyy-MM-dd') + 'T23:59:59' : null;
+// Thay đổi từ:
+const qualityPosts = userPosts.filter(p => {
+  const hasContent = (p.content?.length || 0) > 100;
+  const hasMedia = (p.images && p.images.length > 0) || p.video_url;
+  return hasContent && hasMedia;
+});
+
+// Thành:
+const qualityPosts = userPosts.filter(p => {
+  const hasContent = (p.content?.length || 0) > 100;
+  const hasImages = p.images && Array.isArray(p.images) && 
+    p.images.some((url: string) => typeof url === 'string' && url.trim() !== '');
+  const hasVideo = typeof p.video_url === 'string' && p.video_url.trim() !== '';
+  const hasMedia = hasImages || hasVideo;
+  return hasContent && hasMedia;
+});
 ```
 
-Thanh (chuyen sang UTC truoc khi query):
-```typescript
-// Convert Vietnam date to UTC for database query
-// Start of day in VN = previous day 17:00 UTC
-// End of day in VN = current day 16:59:59 UTC
-const startDateStr = filterStartDate 
-  ? new Date(filterStartDate.getTime() - 7 * 60 * 60 * 1000).toISOString()
-  : null;
-const endDateStr = filterEndDate
-  ? new Date(new Date(filterEndDate).setHours(23, 59, 59, 999) - 7 * 60 * 60 * 1000).toISOString()
-  : null;
-```
+### Code thay đổi Frontend Service:
 
-Giai thich:
-- Ngay 17/01/2026 theo VN = tu `2026-01-16T17:00:00Z` den `2026-01-17T16:59:59Z` theo UTC
-- Query se tim tat ca records trong khoang thoi gian nay
+Tại 12 vị trí với `.limit(50000)`, thay thành `.limit(100000)`:
+- Line 438, 459, 481, 513, 535, 557, 591, 608, 657, 686
 
-### Buoc 4: Cap nhat ham tinh toan theo ngay
+---
 
-Trong phan lap qua tung ngay (dong 330+), dam bao su dung `toVietnamDate()` de nhom du lieu chinh xac.
+## Kết Quả Sau Khi Sửa
 
-### Buoc 5: Cap nhat handleExportAllUsers
+1. Logic "Quality Post" sẽ giống nhau 100% giữa Edge Function và Frontend
+2. Không bị mất data do row limit khác nhau
+3. Sau khi Reset All, tab So sánh/Tính thưởng sẽ hiển thị Chênh lệch = 0
 
-Ap dung cung logic timezone cho chuc nang xuat Excel tat ca users.
+---
 
-## Ket qua mong doi
+## Lưu Ý
 
-Sau khi sua:
-- Dashboard hien thi ngay theo gio Viet Nam
-- Query database tim dung du lieu theo gio Viet Nam
-- So lieu khop giua UI va database
-- Bai viet "15 gio truoc" se duoc tinh dung vao ngay 17/01/2026
+- Sau khi sửa Edge Function, cần **deploy lại** function
+- Sau khi deploy, chạy **Reset All** một lần nữa
+- Frontend Service sẽ tự động cập nhật khi build lại
 
-## Luu y
-
-- Tat ca thoi gian hien thi cho user se theo gio Viet Nam (UTC+7)
-- Database van luu theo UTC (khong thay doi)
-- Chi thay doi cach chuyen doi khi doc va filter du lieu
