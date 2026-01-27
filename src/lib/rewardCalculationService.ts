@@ -8,10 +8,17 @@
  * This module centralizes:
  * - Quality post validation
  * - Quality comment validation
+ * - Valid livestream validation (≥15 min)
  * - Daily limit application (FCFS)
+ * - UNIFIED POOLS for likes/comments/shares (posts + products + livestreams)
  * - Daily cap enforcement (500k CLC)
  * - User reward calculation
  * - Display-only metrics for admin reporting
+ * 
+ * V3.1 UNIFIED POOLS:
+ * - Likes: 50/day from (Quality Posts + Quality Products + Valid Livestreams ≥15 min)
+ * - Comments: 50/day from (Quality Posts + Quality Products + Valid Livestreams ≥15 min)
+ * - Shares: 5/day from (Quality Posts + Quality Products + Valid Livestreams ≥15 min)
  * 
  * Used by:
  * - RewardComparisonTable.tsx
@@ -20,7 +27,7 @@
  * - UserRewardDetailModal.tsx
  * - reset-all-rewards Edge Function (must be manually synced)
  * 
- * Last updated: 2026-01-27 (row limits 100k sync)
+ * Last updated: 2026-01-27 (V3.1 Unified Daily Limits)
  * ============================================
  */
 
@@ -31,6 +38,8 @@ import {
   QUALITY_COMMENT_REWARD,
   SHARE_REWARD,
   FRIENDSHIP_REWARD,
+  LIVESTREAM_REWARD,
+  LIVESTREAM_MIN_DURATION,
   WELCOME_BONUS,
   WALLET_CONNECT_BONUS,
   DAILY_REWARD_CAP,
@@ -38,7 +47,8 @@ import {
   MAX_LIKES_PER_DAY,
   MAX_COMMENTS_PER_DAY,
   MAX_SHARES_PER_DAY,
-  MAX_FRIENDSHIPS_PER_DAY
+  MAX_FRIENDSHIPS_PER_DAY,
+  MAX_LIVESTREAMS_PER_DAY
 } from './constants';
 import { toVietnamDate, applyDailyLimit, applyDailyCap } from './dateUtils';
 import { format } from 'date-fns';
@@ -81,6 +91,43 @@ export interface Friendship {
   created_at: string;
 }
 
+// V3.1: Livestream interfaces
+export interface Livestream {
+  id: string;
+  user_id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_minutes: number | null;
+}
+
+export interface LivestreamLike {
+  livestream_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface LivestreamComment {
+  livestream_id: string;
+  author_id: string;
+  content: string | null;
+  created_at: string;
+}
+
+export interface LivestreamShare {
+  livestream_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+// V3.1: Unified interaction for pooling
+interface UnifiedInteraction {
+  user_id: string;
+  source_id: string;
+  source_type: 'post' | 'livestream';
+  created_at: string;
+  content?: string;
+}
+
 /**
  * Extended DailyRewardStats with display-only fields for admin reporting
  */
@@ -94,7 +141,7 @@ export interface DailyRewardStats {
   // === LIKES ===
   likesGiven: number;              // Likes given to others - display only
   totalLikesReceived: number;      // Total likes from ALL posts - display only
-  likesReceived: number;           // Likes from quality posts (has reward)
+  likesReceived: number;           // Likes from quality posts + valid livestreams (has reward)
   
   // === COMMENTS ===
   commentsGiven: number;           // Comments given to others - display only
@@ -105,10 +152,13 @@ export interface DailyRewardStats {
   // === SHARES ===
   sharesGiven: number;             // Shares given - display only
   totalSharesReceived: number;     // Total shares from ALL posts - display only
-  sharesReceived: number;          // Shares from quality posts (has reward)
+  sharesReceived: number;          // Shares from quality posts + valid livestreams (has reward)
   
   // === FRIENDS ===
   friendsMade: number;             // Friends made (2-way) (has reward)
+  
+  // === LIVESTREAM ===
+  livestreamsCompleted: number;    // Livestreams ≥15 min (has reward)
   
   // === REWARDS ===
   postReward: number;
@@ -116,6 +166,7 @@ export interface DailyRewardStats {
   commentReward: number;
   shareReward: number;
   friendReward: number;
+  livestreamReward: number;
   rawReward: number;               // Before daily cap
   cappedReward: number;            // After daily cap
 }
@@ -146,6 +197,7 @@ export interface RewardCalculationResult {
   qualityComments: number;
   sharesReceived: number;
   friendships: number;
+  livestreamsCompleted: number;
   
   // === NEW DISPLAY-ONLY COUNTS (for admin reporting) ===
   totalPostsCreated: number;        // All posts (any type)
@@ -157,6 +209,14 @@ export interface RewardCalculationResult {
   sharesGiven: number;              // Shares given to others
   totalSharesReceived: number;      // Shares from ALL posts
   
+  // V3.1: Source breakdown for likes/comments/shares
+  likesFromPosts: number;
+  likesFromLivestreams: number;
+  commentsFromPosts: number;
+  commentsFromLivestreams: number;
+  sharesFromPosts: number;
+  sharesFromLivestreams: number;
+  
   // Bonuses
   welcomeBonus: number;
   walletBonus: number;
@@ -167,6 +227,7 @@ export interface RewardCalculationResult {
   commentReward: number;
   shareReward: number;
   friendshipReward: number;
+  livestreamReward: number;
   dailyRewardsTotal: number;
   calculatedTotal: number;
   
@@ -242,6 +303,16 @@ export const isQualityComment = (content: string | null): boolean => {
 };
 
 /**
+ * Check if livestream is valid for interaction rewards: ≥15 min duration
+ */
+export const isValidLivestream = (livestream: {
+  ended_at: string | null;
+  duration_minutes: number | null;
+}): boolean => {
+  return livestream.ended_at != null && (livestream.duration_minutes || 0) >= LIVESTREAM_MIN_DURATION;
+};
+
+/**
  * Get valid user IDs (not banned, not deleted)
  */
 export const getValidUserIds = async (): Promise<Set<string>> => {
@@ -297,8 +368,9 @@ export const vietnamDateToUTCRange = (vnDate: Date, isStart: boolean): string =>
  * 
  * V3.1 Rules:
  * - Posts: First 10 quality posts/day receive rewards
- * - Interactions: Rewarded on ALL quality posts (not just first 10)
- * - Separate limits: 50 likes/day + 50 comments/day (independent pools)
+ * - Interactions: Rewarded on ALL quality posts AND valid livestreams (≥15 min)
+ * - UNIFIED pools: 50 likes/day + 50 comments/day + 5 shares/day (from posts + livestreams)
+ * - Livestream completion: 20k/livestream ≥15 min, max 5/day
  * - Daily cap: 500k CLC (excludes welcome + wallet bonuses)
  */
 export async function calculateUserReward(
@@ -356,11 +428,13 @@ export async function calculateUserReward(
         totalSharesReceived: 0,
         sharesReceived: 0,
         friendsMade: 0,
+        livestreamsCompleted: 0,
         postReward: 0,
         likeReward: 0,
         commentReward: 0,
         shareReward: 0,
         friendReward: 0,
+        livestreamReward: 0,
         rawReward: 0,
         cappedReward: 0
       });
@@ -376,7 +450,7 @@ export async function calculateUserReward(
     .single();
 
   // 2. Fetch ALL user's posts (no date filter - we need all post IDs for received metrics)
-  let allPostsQuery = supabase
+  const allPostsQuery = supabase
     .from('posts')
     .select('id, content, images, video_url, created_at, post_type')
     .eq('author_id', userId)
@@ -426,7 +500,43 @@ export async function calculateUserReward(
   }
 
   // ========================================
-  // 3. Fetch "Given" activities (display only, no reward)
+  // 3. V3.1: Fetch valid livestreams (≥15 min)
+  // ========================================
+  
+  let livestreamsQuery = supabase
+    .from('livestreams')
+    .select('id, user_id, started_at, ended_at, duration_minutes')
+    .eq('user_id', userId)
+    .not('ended_at', 'is', null)
+    .gte('duration_minutes', LIVESTREAM_MIN_DURATION)
+    .lte('created_at', cutoff)
+    .order('started_at', { ascending: true })
+    .limit(100000);
+
+  if (startDateStr) livestreamsQuery = livestreamsQuery.gte('created_at', startDateStr);
+  if (endDateStr) livestreamsQuery = livestreamsQuery.lte('created_at', endDateStr);
+
+  const { data: validLivestreamsData } = await livestreamsQuery;
+  const validLivestreams = validLivestreamsData || [];
+  const validLivestreamIds = validLivestreams.map(l => l.id);
+
+  // Apply limit 5/day for livestream completion rewards
+  const rewardableLivestreams = applyDailyLimit(
+    validLivestreams, 
+    l => l.started_at, 
+    MAX_LIVESTREAMS_PER_DAY
+  );
+
+  for (const livestream of rewardableLivestreams) {
+    const vnDate = toVietnamDate(livestream.started_at);
+    addRewardForDate(vnDate, LIVESTREAM_REWARD);
+    const stats = getOrCreateDailyStats(vnDate);
+    stats.livestreamsCompleted++;
+    stats.livestreamReward += LIVESTREAM_REWARD;
+  }
+
+  // ========================================
+  // 4. Fetch "Given" activities (display only, no reward)
   // ========================================
   
   // Likes given
@@ -494,7 +604,7 @@ export async function calculateUserReward(
   });
 
   // ========================================
-  // 4. Fetch "Total Received" from ALL posts (display only)
+  // 5. Fetch "Total Received" from ALL posts (display only)
   // ========================================
   
   let totalLikesReceivedCount = 0;
@@ -570,16 +680,17 @@ export async function calculateUserReward(
   }
 
   // ========================================
-  // 5. V3.1: Interactions on ALL quality posts (with rewards)
+  // 6. V3.1 UNIFIED POOLS: Interactions from Quality Posts + Valid Livestreams
   // ========================================
   
-  let rewardableLikes: Like[] = [];
-  let rewardableComments: { author_id: string; post_id: string; content: string | null; created_at: string }[] = [];
-  let rewardableShares: Share[] = [];
+  // Unified pools for likes/comments/shares
+  const allLikesPool: UnifiedInteraction[] = [];
+  const allQualityCommentsPool: UnifiedInteraction[] = [];
+  const allSharesPool: UnifiedInteraction[] = [];
   let commentsFromQualityPostsCount = 0;
 
+  // 6a. Likes from quality posts
   if (qualityPostIds.length > 0 && validUserIdArray.length > 0) {
-    // Likes on quality posts
     let likesQuery = supabase
       .from('post_likes')
       .select('user_id, post_id, created_at')
@@ -594,9 +705,16 @@ export async function calculateUserReward(
     if (endDateStr) likesQuery = likesQuery.lte('created_at', endDateStr);
 
     const { data: likesData } = await likesQuery;
-    const validLikes = likesData || [];
+    (likesData || []).forEach(l => {
+      allLikesPool.push({
+        user_id: l.user_id,
+        source_id: l.post_id,
+        source_type: 'post',
+        created_at: l.created_at
+      });
+    });
 
-    // Comments on quality posts
+    // Comments from quality posts
     let commentsQuery = supabase
       .from('comments')
       .select('author_id, post_id, content, created_at')
@@ -618,34 +736,20 @@ export async function calculateUserReward(
       const stats = getOrCreateDailyStats(vnDate);
       stats.commentsFromQualityPosts++;
       commentsFromQualityPostsCount++;
+      
+      // Add quality comments (>20 chars) to pool
+      if (isQualityComment(c.content)) {
+        allQualityCommentsPool.push({
+          user_id: c.author_id,
+          source_id: c.post_id,
+          source_type: 'post',
+          created_at: c.created_at,
+          content: c.content || undefined
+        });
+      }
     });
-    
-    // Filter quality comments (>20 chars) for rewards
-    const validQualityComments = (commentsData || []).filter(c => isQualityComment(c.content));
 
-    // V3.1: Apply SEPARATE daily limits - 50 likes/day AND 50 comments/day
-    rewardableLikes = applyDailyLimit(validLikes, l => l.created_at, MAX_LIKES_PER_DAY);
-    rewardableComments = applyDailyLimit(validQualityComments, c => c.created_at, MAX_COMMENTS_PER_DAY);
-
-    // Add likes rewards
-    for (const like of rewardableLikes) {
-      const vnDate = toVietnamDate(like.created_at);
-      addRewardForDate(vnDate, LIKE_REWARD);
-      const stats = getOrCreateDailyStats(vnDate);
-      stats.likesReceived++;
-      stats.likeReward += LIKE_REWARD;
-    }
-
-    // Add comments rewards
-    for (const comment of rewardableComments) {
-      const vnDate = toVietnamDate(comment.created_at);
-      addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
-      const stats = getOrCreateDailyStats(vnDate);
-      stats.qualityComments++;
-      stats.commentReward += QUALITY_COMMENT_REWARD;
-    }
-
-    // Shares on quality posts - limit 5/day
+    // Shares from quality posts
     let sharesQuery = supabase
       .from('post_shares')
       .select('user_id, post_id, created_at')
@@ -660,20 +764,133 @@ export async function calculateUserReward(
     if (endDateStr) sharesQuery = sharesQuery.lte('created_at', endDateStr);
 
     const { data: sharesData } = await sharesQuery;
-    const validShares = sharesData || [];
-    rewardableShares = applyDailyLimit(validShares, s => s.created_at, MAX_SHARES_PER_DAY);
+    (sharesData || []).forEach(s => {
+      allSharesPool.push({
+        user_id: s.user_id,
+        source_id: s.post_id,
+        source_type: 'post',
+        created_at: s.created_at
+      });
+    });
+  }
 
-    for (const share of rewardableShares) {
-      const vnDate = toVietnamDate(share.created_at);
-      addRewardForDate(vnDate, SHARE_REWARD);
-      const stats = getOrCreateDailyStats(vnDate);
-      stats.sharesReceived++;
-      stats.shareReward += SHARE_REWARD;
-    }
+  // 6b. Likes from valid livestreams
+  if (validLivestreamIds.length > 0 && validUserIdArray.length > 0) {
+    let lsLikesQuery = supabase
+      .from('livestream_likes')
+      .select('livestream_id, user_id, created_at')
+      .in('livestream_id', validLivestreamIds)
+      .neq('user_id', userId)
+      .in('user_id', validUserIdArray)
+      .lte('created_at', cutoff)
+      .order('created_at', { ascending: true })
+      .limit(100000);
+
+    if (startDateStr) lsLikesQuery = lsLikesQuery.gte('created_at', startDateStr);
+    if (endDateStr) lsLikesQuery = lsLikesQuery.lte('created_at', endDateStr);
+
+    const { data: lsLikesData } = await lsLikesQuery;
+    (lsLikesData || []).forEach(l => {
+      allLikesPool.push({
+        user_id: l.user_id,
+        source_id: l.livestream_id,
+        source_type: 'livestream',
+        created_at: l.created_at
+      });
+    });
+
+    // Comments from valid livestreams (quality only: >20 chars)
+    let lsCommentsQuery = supabase
+      .from('livestream_comments')
+      .select('livestream_id, author_id, content, created_at')
+      .in('livestream_id', validLivestreamIds)
+      .neq('author_id', userId)
+      .in('author_id', validUserIdArray)
+      .lte('created_at', cutoff)
+      .order('created_at', { ascending: true })
+      .limit(100000);
+
+    if (startDateStr) lsCommentsQuery = lsCommentsQuery.gte('created_at', startDateStr);
+    if (endDateStr) lsCommentsQuery = lsCommentsQuery.lte('created_at', endDateStr);
+
+    const { data: lsCommentsData } = await lsCommentsQuery;
+    (lsCommentsData || []).filter(c => isQualityComment(c.content)).forEach(c => {
+      allQualityCommentsPool.push({
+        user_id: c.author_id,
+        source_id: c.livestream_id,
+        source_type: 'livestream',
+        created_at: c.created_at,
+        content: c.content || undefined
+      });
+    });
+
+    // Shares from valid livestreams
+    let lsSharesQuery = supabase
+      .from('livestream_shares')
+      .select('livestream_id, user_id, created_at')
+      .in('livestream_id', validLivestreamIds)
+      .neq('user_id', userId)
+      .in('user_id', validUserIdArray)
+      .lte('created_at', cutoff)
+      .order('created_at', { ascending: true })
+      .limit(100000);
+
+    if (startDateStr) lsSharesQuery = lsSharesQuery.gte('created_at', startDateStr);
+    if (endDateStr) lsSharesQuery = lsSharesQuery.lte('created_at', endDateStr);
+
+    const { data: lsSharesData } = await lsSharesQuery;
+    (lsSharesData || []).forEach(s => {
+      allSharesPool.push({
+        user_id: s.user_id,
+        source_id: s.livestream_id,
+        source_type: 'livestream',
+        created_at: s.created_at
+      });
+    });
   }
 
   // ========================================
-  // 6. Friendships - 10k each, limit 10/day (2-WAY counting)
+  // 7. V3.1: Sort by created_at (FCFS) and apply UNIFIED daily limits
+  // ========================================
+
+  // Likes: Sort and apply 50/day limit
+  allLikesPool.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const rewardableLikes = applyDailyLimit(allLikesPool, l => l.created_at, MAX_LIKES_PER_DAY);
+
+  for (const like of rewardableLikes) {
+    const vnDate = toVietnamDate(like.created_at);
+    addRewardForDate(vnDate, LIKE_REWARD);
+    const stats = getOrCreateDailyStats(vnDate);
+    stats.likesReceived++;
+    stats.likeReward += LIKE_REWARD;
+  }
+
+  // Comments: Sort and apply 50/day limit
+  allQualityCommentsPool.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const rewardableComments = applyDailyLimit(allQualityCommentsPool, c => c.created_at, MAX_COMMENTS_PER_DAY);
+
+  for (const comment of rewardableComments) {
+    const vnDate = toVietnamDate(comment.created_at);
+    addRewardForDate(vnDate, QUALITY_COMMENT_REWARD);
+    const stats = getOrCreateDailyStats(vnDate);
+    stats.qualityComments++;
+    stats.commentReward += QUALITY_COMMENT_REWARD;
+  }
+
+  // Shares: Sort and apply 5/day limit
+  allSharesPool.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const rewardableShares = applyDailyLimit(allSharesPool, s => s.created_at, MAX_SHARES_PER_DAY);
+
+  for (const share of rewardableShares) {
+    const vnDate = toVietnamDate(share.created_at);
+    addRewardForDate(vnDate, SHARE_REWARD);
+    const stats = getOrCreateDailyStats(vnDate);
+    stats.sharesReceived++;
+    stats.shareReward += SHARE_REWARD;
+  }
+
+  // ========================================
+  // 8. Friendships - 10k each, limit 10/day (2-WAY counting)
   // ========================================
   
   let friendshipsQuery = supabase
@@ -706,7 +923,7 @@ export async function calculateUserReward(
   }
 
   // ========================================
-  // 7. Calculate final rewards
+  // 9. Calculate final rewards
   // ========================================
   
   const welcomeBonus = profile?.welcome_bonus_claimed ? WELCOME_BONUS : 0;
@@ -718,12 +935,22 @@ export async function calculateUserReward(
   const qualityCommentsCount = rewardableComments.length;
   const sharesReceivedCount = rewardableShares.length;
   const friendshipsCount = rewardableFriendships.length;
+  const livestreamsCount = rewardableLivestreams.length;
+
+  // V3.1: Source breakdown
+  const likesFromPosts = rewardableLikes.filter(l => l.source_type === 'post').length;
+  const likesFromLivestreams = rewardableLikes.filter(l => l.source_type === 'livestream').length;
+  const commentsFromPosts = rewardableComments.filter(c => c.source_type === 'post').length;
+  const commentsFromLivestreams = rewardableComments.filter(c => c.source_type === 'livestream').length;
+  const sharesFromPosts = rewardableShares.filter(s => s.source_type === 'post').length;
+  const sharesFromLivestreams = rewardableShares.filter(s => s.source_type === 'livestream').length;
 
   const postReward = qualityPostsCount * QUALITY_POST_REWARD;
   const likeReward = likesReceivedCount * LIKE_REWARD;
   const commentReward = qualityCommentsCount * QUALITY_COMMENT_REWARD;
   const shareReward = sharesReceivedCount * SHARE_REWARD;
   const friendshipReward = friendshipsCount * FRIENDSHIP_REWARD;
+  const livestreamReward = livestreamsCount * LIVESTREAM_REWARD;
 
   const calculatedTotal = welcomeBonus + walletBonus + dailyRewardsTotal;
   const currentPending = profile?.pending_reward || 0;
@@ -735,7 +962,8 @@ export async function calculateUserReward(
   if (includeDailyBreakdown) {
     // Calculate raw and capped rewards for each day
     for (const [date, stats] of dailyStats) {
-      stats.rawReward = stats.postReward + stats.likeReward + stats.commentReward + stats.shareReward + stats.friendReward;
+      stats.rawReward = stats.postReward + stats.likeReward + stats.commentReward + 
+        stats.shareReward + stats.friendReward + stats.livestreamReward;
       stats.cappedReward = Math.min(stats.rawReward, DAILY_REWARD_CAP);
     }
     
@@ -769,6 +997,7 @@ export async function calculateUserReward(
     qualityComments: qualityCommentsCount,
     sharesReceived: sharesReceivedCount,
     friendships: friendshipsCount,
+    livestreamsCompleted: livestreamsCount,
     
     // Display-only counts
     totalPostsCreated: totalPostsCreatedCount,
@@ -780,6 +1009,14 @@ export async function calculateUserReward(
     sharesGiven: sharesGivenCount,
     totalSharesReceived: totalSharesReceivedCount,
     
+    // V3.1: Source breakdown
+    likesFromPosts,
+    likesFromLivestreams,
+    commentsFromPosts,
+    commentsFromLivestreams,
+    sharesFromPosts,
+    sharesFromLivestreams,
+    
     // Bonuses
     welcomeBonus,
     walletBonus,
@@ -790,6 +1027,7 @@ export async function calculateUserReward(
     commentReward,
     shareReward,
     friendshipReward,
+    livestreamReward,
     dailyRewardsTotal,
     calculatedTotal,
     
@@ -875,6 +1113,7 @@ export const REWARD_RATES = {
   qualityCommentReceived: QUALITY_COMMENT_REWARD,
   shareReceived: SHARE_REWARD,
   friend: FRIENDSHIP_REWARD,
+  livestream: LIVESTREAM_REWARD,
   welcomeBonus: WELCOME_BONUS,
   walletBonus: WALLET_CONNECT_BONUS
 };
@@ -884,7 +1123,8 @@ export const DAILY_LIMITS = {
   likesReceived: MAX_LIKES_PER_DAY,
   commentsReceived: MAX_COMMENTS_PER_DAY,
   shareReceived: MAX_SHARES_PER_DAY,
-  friend: MAX_FRIENDSHIPS_PER_DAY
+  friend: MAX_FRIENDSHIPS_PER_DAY,
+  livestream: MAX_LIVESTREAMS_PER_DAY
 };
 
 export { DAILY_REWARD_CAP };
