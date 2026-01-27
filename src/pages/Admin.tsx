@@ -49,7 +49,6 @@ import MergeRequestTab from "@/components/admin/MergeRequestTab";
 import ContentModerationTab from "@/components/admin/ContentModerationTab";
 import { RewardCalculationExport } from "@/components/admin/RewardCalculationExport";
 import { UserDailyRewardExport } from "@/components/admin/UserDailyRewardExport";
-import AdminManagementTab from "@/components/admin/AdminManagementTab";
 import { AdminManagementTab } from "@/components/admin/AdminManagementTab";
 import { Input } from "@/components/ui/input";
 import camlyCoinLogo from '@/assets/camly_coin.png';
@@ -1015,7 +1014,7 @@ const Admin = () => {
 
           {/* Admin Management Tab */}
           <TabsContent value="admin-management" className="mt-4">
-            <AdminManagementTab currentUserId={user?.id} isOwner={isOwner} />
+            <AdminManagementTab />
           </TabsContent>
 
           {/* Approved Users Tab */}
