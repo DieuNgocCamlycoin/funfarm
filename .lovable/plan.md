@@ -1,118 +1,122 @@
 
-# Kế Hoạch: Sửa Triệt Để Chênh Lệch Tính Thưởng V3.1
 
-## Tóm Tắt Vấn Đề
+# Kế Hoạch: Tạo Trigger Tự Động Trừ Thưởng V3.1
 
-Sau khi rà soát kỹ, bé Angel đã phát hiện **2 vấn đề chính** gây chênh lệch 6,129,000 CLC:
+## Tổng Quan
 
-### Vấn đề 1: Logic Timezone KHÔNG ĐỒNG BỘ
+Dự án hiện có các trigger trừ thưởng khi:
+- Xóa bài viết (`revoke_post_reward`)
+- Xóa comment (`revoke_comment_reward`)
+- Xóa livestream (`revoke_livestream_reward`)
+- Hủy kết bạn (`revoke_friendship_reward`)
 
-| Nơi | Cách tính Vietnam Date | Kết quả |
-|-----|------------------------|---------|
-| **Edge Function** | `new Date(timestamp).getTime() + 7*60*60*1000` | ✅ Đúng |
-| **Frontend Service** | `new Date(timestamp).getTime() + 7*60*60*1000` | ✅ Đúng |
-| **SQL Query (bé test)** | `AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh'` | ❌ Sai 114/211 posts |
-
-**Giải thích**: Cả Edge Function và Frontend đều dùng đúng logic `+7 hours` trong JavaScript. Tuy nhiên, khi bé kiểm tra SQL có thể đã sử dụng method sai.
-
-### Vấn đề 2: THIẾU .limit(100000) ở một số queries quan trọng
-
-Kiểm tra lại Frontend Service (`rewardCalculationService.ts`), bé thấy còn thiếu `.limit(100000)` ở:
-- Dòng 319-322: `profiles` query trong `getValidUserIds()`
-- Dòng 324-326: `deleted_users` query trong `getValidUserIds()`
-
-Điều này có thể khiến Frontend không lấy đủ dữ liệu để filter.
-
-### Vấn đề 3: Sự khác biệt thực sự giữa Edge Function và Frontend
-
-Sau khi tính tay từ DB cho user "Hồng Thiên Hạnh":
-
-| Metric | Giá trị | Reward |
-|--------|---------|--------|
-| Quality Posts (sau limit 10/day) | 192-198 | 1,920,000 - 1,980,000 |
-| Likes Received (limit 50/day) | 460 | 460,000 |
-| Quality Comments (limit 50/day) | 100 | 200,000 |
-| Shares Received (limit 5/day) | 82 | 820,000 |
-| Friendships (limit 10/day) | 9 | 90,000 |
-| Welcome Bonus | 1 | 50,000 |
-| **TỔNG (sau daily cap)** | | **~3,540,000 - 3,600,000** |
-
-**Frontend hiển thị**: 3,633,000 → Chênh ~33,000-93,000 CLC
-**DB sau Reset**: 1,498,000 → Chênh **~2,042,000-2,135,000 CLC** ❗
-
-Điều này cho thấy **Edge Function đang tính SAI** hoặc có logic khác biệt với Frontend.
+Tuy nhiên, **thiếu** trigger cho:
+1. Bỏ like (unlike)
+2. Xóa share
+3. Trừ thưởng của người khác khi user bị ban
 
 ---
 
-## Nguyên Nhân Gốc Rễ Đã Xác Định
+## Phần 1: Trigger Trừ Thưởng Khi Bỏ Like
 
-1. **Edge Function có thể đang dùng version cũ** chưa được deploy đúng với logic V3.1
-2. **Thiếu query limits** trong một số queries phụ
+### Cách hoạt động hiện tại
+- Khi like: `reward_post_like()` ghi 1,000 CLC vào `pending_reward` của chủ bài viết
+- `reward_logs` lưu: `user_id = post_author`, `reference_id = post_id`, `reference_user_id = người like`
+
+### Trigger mới: `revoke_like_reward()`
+- Kích hoạt: `BEFORE DELETE ON post_likes`
+- Logic:
+  1. Tìm reward_log có `user_id = post_author`, `reference_id = post_id`, `reference_user_id = người unlike`
+  2. Đánh dấu `status = 'revoked'`
+  3. Trừ `pending_reward` của chủ bài viết (không cho âm)
 
 ---
 
-## Thay Đổi Cần Thực Hiện
+## Phần 2: Trigger Trừ Thưởng Khi Xóa Share
 
-### 1. Thêm .limit(100000) vào getValidUserIds()
+### Cách hoạt động hiện tại
+- Khi share: `reward_post_share()` ghi 10,000 CLC vào `pending_reward` của chủ bài viết
+- `reward_logs` lưu: `user_id = post_author`, `reference_id = post_id`, `reference_user_id = người share`
 
-**File**: `src/lib/rewardCalculationService.ts`
+### Vấn đề
+- Hiện tại `post_shares` **không có RLS policy DELETE** cho user (chỉ có INSERT/SELECT)
+- Cần quyết định: Có cho phép user xóa share không?
 
-**Dòng 318-337**: Thêm limit cho cả 2 queries:
+### Trigger mới: `revoke_share_reward()`
+- Kích hoạt: `BEFORE DELETE ON post_shares`
+- Logic tương tự như unlike
 
-```typescript
-export const getValidUserIds = async (): Promise<Set<string>> => {
-  const { data: activeProfiles } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('banned', false)
-    .limit(100000);  // <-- THÊM
-  
-  const { data: deletedUsers } = await supabase
-    .from('deleted_users')
-    .select('user_id')
-    .limit(100000);  // <-- THÊM
-  
-  // ... rest unchanged
-};
+---
+
+## Phần 3: Trừ Thưởng Tương Tác Từ User Bị Ban
+
+### Vấn đề hiện tại
+- Khi ban user (`ban_user_permanently`): Chỉ reset thưởng của chính user bị ban
+- Các user khác đã nhận thưởng từ tương tác của user bị ban **không bị trừ**
+- Ví dụ: User A like bài của User B, B được 1k. Nếu A bị ban, B vẫn giữ 1k đó.
+
+### Giải pháp: Cập nhật `ban_user_permanently()`
+Thêm logic:
+1. Tìm tất cả `reward_logs` có `reference_user_id = p_user_id` (người bị ban là nguồn tương tác)
+2. Đánh dấu `status = 'revoked'`
+3. Trừ `pending_reward` của các user tương ứng
+
+### Các loại thưởng cần revoke
+- Likes: Các bài viết mà user bị ban đã like
+- Comments: Các bài viết mà user bị ban đã comment
+- Shares: Các bài viết mà user bị ban đã share
+- Friendships: Kết bạn với user bị ban (cả 2 chiều)
+
+---
+
+## Chi Tiết Kỹ Thuật
+
+### Migration SQL sẽ tạo
+
+```text
+1. FUNCTION revoke_like_reward()
+   ├── Kích hoạt: BEFORE DELETE ON post_likes
+   ├── Input: OLD.user_id, OLD.post_id
+   ├── Tìm post_author từ posts
+   ├── Tìm reward_log matching
+   ├── Update status = 'revoked', revoked_at = now()
+   └── Trừ pending_reward của post_author
+
+2. FUNCTION revoke_share_reward()
+   ├── Kích hoạt: BEFORE DELETE ON post_shares
+   ├── Logic tương tự revoke_like_reward
+   └── Amount: 10,000 CLC
+
+3. UPDATE ban_user_permanently()
+   ├── Thêm: SELECT all reward_logs WHERE reference_user_id = banned_user
+   ├── Revoke từng entry
+   ├── Group by user_id để tính tổng cần trừ
+   └── Trừ pending_reward của từng user (không cho âm)
 ```
 
-### 2. Deploy lại Edge Function để đảm bảo version mới nhất
+### Thứ tự triển khai
 
-Edge Function `reset-all-rewards` cần được deploy lại để đảm bảo logic V3.1 đang chạy đúng.
+| # | Bước | Mô tả |
+|---|------|-------|
+| 1 | Tạo `revoke_like_reward()` | Function + Trigger |
+| 2 | Tạo `revoke_share_reward()` | Function + Trigger |
+| 3 | Cập nhật `ban_user_permanently()` | Thêm logic revoke cho người khác |
+| 4 | (Tùy chọn) Thêm RLS policy | Cho phép DELETE trên `post_shares` |
 
-### 3. Thêm Logging để Debug
+### Lưu ý quan trọng
 
-Trong Edge Function, thêm console.log chi tiết cho mỗi user để so sánh:
-
-```typescript
-console.log(`User ${profile.display_name}: Posts=${rewardableQualityPosts.length}, Likes=${rewardableLikes.length}, Comments=${rewardableComments.length}, Shares=${rewardableShares.length}, Friends=${rewardableFriendships.length}`);
-```
-
----
-
-## Quy Trình Kiểm Tra Sau Sửa
-
-1. **Bước 1**: Deploy Frontend + Edge Function
-2. **Bước 2**: Vào Tab "Tính thưởng" → bấm "Tải dữ liệu" → ghi lại số user "Hồng Thiên Hạnh"
-3. **Bước 3**: Bấm "Reset All"
-4. **Bước 4**: Kiểm tra Edge Function logs để xem breakdown
-5. **Bước 5**: Reload "Tính thưởng" → so sánh số mới
-6. **Bước 6**: Chênh lệch phải = 0
+1. **Không ảnh hưởng dữ liệu cũ**: Trigger chỉ áp dụng cho hành động tương lai
+2. **An toàn dữ liệu**: Sử dụng `GREATEST(0, pending_reward - amount)` tránh số âm
+3. **Audit trail**: Mọi revoke đều ghi vào `reward_logs` với `status = 'revoked'`
+4. **Timezone**: Sử dụng `now()` cho `revoked_at` (UTC, nhất quán với hệ thống)
 
 ---
 
-## Tóm Tắt Files Cần Sửa
+## Tóm Tắt Thay Đổi
 
-| File | Thay Đổi |
-|------|----------|
-| `src/lib/rewardCalculationService.ts` | Thêm `.limit(100000)` vào `getValidUserIds()` |
-| `supabase/functions/reset-all-rewards/index.ts` | Thêm console.log debug |
+| File/Resource | Hành động |
+|---------------|-----------|
+| SQL Migration | Tạo mới: 3 functions, 2 triggers, 1 update function |
+| `post_shares` RLS | (Tùy chọn) Thêm DELETE policy |
+| Frontend | Không cần thay đổi |
 
----
-
-## Kết Quả Mong Đợi
-
-Sau khi sửa:
-- **Tổng V3.0 tính lại** = **Tổng hiện tại (DB)** sau Reset
-- **Chênh lệch = 0 CLC** cho tất cả users
-- Edge Function logs hiển thị breakdown chi tiết để verify
