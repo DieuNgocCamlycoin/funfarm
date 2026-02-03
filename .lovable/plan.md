@@ -1,945 +1,975 @@
 
-# Tổng Hợp: Bảng Vinh Danh & Hệ Sinh Thái FUN Ecosystem
+# Đóng Gói Hoàn Chỉnh: Angel AI System - FUN Ecosystem
 
-Tài liệu này đóng gói toàn bộ thiết kế, công thức và code của các bảng xếp hạng để sử dụng cho các nền tảng khác trong FUN Ecosystem.
-
----
-
-## 1. Tổng Quan Các Components
-
-| Component | Vị trí | Chức năng |
-|-----------|--------|-----------|
-| **HonorBoard** | Feed Right Sidebar | Thống kê cộng đồng: users, posts, photos, videos, total reward |
-| **ProfileHonorBoard** | Trang Profile | Thống kê cá nhân: posts, reactions, comments, shares, friends, claimable/claimed |
-| **TopRanking** | Feed Right Sidebar | Bảng xếp hạng Top 10 users theo total_reward |
-| **TopSponsor** | Feed Right Sidebar | Bảng xếp hạng Top 10 nhà tài trợ theo total_sent |
-| **EcosystemSidebar** | Feed Left Sidebar | Navigation đến các nền tảng trong FUN Ecosystem |
+Tài liệu này tổng hợp toàn bộ thiết kế, công thức, code và hướng dẫn triển khai Angel AI để sử dụng cho các nền tảng khác trong FUN Ecosystem.
 
 ---
 
-## 2. Design System Chung
+## 1. Tổng Quan Hệ Thống Angel AI
 
-### 2.1 Màu Sắc Chính
+### 1.1 Thành Phần Chính
 
-```css
-/* Primary Gold - Viền và text nổi bật */
---gold-primary: #fbbf24;      /* Amber-400 */
---gold-bright: #ffd700;       /* Gold sáng */
---gold-text: #fbbf24;         /* Text vàng */
+| Component | File | Chức năng |
+|-----------|------|-----------|
+| **AngelCompanion** | `AngelCompanion.tsx` | Thiên thần bay, GIF animation, tương tác chuột |
+| **AngelContext** | `AngelContext.tsx` | State management (enabled, brightness, chat) |
+| **AngelChat** | `AngelChat.tsx` | Chat popup với AI streaming |
+| **AngelChatButton** | `AngelChatButton.tsx` | Nút chat draggable + speed dial |
+| **AngelChatPopup** | `AngelChatPopup.tsx` | Popup embed Angel AI external |
+| **AngelChatEmbed** | `AngelChatEmbed.tsx` | Fullscreen iframe Angel AI |
+| **angel-chat** | Edge Function | Backend AI với Lovable AI Gateway |
 
-/* Green Mirror Gradient - Rows */
---green-light: #4ade80;       /* Green-400 */
---green-medium: #22c55e;      /* Green-500 */
---green-dark: #16a34a;        /* Green-600 */
---green-darker: #15803d;      /* Green-700 */
---green-darkest: #166534;     /* Green-800 */
-```
+### 1.2 GIF Assets (24 files)
 
-### 2.2 Container Style (Liquid Glass Effect)
-
-```javascript
-const containerStyle = {
-  background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
-  backdropFilter: 'saturate(120%)',
-  border: '3px solid #fbbf24',
-  borderRadius: '20px',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(200,150,0,0.4), 0 0 20px rgba(251,191,36,0.4), 0 8px 32px rgba(0,0,0,0.25)',
-};
-```
-
-### 2.3 Stat Row Style (Green Mirror Gradient)
-
-```javascript
-// Stat row thường
-const statRowStyle = {
-  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-  border: '2px solid #fbbf24',
-  borderRadius: '20px',
-  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-};
-
-// Total row (đậm hơn, border dày hơn)
-const totalRowStyle = {
-  background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 40%, #15803d 70%, #166534 100%)',
-  border: '2.5px solid #fbbf24',
-  borderRadius: '20px',
-  boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
-};
-
-// User row cho Top 3 (premium style)
-const userRowTop3Style = {
-  background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 40%, #15803d 70%, #166534 100%)',
-  border: '2.5px solid #fbbf24',
-  borderRadius: '20px',
-  boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
-};
-```
-
-### 2.4 Text Styles
-
-```javascript
-// Title Style (HONOR BOARD, TOP RANKING)
-const titleStyle = {
-  fontFamily: "system-ui, -apple-system, sans-serif",
-  fontWeight: 900,
-  fontSize: '1.7rem', // compact: 1.4rem
-  color: '#ffd700',
-  textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 25px rgba(255,215,0,0.7)',
-  letterSpacing: '0.15em',
-};
-
-// Label Style (TOTAL USERS, TOTAL POSTS...)
-const labelStyle = {
-  color: '#fbbf24',
-  textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 10px rgba(251,191,36,0.5)',
-};
-
-// Value Style (số liệu)
-const valueStyle = {
-  color: '#ffffff', // hoặc #ffd700 cho gold
-  textShadow: '0 2px 4px rgba(0,0,0,0.9)',
-};
-```
-
-### 2.5 CSS Class Quan Trọng
-
-```css
-/* Hiệu ứng bóng gương chạy qua - Thêm vào index.css */
-.stat-row-shine {
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-row-shine::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shine 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes shine {
-  0% { left: -100%; }
-  50%, 100% { left: 100%; }
-}
+```text
+src/assets/angel-gifs/
+├── angel-appearing.gif      # Xuất hiện
+├── angel-clapping.gif       # Vỗ tay 1
+├── angel-clapping2.gif      # Vỗ tay 2
+├── angel-coin-celebration.gif # Ăn mừng tiền
+├── angel-dance-jump.gif     # Nhảy múa 1
+├── angel-dance-jump-2.gif   # Nhảy múa 2
+├── angel-dancing.gif        # Múa ngôi sao
+├── angel-excited.gif        # Phấn khích
+├── angel-flying-left.gif    # Bay trái
+├── angel-flying-right.gif   # Bay phải
+├── angel-happy-jump.gif     # Nhảy vui
+├── angel-heart.gif          # Thả tim
+├── angel-hiding.gif         # Biến mất
+├── angel-hovering.gif       # Bay tại chỗ 1
+├── angel-hovering-2.gif     # Bay tại chỗ 2
+├── angel-hovering-sparkle.gif # Bay lấp lánh (mặc định)
+├── angel-idle.gif           # Chờ đợi
+├── angel-sitting.gif        # Ngồi nghỉ
+├── angel-sleeping.gif       # Ngủ
+├── angel-special.gif        # Cảm ơn
+├── angel-spin-dance.gif     # Xoay tròn
+├── angel-wake-up.gif        # Thức dậy
+├── angel-waking.gif         # Đang tỉnh
+└── angel-waving.gif         # Vẫy tay chào
 ```
 
 ---
 
-## 3. HonorBoard (Bảng Vinh Danh Cộng Đồng)
+## 2. Types & Constants
 
-### 3.1 Interface
+### 2.1 AngelState Types
 
 ```typescript
-interface HonorStats {
-  totalUsers: number;
-  totalPosts: number;
-  totalPhotos: number;
-  totalVideos: number;
-  totalReward: number;
-}
-
-interface HonorBoardProps {
-  compact?: boolean; // true cho mobile
-}
+export type AngelState = 
+  // Trạng thái Tĩnh (Resting)
+  | 'idle'           // Chấp tay chờ đợi - mặc định
+  | 'hovering'       // Bay nhẹ tại chỗ
+  | 'hoveringSparkle'// Bay với ánh sáng
+  | 'sitting'        // Ngồi nghỉ trên element
+  | 'sleeping'       // Ngủ say
+  // Trạng thái Chuyển động (Movement)
+  | 'following'      // Bay theo cursor
+  | 'wandering'      // Bay tự do
+  // Trạng thái One-shot (Reaction)
+  | 'waving'         // Vẫy tay chào
+  | 'waking'         // Đang tỉnh dậy
+  | 'wakeUp'         // Hoàn toàn thức
+  | 'appearing'      // Xuất hiện
+  | 'hiding'         // Biến mất
+  | 'special'        // Chấp tay cảm ơn
+  // Trạng thái Vui vẻ (Celebration)
+  | 'excited'        // Nhảy ăn mừng
+  | 'happyJump'      // Nhảy vui vẻ
+  | 'dancing'        // Múa ngôi sao
+  | 'danceJump'      // Nhảy múa
+  | 'spinning'       // Xoay tròn
+  | 'clapping'       // Vỗ tay
+  | 'sendingHeart'   // Thả tim
+  | 'coinCelebration'; // Ăn mừng tiền vàng
 ```
 
-### 3.2 Công Thức Tính Total Reward
+### 2.2 State → GIF Mapping
 
 ```typescript
-// TOTAL REWARD = Đã claim on-chain (cố định) + Tổng pending_reward hiện tại
-const CLAIMED_ON_BSC = 28986000; // Cập nhật định kỳ từ blockchain_cache
+const STATE_GIFS: Record<AngelState, string> = {
+  idle: angelHoveringSparkleGif,  // ✨ Mặc định bay lấp lánh
+  hovering: angelHoveringGif,
+  hoveringSparkle: angelHoveringSparkleGif,
+  sitting: angelSittingGif,
+  sleeping: angelSleepingGif,
+  following: angelFlyingRightGif,
+  wandering: angelFlyingRightGif,
+  waving: angelWavingGif,
+  waking: angelWakingGif,
+  wakeUp: angelWakeUpGif,
+  appearing: angelAppearingGif,
+  hiding: angelHidingGif,
+  special: angelSpecialGif,
+  excited: angelExcitedGif,
+  happyJump: angelHappyJumpGif,
+  dancing: angelDancingGif,
+  danceJump: angelDanceJumpGif,
+  spinning: angelSpinDanceGif,
+  clapping: angelClappingGif,
+  sendingHeart: angelHeartGif,
+  coinCelebration: angelCoinCelebrationGif,
+};
 
-const fetchStats = async () => {
-  // Đếm users
-  const { count: usersCount } = await supabase
-    .from("profiles")
-    .select("*", { count: "exact", head: true });
+// GIFs bay trái/phải
+const FLYING_GIFS = {
+  right: angelFlyingRightGif,
+  left: angelFlyingLeftGif,
+};
 
-  // Đếm posts (không tính share)
-  const { count: postsCount } = await supabase
-    .from("posts")
-    .select("*", { count: "exact", head: true })
-    .neq("post_type", "share");
+// Variant arrays for random selection
+const CLAPPING_GIFS = [angelClappingGif, angelClapping2Gif];
+const HOVERING_GIFS = [angelHoveringGif, angelHovering2Gif];
+const DANCE_JUMP_GIFS = [angelDanceJumpGif, angelDanceJump2Gif];
+```
 
-  // Đếm photos/videos từ mảng images
-  const { data: postsWithMedia } = await supabase
-    .from("posts")
-    .select("images, video_url");
+### 2.3 Animation Timing
 
-  let totalPhotos = 0;
-  let totalVideos = 0;
-
-  const isVideoUrl = (url: string): boolean => {
-    const lowerUrl = url.toLowerCase();
-    return lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.mov');
-  };
-
-  postsWithMedia?.forEach((post) => {
-    if (post.images && Array.isArray(post.images)) {
-      post.images.forEach((url: string) => {
-        if (isVideoUrl(url)) {
-          totalVideos += 1;
-        } else {
-          totalPhotos += 1;
-        }
-      });
-    }
-    if (post.video_url) {
-      totalVideos += 1;
-    }
-  });
-
-  // Tổng pending reward
-  const { data: rewardsData } = await supabase
-    .from("profiles")
-    .select("pending_reward");
-
-  const totalPendingReward = rewardsData?.reduce((sum, profile) => {
-    return sum + (profile.pending_reward || 0);
-  }, 0) || 0;
-
-  const totalReward = CLAIMED_ON_BSC + totalPendingReward;
-
-  return { totalUsers: usersCount || 0, totalPosts: postsCount || 0, totalPhotos, totalVideos, totalReward };
+```typescript
+// Thời gian cho one-shot animations (ms)
+const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
+  waving: 2500,          // Chào user đủ lâu để ấm áp
+  waking: 2000,          // Đang tỉnh
+  wakeUp: 1500,          // Hoàn toàn thức
+  appearing: 2000,       // Xuất hiện rõ ràng
+  hiding: 1500,          // Biến mất nhanh
+  excited: 2500,         // Ăn mừng vừa đủ
+  happyJump: 2000,       // Nhảy vui
+  dancing: 4000,         // Múa đủ lâu để thấy đẹp
+  danceJump: 3000,       // Nhảy múa
+  spinning: 2500,        // Xoay vừa đủ
+  clapping: 2500,        // Vỗ tay
+  sendingHeart: 2500,    // Thả tim với tình yêu
+  coinCelebration: 4000, // Ăn mừng tiền - sự kiện lớn
+  special: 3000,         // Cảm ơn thành kính
 };
 ```
 
-### 3.3 Animated Counter Component
+### 2.4 Visual Constants
 
 ```typescript
-const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?: number }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-  const countRef = useRef<NodeJS.Timeout>();
+const ANGEL_SIZE = 270;        // 270px - Kích thước Angel
+const SAFE_DISTANCE = 150;     // Khoảng cách an toàn với cursor
+const OFFSET_ANGLE = Math.PI / 4;
+const BEHAVIOR_INTERVAL = 8000; // 8 giây giữa mỗi random behavior
 
-  useEffect(() => {
-    if (countRef.current) clearInterval(countRef.current);
-    
-    const startValue = displayValue;
-    const difference = value - startValue;
-    const steps = 60;
-    const stepValue = difference / steps;
-    const stepDuration = duration / steps;
-    let currentStep = 0;
-
-    countRef.current = setInterval(() => {
-      currentStep++;
-      if (currentStep >= steps) {
-        setDisplayValue(value);
-        clearInterval(countRef.current);
-      } else {
-        setDisplayValue(Math.round(startValue + stepValue * currentStep));
-      }
-    }, stepDuration);
-
-    return () => {
-      if (countRef.current) clearInterval(countRef.current);
-    };
-  }, [value]);
-
-  return <span>{displayValue.toLocaleString("vi-VN")}</span>;
+// Brightness levels cho settings
+const BRIGHTNESS_LEVELS: Record<number, string> = {
+  1: 'brightness(0.8)',
+  2: 'brightness(0.9)',
+  3: 'brightness(1.0)',           // Mặc định
+  4: 'brightness(1.15)',
+  5: 'brightness(1.3) saturate(0.9)',
+  6: 'brightness(1.5) saturate(0.8) contrast(1.1)',
 };
+
+// Glow effect mặc định
+const DEFAULT_GLOW = 'drop-shadow(0 0 25px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.4))';
 ```
 
-### 3.4 Auto Refresh (5 phút)
+---
+
+## 3. Random Behaviors System
+
+### 3.1 Behavior Configuration
+
+```typescript
+const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
+  // Animations vui vẻ - sôi động!
+  { action: 'happyJump', chance: 0.06, duration: 2000 },
+  { action: 'danceJump', chance: 0.06, duration: 3000 },
+  { action: 'spinning', chance: 0.05, duration: 2500 },
+  { action: 'dancing', chance: 0.05, duration: 4000 },
+  { action: 'clapping', chance: 0.04, duration: 2500 },
+  
+  // Di chuyển nhẹ nhàng
+  { action: 'hovering', chance: 0.03, duration: 5000 },
+  { action: 'wandering', chance: 0.04, duration: 4000 },
+  
+  // Hành vi hiếm - tạo bất ngờ đặc biệt
+  { action: 'sitting', chance: 0.02, duration: 8000 },
+  { action: 'sleeping', chance: 0.01, duration: 15000 },
+  { action: 'hiding', chance: 0.01, duration: 1500 },
+  { action: 'waving', chance: 0.02, duration: 2500 },
+  { action: 'special', chance: 0.01, duration: 3000 },
+];
+```
+
+### 3.2 Random Behavior Logic
 
 ```typescript
 useEffect(() => {
-  fetchStats();
-  const interval = setInterval(fetchStats, 5 * 60 * 1000); // 5 phút
-  return () => clearInterval(interval);
+  if (!enabled || state !== 'idle' || isMoving || !hasGreeted) return;
+  
+  behaviorTimer.current = setInterval(() => {
+    const random = Math.random();
+    let cumulative = 0;
+    
+    for (const behavior of RANDOM_BEHAVIORS) {
+      cumulative += behavior.chance;
+      if (random < cumulative) {
+        switch (behavior.action) {
+          case 'wandering':
+            startWandering();
+            break;
+          case 'spinning':
+            setIsSpinning(true);
+            setState('spinning');
+            break;
+          case 'sleeping':
+            setState('sleeping');
+            // Flow: sleeping → waking → wakeUp → idle
+            break;
+          case 'clapping':
+            setClappingVariant(Math.random() < 0.5 ? 0 : 1);
+            setState('clapping');
+            break;
+          default:
+            setState(behavior.action);
+            break;
+        }
+        break;
+      }
+    }
+  }, BEHAVIOR_INTERVAL);
+  
+  return () => clearInterval(behaviorTimer.current);
+}, [enabled, state, isMoving, hasGreeted]);
+```
+
+---
+
+## 4. Animation Flows
+
+### 4.1 Initial Greeting Flow
+
+```typescript
+// Flow khi load trang: waving → hovering → idle
+useEffect(() => {
+  if (!enabled || hasGreeted) return;
+  
+  setState('waving');
+  setHasGreeted(true);
+  
+  const greetTimer = setTimeout(() => {
+    setState('hovering');
+    setHoveringVariant(Math.random() < 0.5 ? 0 : 1);
+    
+    setTimeout(() => {
+      setState('idle');
+    }, 3000);
+  }, 2500);
+  
+  return () => clearTimeout(greetTimer);
+}, [enabled, hasGreeted]);
+```
+
+### 4.2 One-Shot Animation Flow
+
+```typescript
+// Xử lý chuyển tiếp mượt mà sau one-shot animations
+useEffect(() => {
+  const duration = ONE_SHOT_DURATIONS[state];
+  if (!duration || !hasGreeted || state === 'waving') return;
+  
+  transitionTimer.current = setTimeout(() => {
+    setIsSpinning(false);
+    
+    if (state === 'sleeping') {
+      setState('waking'); // sleeping → waking
+    } else if (state === 'waking') {
+      setState('wakeUp'); // waking → wakeUp
+    } else if (state === 'wakeUp') {
+      setState('idle');   // wakeUp → idle
+    } else if (state === 'hiding') {
+      setIsHidden(true);
+      setTimeout(() => {
+        setIsHidden(false);
+        setState('appearing');
+      }, 500);
+    } else if (state === 'appearing') {
+      setState('hovering');
+      setTimeout(() => setState('idle'), 2000);
+    } else {
+      setState('idle');
+    }
+  }, duration);
+  
+  return () => clearTimeout(transitionTimer.current);
+}, [state, hasGreeted]);
+```
+
+### 4.3 Mouse Follow Flow
+
+```typescript
+const handleMouseMove = useCallback((e: MouseEvent) => {
+  if (!enabled || isHidden || isSitting) return;
+  
+  // Xác định hướng bay (trái/phải)
+  const dx = e.clientX - lastMousePosition.current.x;
+  if (Math.abs(dx) > 3) {
+    setFlyDirection(dx > 0 ? 'right' : 'left');
+    setIsFlipped(dx < 0);
+  }
+  lastMousePosition.current = { x: e.clientX, y: e.clientY };
+  
+  // Tính vị trí với khoảng cách an toàn
+  const offsetX = Math.cos(OFFSET_ANGLE) * SAFE_DISTANCE;
+  const offsetY = Math.sin(OFFSET_ANGLE) * SAFE_DISTANCE;
+  
+  let newX = e.clientX + (isFlipped ? -offsetX : offsetX);
+  let newY = e.clientY - offsetY;
+  
+  // Constrain to screen bounds
+  newX = Math.max(ANGEL_SIZE / 2, Math.min(window.innerWidth - ANGEL_SIZE / 2, newX));
+  newY = Math.max(ANGEL_SIZE / 2, Math.min(window.innerHeight - ANGEL_SIZE / 2, newY));
+  
+  setTargetPosition({ x: newX, y: newY });
+  
+  if (!isMoving) {
+    setIsMoving(true);
+    setState('following');
+  }
+  
+  // Sparkle trail
+  if (Math.random() > 0.75) {
+    createSparkle(position.x, position.y);
+  }
+  
+  // Return to idle after stopping
+  if (idleTimer.current) clearTimeout(idleTimer.current);
+  idleTimer.current = setTimeout(() => {
+    setIsMoving(false);
+    setState('idle');
+  }, 400);
+}, [enabled, isHidden, isSitting, isMoving, isFlipped, createSparkle, position]);
+```
+
+### 4.4 Click Celebration Flow
+
+```typescript
+const handleClick = useCallback(() => {
+  if (!enabled || isHidden) return;
+  
+  // Random celebration animation
+  const actions: AngelState[] = [
+    'excited', 'happyJump', 'danceJump', 'clapping', 'spinning'
+  ];
+  const randomAction = actions[Math.floor(Math.random() * actions.length)];
+  
+  // Set variants for multi-GIF animations
+  if (randomAction === 'clapping') {
+    setClappingVariant(Math.random() < 0.5 ? 0 : 1);
+  }
+  if (randomAction === 'danceJump') {
+    setDanceJumpVariant(Math.random() < 0.5 ? 0 : 1);
+  }
+  if (randomAction === 'spinning') {
+    setIsSpinning(true);
+  }
+  
+  setState(randomAction);
+  
+  // Burst of sparkles
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => createSparkle(position.x, position.y), i * 50);
+  }
+}, [enabled, isHidden, position, createSparkle]);
+```
+
+---
+
+## 5. Sparkle Particles System
+
+### 5.1 Sparkle Interface
+
+```typescript
+interface Sparkle {
+  id: number;
+  x: number;
+  y: number;
+  color: string;
+  size: number;
+  rotation: number;
+}
+```
+
+### 5.2 Create Sparkle Function
+
+```typescript
+const createSparkle = useCallback((x: number, y: number) => {
+  const colors = ['#ffd700', '#ff69b4', '#00ff88', '#87ceeb', '#ff6b6b', '#da70d6'];
+  const newSparkle: Sparkle = {
+    id: Date.now() + Math.random(),
+    x: x + (Math.random() - 0.5) * 80,
+    y: y + (Math.random() - 0.5) * 80,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    size: 10 + Math.random() * 16,
+    rotation: Math.random() * 360,
+  };
+  
+  setParticles(prev => [...prev.slice(-15), newSparkle]); // Keep max 16 particles
+  
+  setTimeout(() => {
+    setParticles(prev => prev.filter(p => p.id !== newSparkle.id));
+  }, 1000);
+}, []);
+```
+
+### 5.3 Sparkle Render
+
+```typescript
+{particles.map(particle => (
+  <svg
+    key={particle.id}
+    className="absolute animate-sparkle-fade"
+    style={{
+      left: particle.x - particle.size / 2,
+      top: particle.y - particle.size / 2,
+      width: particle.size,
+      height: particle.size,
+      transform: `rotate(${particle.rotation}deg)`,
+    }}
+    viewBox="0 0 24 24"
+  >
+    <path
+      d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"
+      fill={particle.color}
+      style={{ filter: `drop-shadow(0 0 6px ${particle.color})` }}
+    />
+  </svg>
+))}
+```
+
+---
+
+## 6. Visual Effects (State-based Overlays)
+
+### 6.1 Sleeping Effect
+
+```typescript
+{state === 'sleeping' && (
+  <div className="absolute -top-4 right-0">
+    <span className="text-2xl animate-zzz-float text-blue-300" 
+          style={{ textShadow: '0 0 10px rgba(147, 197, 253, 0.8)' }}>
+      💤
+    </span>
+  </div>
+)}
+```
+
+### 6.2 Excitement Stars
+
+```typescript
+{(state === 'excited' || state === 'special' || state === 'danceJump' || state === 'happyJump') && (
+  <>
+    <span className="absolute -top-4 -left-4 text-xl animate-bounce">✨</span>
+    <span className="absolute -top-4 -right-4 text-xl animate-bounce" style={{ animationDelay: '0.1s' }}>✨</span>
+    <span className="absolute top-1/2 -left-6 text-lg animate-ping">💫</span>
+    <span className="absolute top-1/2 -right-6 text-lg animate-ping" style={{ animationDelay: '0.2s' }}>💫</span>
+  </>
+)}
+```
+
+### 6.3 Dancing Music Notes
+
+```typescript
+{(state === 'dancing' || state === 'danceJump' || state === 'happyJump') && (
+  <>
+    <span className="absolute -top-6 left-0 text-xl animate-bounce">🎵</span>
+    <span className="absolute -top-8 right-0 text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>🎶</span>
+    <span className="absolute -top-4 left-1/2 text-lg animate-bounce" style={{ animationDelay: '0.4s' }}>🎵</span>
+  </>
+)}
+```
+
+### 6.4 Coin Celebration
+
+```typescript
+{state === 'coinCelebration' && (
+  <>
+    <span className="absolute -top-6 left-0 text-xl animate-bounce">🪙</span>
+    <span className="absolute -top-8 right-0 text-xl animate-bounce" style={{ animationDelay: '0.1s' }}>💰</span>
+    <span className="absolute -top-10 left-1/2 text-2xl animate-bounce" style={{ animationDelay: '0.2s' }}>🎉</span>
+    <span className="absolute top-1/4 -left-6 text-lg animate-ping">✨</span>
+    <span className="absolute top-1/4 -right-6 text-lg animate-ping" style={{ animationDelay: '0.15s' }}>✨</span>
+  </>
+)}
+```
+
+---
+
+## 7. AngelContext (State Management)
+
+### 7.1 Context Interface
+
+```typescript
+interface AngelContextType {
+  enabled: boolean;
+  setEnabled: (enabled: boolean) => void;
+  brightness: number;
+  setBrightness: (level: number) => void;
+  isChatOpen: boolean;
+  setIsChatOpen: (open: boolean) => void;
+  onCreatePost: (() => void) | null;
+  setOnCreatePost: (fn: (() => void) | null) => void;
+}
+```
+
+### 7.2 Provider Implementation
+
+```typescript
+export const AngelProvider: React.FC<AngelProviderProps> = ({
+  children,
+  defaultEnabled = true,
+}) => {
+  const [enabled, setEnabled] = useState(defaultEnabled);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [onCreatePost, setOnCreatePost] = useState<(() => void) | null>(null);
+  
+  const [brightness, setBrightness] = useState<number>(() => {
+    return parseInt(localStorage.getItem('angel-brightness') || '3');
+  });
+
+  // Persist brightness to localStorage
+  useEffect(() => {
+    localStorage.setItem('angel-brightness', brightness.toString());
+  }, [brightness]);
+
+  return (
+    <AngelContext.Provider value={{ 
+      enabled, setEnabled, 
+      brightness, setBrightness, 
+      isChatOpen, setIsChatOpen, 
+      onCreatePost, setOnCreatePost 
+    }}>
+      {children}
+      <AngelCompanion enabled={enabled} brightness={brightness} />
+      <AngelChatButton />
+    </AngelContext.Provider>
+  );
+};
+```
+
+---
+
+## 8. AngelChat (AI Chat Interface)
+
+### 8.1 Chat Message Interface
+
+```typescript
+interface Message {
+  id?: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+const WELCOME_MESSAGE: Message = { 
+  role: 'assistant', 
+  content: 'Xin chào! Mình là Angel 🧚 Bạn cần mình giúp gì nào? ✨' 
+};
+```
+
+### 8.2 Streaming Chat Implementation
+
+```typescript
+const sendMessage = async () => {
+  if (!input.trim() || isLoading) return;
+
+  const userMessage: Message = { role: 'user', content: input.trim() };
+  setMessages(prev => [...prev, userMessage]);
+  setInput('');
+  setIsLoading(true);
+
+  // Save user message to database
+  saveMessage('user', userMessage.content);
+
+  let assistantContent = '';
+
+  try {
+    const response = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages: [...messages, userMessage] }),
+    });
+
+    if (!response.ok || !response.body) throw new Error('Failed to get response');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    // Add empty assistant message
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+        let line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+
+        if (line.endsWith('\r')) line = line.slice(0, -1);
+        if (line.startsWith(':') || line.trim() === '') continue;
+        if (!line.startsWith('data: ')) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === '[DONE]') break;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantContent += content;
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const lastIndex = newMessages.length - 1;
+              if (newMessages[lastIndex]?.role === 'assistant') {
+                newMessages[lastIndex] = { ...newMessages[lastIndex], content: assistantContent };
+              }
+              return newMessages;
+            });
+          }
+        } catch {
+          buffer = line + '\n' + buffer;
+          break;
+        }
+      }
+    }
+
+    // Save assistant response to database
+    if (assistantContent) {
+      saveMessage('assistant', assistantContent);
+    }
+  } catch (error) {
+    const errorMsg = 'Ối! Angel gặp lỗi rồi 😢 Thử lại sau nhé!';
+    setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+---
+
+## 9. AngelChatButton (Draggable + Speed Dial)
+
+### 9.1 Position Persistence
+
+```typescript
+const [position, setPosition] = useState(() => {
+  const saved = localStorage.getItem('angel-button-position');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      const maxX = window.innerWidth - BUTTON_SIZE - EDGE_MARGIN;
+      const maxY = window.innerHeight - BUTTON_SIZE - EDGE_MARGIN;
+      return {
+        x: Math.min(Math.max(EDGE_MARGIN, parsed.x), maxX),
+        y: Math.min(Math.max(EDGE_MARGIN, parsed.y), maxY)
+      };
+    } catch { /* ignore */ }
+  }
+  return { x: window.innerWidth - BUTTON_SIZE - EDGE_MARGIN, y: window.innerHeight - 160 };
+});
+```
+
+### 9.2 Snap to Edge
+
+```typescript
+const snapToEdge = useCallback((currentPos: { x: number; y: number }) => {
+  const screenWidth = window.innerWidth;
+  const centerX = currentPos.x + BUTTON_SIZE / 2;
+  
+  const newX = centerX < screenWidth / 2 
+    ? EDGE_MARGIN 
+    : screenWidth - BUTTON_SIZE - EDGE_MARGIN;
+  
+  const maxY = window.innerHeight - BUTTON_SIZE - EDGE_MARGIN;
+  const newY = Math.min(Math.max(EDGE_MARGIN, currentPos.y), maxY);
+  
+  const finalPosition = { x: newX, y: newY };
+  setPosition(finalPosition);
+  localStorage.setItem('angel-button-position', JSON.stringify(finalPosition));
 }, []);
 ```
 
 ---
 
-## 4. ProfileHonorBoard (Bảng Vinh Danh Cá Nhân)
+## 10. Edge Function (AI Backend)
 
-### 4.1 Interface
+### 10.1 System Prompt
 
 ```typescript
-interface ProfileHonorBoardProps {
-  userId: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  variant?: 'cover' | 'standalone'; // cover = trên cover photo, standalone = riêng lẻ
-}
+const SYSTEM_PROMPT = `Bạn là Angel - thiên thần đồng hành dễ thương của Fun Farm Ecosystem.
 
-interface ProfileStats {
-  postsCount: number;
-  reactionsGiven: number;
-  reactionsReceived: number;
-  commentsGiven: number;
-  commentsReceived: number;
-  sharesGiven: number;
-  sharesReceived: number;
-  friendsCount: number;
-  nftsCount: number;
-  claimable: number;      // pending_reward + approved_reward
-  claimed: number;        // camly_balance
-  camlyBalance: number;
-  totalSent: number;      // Tổng đã gửi gift
-  totalReceivedFromUsers: number; // Tổng đã nhận gift từ users khác
-}
+Tính cách của bạn:
+- Vui vẻ, thân thiện, dễ thương, đáng yêu
+- Luôn sẵn sàng giúp đỡ mọi người
+- Trả lời ngắn gọn, dễ hiểu
+- Thích dùng emoji để thể hiện cảm xúc ✨🧚💖
+
+Bạn có thể giúp đỡ về:
+- Fun Farm: cộng đồng, tính năng, cách sử dụng app
+- CAMLY Token: cách kiếm, cách sử dụng, phần thưởng
+- Cách tương tác: like, comment, share, gift
+- Quy tắc cộng đồng và Luật Thương Yêu
+- Giải đáp thắc mắc chung về Fun Farm Ecosystem
+
+Lưu ý:
+- Trả lời bằng tiếng Việt
+- Ngắn gọn, thân thiện
+- Không trả lời những câu hỏi không liên quan đến Fun Farm
+- Nếu không biết, hãy nói "Mình không chắc lắm, bạn có thể hỏi admin nhé! 💕"`;
 ```
 
-### 4.2 Công Thức Tính (V3.1 Logic)
+### 10.2 Edge Function Code
 
 ```typescript
-const fetchStats = async () => {
-  if (!userId) return;
-  
-  // Lấy post IDs của user
-  const { data: userPosts } = await supabase
-    .from('posts')
-    .select('id')
-    .eq('author_id', userId);
-  
-  const userPostIds = (userPosts || []).map(p => p.id);
+// supabase/functions/angel-chat/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-  const [
-    postsResult,
-    reactionsGivenResult,
-    reactionsReceivedResult,  // Exclude self-likes
-    commentsGivenResult,
-    commentsReceivedResult,   // Exclude self-comments
-    sharesGivenResult,
-    sharesReceivedResult,     // Exclude self-shares
-    friendsResult1,
-    friendsResult2,
-    profileResult,
-    sentResult,
-    receivedResult
-  ] = await Promise.all([
-    // Posts count (không tính share)
-    supabase.from('posts').select('id', { count: 'exact', head: true })
-      .eq('author_id', userId).neq('post_type', 'share'),
-    
-    // Reactions given
-    supabase.from('post_likes').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId),
-    
-    // Reactions received (EXCLUDE self-likes per V3.0 reward logic)
-    userPostIds.length > 0
-      ? supabase.from('post_likes').select('id', { count: 'exact', head: true })
-          .in('post_id', userPostIds).neq('user_id', userId)
-      : Promise.resolve({ count: 0 }),
-    
-    // Comments given
-    supabase.from('comments').select('id', { count: 'exact', head: true })
-      .eq('author_id', userId),
-    
-    // Comments received (EXCLUDE self-comments per V3.0 reward logic)
-    userPostIds.length > 0
-      ? supabase.from('comments').select('id', { count: 'exact', head: true })
-          .in('post_id', userPostIds).neq('author_id', userId)
-      : Promise.resolve({ count: 0 }),
-    
-    // Shares given
-    supabase.from('posts').select('id', { count: 'exact', head: true })
-      .eq('author_id', userId).eq('post_type', 'share'),
-    
-    // Shares received (EXCLUDE self-share per V3.0 reward logic)
-    userPostIds.length > 0
-      ? supabase.from('post_shares').select('id', { count: 'exact', head: true })
-          .in('post_id', userPostIds).neq('user_id', userId)
-      : Promise.resolve({ count: 0 }),
-    
-    // Friends (follower + following với status accepted)
-    supabase.from('followers').select('id', { count: 'exact', head: true })
-      .eq('follower_id', userId).eq('status', 'accepted'),
-    supabase.from('followers').select('id', { count: 'exact', head: true })
-      .eq('following_id', userId).eq('status', 'accepted'),
-    
-    // Profile data
-    supabase.from('profiles').select('pending_reward, approved_reward, camly_balance')
-      .eq('id', userId).maybeSingle(),
-    
-    // Wallet transactions - sent
-    supabase.from('wallet_transactions').select('amount')
-      .eq('sender_id', userId).eq('status', 'completed'),
-    
-    // Wallet transactions - received
-    supabase.from('wallet_transactions').select('amount')
-      .eq('receiver_id', userId).eq('status', 'completed')
-  ]);
-
-  const pendingReward = profileResult.data?.pending_reward || 0;
-  const approvedReward = profileResult.data?.approved_reward || 0;
-  const camlyBalance = profileResult.data?.camly_balance || 0;
-  
-  const totalSent = (sentResult.data || []).reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const totalReceivedFromUsers = (receivedResult.data || []).reduce((sum, tx) => sum + (tx.amount || 0), 0);
-
-  // Công thức tổng kết
-  const totalReward = claimable + claimed; // pending + approved + camly_balance
-  const totalReceived = totalReward + totalReceivedFromUsers;
-  const totalMoney = totalSent + totalReceived;
-
-  return {
-    postsCount: postsResult.count || 0,
-    reactionsGiven: reactionsGivenResult.count || 0,
-    reactionsReceived: (reactionsReceivedResult as any).count || 0,
-    commentsGiven: commentsGivenResult.count || 0,
-    commentsReceived: (commentsReceivedResult as any).count || 0,
-    sharesGiven: sharesGivenResult.count || 0,
-    sharesReceived: (sharesReceivedResult as any).count || 0,
-    friendsCount: (friendsResult1.count || 0) + (friendsResult2.count || 0),
-    nftsCount: 0, // Reserved for future
-    claimable: pendingReward + approvedReward,
-    claimed: camlyBalance,
-    camlyBalance,
-    totalSent,
-    totalReceivedFromUsers,
-  };
-};
-```
-
-### 4.3 Query Utilities (Loại trừ self-interactions & banned/deleted users)
-
-```typescript
-// src/lib/honorBoardQueries.ts
-
-export interface HonorBoardQueryParams {
-  userId: string;
-  userPostIds: string[];
-  validUserIds?: string[]; // Only count interactions from these users
-}
-
-// Lấy list valid user IDs (active, not banned, not deleted)
-export async function getValidUserIds(): Promise<string[]> {
-  const { data: activeProfiles } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('banned', false);
-  
-  const { data: deletedUsers } = await supabase
-    .from('deleted_users')
-    .select('user_id');
-  
-  const deletedUserIds = new Set(deletedUsers?.map(d => d.user_id) || []);
-  
-  return activeProfiles
-    ?.filter(p => !deletedUserIds.has(p.id))
-    .map(p => p.id) || [];
-}
-
-// Fetch reactions received (exclude self + banned/deleted)
-export async function fetchReactionsReceived({ userId, userPostIds, validUserIds }: HonorBoardQueryParams): Promise<number> {
-  if (userPostIds.length === 0) return 0;
-  
-  let query = supabase
-    .from('post_likes')
-    .select('id', { count: 'exact', head: true })
-    .in('post_id', userPostIds)
-    .neq('user_id', userId); // Exclude self-likes
-  
-  if (validUserIds && validUserIds.length > 0) {
-    query = query.in('user_id', validUserIds);
-  }
-  
-  const { count } = await query;
-  return count || 0;
-}
-
-// Tương tự cho comments và shares...
-```
-
----
-
-## 5. TopRanking (Bảng Xếp Hạng)
-
-### 5.1 Interface
-
-```typescript
-interface TopUser {
-  id: string;
-  display_name: string;
-  avatar_url: string | null;
-  total_reward: number;
-  is_good_heart: boolean;
-}
-
-interface TopRankingProps {
-  compact?: boolean;
-}
-```
-
-### 5.2 Công Thức Ranking
-
-```typescript
-const fetchTopUsers = async () => {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name, avatar_url, pending_reward, camly_balance, is_good_heart")
-    .order("pending_reward", { ascending: false })
-    .limit(20);
-
-  if (error) throw error;
-
-  // Total reward = pending_reward + camly_balance
-  const transformedUsers: TopUser[] = (data || []).map((user) => ({
-    id: user.id,
-    display_name: user.display_name || "Nông dân FUN",
-    avatar_url: user.avatar_url,
-    total_reward: (user.pending_reward || 0) + (user.camly_balance || 0),
-    is_good_heart: user.is_good_heart || false,
-  }));
-
-  // Re-sort by total_reward (vì query chỉ sort theo pending_reward)
-  transformedUsers.sort((a, b) => b.total_reward - a.total_reward);
-  
-  return transformedUsers;
-};
-```
-
-### 5.3 Phoenix Frame System (Top 5)
-
-```typescript
-// Assets cần có:
-// - top1-frame.png (Khung vàng phượng hoàng)
-// - top2-frame.png (Khung bạc)
-// - top3-frame.png (Khung đồng)
-// - top4-frame.png (Khung xanh lá)
-// - top5-frame.png (Khung tím)
-
-const frameImages: Record<number, string> = {
-  1: top1Frame,
-  2: top2Frame,
-  3: top3Frame,
-  4: top4Frame,
-  5: top5Frame,
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const glowColors: Record<number, string> = {
-  1: 'rgba(251, 191, 36, 1)',     // Vàng sáng
-  2: 'rgba(156, 163, 175, 0.9)',  // Bạc
-  3: 'rgba(217, 119, 6, 0.9)',    // Đồng
-  4: 'rgba(34, 197, 94, 0.9)',    // Xanh lá
-  5: 'rgba(168, 85, 247, 0.9)',   // Tím
-};
-
-const LaurelFrame = ({ rank }: { rank: number }) => {
-  const frameImage = frameImages[rank] || top5Frame;
-  const glowSize = rank === 1 ? 18 : 12;
-  const glowColor = glowColors[rank] || glowColors[5];
-  
-  return (
-    <div 
-      className="absolute inset-0 flex items-center justify-center"
-      style={{
-        filter: `drop-shadow(0 0 ${glowSize}px ${glowColor})`,
-      }}
-    >
-      <img 
-        src={frameImage} 
-        alt="frame" 
-        className="w-full h-full object-contain"
-        draggable={false}
-      />
-    </div>
-  );
-};
-```
-
-### 5.4 Avatar Positioning trong Frame
-
-```typescript
-// Avatar nằm ở 42% từ trên xuống, căn giữa ngang
-<div 
-  className="relative flex-shrink-0"
-  style={{ 
-    width: rank === 1 ? 140 : 130, 
-    height: rank === 1 ? 100 : 92,
-  }}
->
-  <LaurelFrame rank={rank} />
-  <Avatar 
-    className="absolute rounded-full"
-    style={{ 
-      width: rank === 1 ? 48 : 44, 
-      height: rank === 1 ? 48 : 44, 
-      top: '42%',          // Quan trọng: 42% từ trên xuống
-      left: '50%',         // Căn giữa ngang
-      transform: 'translate(-50%, -50%)',
-      border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
-      boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
-      zIndex: 10,          // Trên frame
-    }}
-  >
-    <AvatarImage src={user.avatar_url || ""} alt={user.display_name} />
-    <AvatarFallback>...</AvatarFallback>
-  </Avatar>
-</div>
-```
-
----
-
-## 6. TopSponsor (Nhà Tài Trợ Thiên Thần)
-
-### 6.1 Interface
-
-```typescript
-interface TopSponsorUser {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  total_sent: number;
-}
-```
-
-### 6.2 Công Thức Tính Top Sponsor
-
-```typescript
-const fetchTopSponsors = async () => {
-  // Aggregate từ wallet_transactions
-  const { data: transactionData, error: txError } = await supabase
-    .from('wallet_transactions')
-    .select('sender_id, amount')
-    .eq('status', 'completed');
-
-  if (txError) throw txError;
-
-  // Tính tổng theo sender_id
-  const senderTotals: Record<string, number> = {};
-  transactionData?.forEach(tx => {
-    senderTotals[tx.sender_id] = (senderTotals[tx.sender_id] || 0) + tx.amount;
-  });
-
-  // Sort và lấy top 20
-  const sortedSenders = Object.entries(senderTotals)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
-
-  if (sortedSenders.length === 0) {
-    return [];
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const senderIds = sortedSenders.map(([id]) => id);
+  try {
+    const { messages } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
+    }
 
-  // Fetch profiles
-  const { data: profiles, error: profileError } = await supabase
-    .from('profiles')
-    .select('id, display_name, avatar_url')
-    .in('id', senderIds);
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
 
-  if (profileError) throw profileError;
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: 'Angel đang bận quá, thử lại sau nhé! 🙏' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: 'Cần nạp thêm credits để Angel hoạt động nhé! 💫' }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ error: 'Angel gặp lỗi rồi 😢' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-  // Combine data
-  const sponsors: TopSponsorUser[] = sortedSenders.map(([id, total]) => {
-    const profile = profileMap.get(id);
-    return {
-      id,
-      display_name: profile?.display_name || 'Người dùng',
-      avatar_url: profile?.avatar_url || null,
-      total_sent: total,
-    };
-  });
-
-  return sponsors;
-};
+    return new Response(response.body, {
+      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
 ```
 
 ---
 
-## 7. EcosystemSidebar (Navigation Hệ Sinh Thái)
+## 11. Database Table (Chat History)
 
-### 7.1 Platform Configuration
+```sql
+-- angel_chat_messages table
+CREATE TABLE angel_chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-```typescript
-interface Platform {
-  name: string;
-  logo: string;
-  link: string | null;
-  internal?: boolean; // true = React Router, false = external link
-}
+-- RLS Policies
+ALTER TABLE angel_chat_messages ENABLE ROW LEVEL SECURITY;
 
-const platforms: Platform[] = [
-  { name: "FUN Profile", logo: funProfileLogo, link: "https://fun.rich/" },
-  { name: "FUN Play", logo: funPlayLogo, link: "https://play.fun.rich/" },
-  { name: "FUN Planet", logo: funPlanetLogo, link: "https://planet.fun.rich/" },
-  { name: "FUN Charity", logo: funCharityLogo, link: "https://angelaivan.fun.rich/" },
-  { name: "FUN Wallet", logo: funWalletLogo, link: "https://funwallet-rich.lovable.app/dashboard" },
-  { name: "Angel AI", logo: angelAiLogo, link: "/angel-ai", internal: true },
-  { name: "Green Earth", logo: greenEarthLogo, link: "https://greenearth-fun.lovable.app" },
-  { name: "Camly Coin", logo: camlyCoinLogo, link: "https://camly.co/" },
-  { name: "FUN Money", logo: funMoneyLogo, link: null }, // Coming soon
-  { name: "FUN Life", logo: funLifeLogo, link: null },   // Coming soon
-];
-```
+CREATE POLICY "Users can view own messages"
+  ON angel_chat_messages FOR SELECT
+  USING (auth.uid() = user_id);
 
-### 7.2 Sticky Scroll Container
+CREATE POLICY "Users can insert own messages"
+  ON angel_chat_messages FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
-```typescript
-<div
-  className="sticky top-24 space-y-4 overflow-y-auto scrollbar-thin pr-2"
-  style={{
-    maxHeight: "calc(100vh - 120px)",
-    scrollbarWidth: "thin",
-    scrollbarColor: "rgba(16, 185, 129, 0.5) transparent",
-  }}
->
-  {/* Content */}
-</div>
-```
-
-### 7.3 Collapsible Menu (About Section)
-
-```typescript
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
-const [aboutOpen, setAboutOpen] = useState(false);
-
-<Collapsible open={aboutOpen} onOpenChange={setAboutOpen}>
-  <CollapsibleTrigger asChild>
-    <button className="stat-row-shine flex items-center gap-3 w-full p-3 rounded-xl">
-      {/* Logo + Title + ChevronDown */}
-      <ChevronDown 
-        className={cn(
-          "w-5 h-5 text-amber-300 transition-transform duration-200",
-          aboutOpen && "rotate-180"
-        )} 
-      />
-    </button>
-  </CollapsibleTrigger>
-  
-  <CollapsibleContent className="pl-4 space-y-2 mb-3">
-    {/* Sub-menu items */}
-  </CollapsibleContent>
-</Collapsible>
+CREATE POLICY "Users can delete own messages"
+  ON angel_chat_messages FOR DELETE
+  USING (auth.uid() = user_id);
 ```
 
 ---
 
-## 8. Assets Cần Thiết
-
-```text
-src/assets/
-├── camly_coin.png              # Logo CAMLY coin (spinning animation)
-├── logo_fun_farm_web3.png      # Logo FUN FARM
-├── top1-frame.png              # Phoenix frame - Vàng
-├── top2-frame.png              # Phoenix frame - Bạc
-├── top3-frame.png              # Phoenix frame - Đồng
-├── top4-frame.png              # Phoenix frame - Xanh lá
-├── top5-frame.png              # Phoenix frame - Tím
-└── platforms/
-    ├── fun-profile.png
-    ├── fun-play.png
-    ├── fun-planet.png
-    ├── fun-charity.png
-    ├── fun-wallet.png
-    ├── angel-ai.png
-    ├── green-earth.png
-    ├── fun-money.png
-    └── fun-life.png
-```
-
----
-
-## 9. CSS Animations Cần Thêm
+## 12. CSS Animations
 
 ```css
 /* Thêm vào src/index.css */
 
-/* Hiệu ứng bóng gương chạy qua stat rows */
-.stat-row-shine {
-  position: relative;
-  overflow: hidden;
+/* Sparkle fade animation */
+@keyframes sparkle-fade {
+  0% { opacity: 1; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.8; transform: scale(1.2) rotate(180deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
 }
 
-.stat-row-shine::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shine 3s ease-in-out infinite;
-  pointer-events: none;
+.animate-sparkle-fade {
+  animation: sparkle-fade 1s ease-out forwards;
 }
 
-@keyframes shine {
-  0% { left: -100%; }
-  50%, 100% { left: 100%; }
+/* Z's floating animation for sleeping */
+@keyframes zzz-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  50% { transform: translateY(-10px) rotate(10deg); opacity: 0.7; }
 }
 
-/* Sparkle effects */
-.animate-ping {
-  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+.animate-zzz-float {
+  animation: zzz-float 2s ease-in-out infinite;
 }
 
-@keyframes ping {
-  75%, 100% {
-    transform: scale(2);
-    opacity: 0;
-  }
+/* Scale in animation for speed dial */
+@keyframes scale-in {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-/* CAMLY coin spin */
-.animate-spin {
-  animation: spin 4s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
 }
 ```
 
 ---
 
-## 10. Database Tables Cần Thiết
+## 13. File Structure
 
-```sql
--- profiles (bảng chính)
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY,
-  display_name TEXT,
-  avatar_url TEXT,
-  pending_reward BIGINT DEFAULT 0,
-  approved_reward BIGINT DEFAULT 0,
-  camly_balance BIGINT DEFAULT 0,
-  is_good_heart BOOLEAN DEFAULT FALSE,
-  banned BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+```text
+src/
+├── components/angel/
+│   ├── index.ts                 # Export tất cả components
+│   ├── AngelCompanion.tsx       # Component bay + GIF animation
+│   ├── AngelContext.tsx         # State provider
+│   ├── AngelChat.tsx            # Chat popup với streaming
+│   ├── AngelChatButton.tsx      # Nút chat draggable
+│   ├── AngelChatPopup.tsx       # Popup embed external
+│   └── AngelChatEmbed.tsx       # Fullscreen embed
+│
+├── assets/angel-gifs/           # 24 GIF files
+│
+└── pages/
+    └── AngelAI.tsx              # Trang Angel AI fullscreen
 
--- posts
-CREATE TABLE posts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id UUID REFERENCES profiles(id),
-  content TEXT,
-  images TEXT[],
-  video_url TEXT,
-  post_type TEXT DEFAULT 'post', -- 'post', 'share', 'gift'
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- post_likes
-CREATE TABLE post_likes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id),
-  post_id UUID REFERENCES posts(id),
-  reaction_type TEXT DEFAULT 'like',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, post_id)
-);
-
--- comments
-CREATE TABLE comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id UUID REFERENCES profiles(id),
-  post_id UUID REFERENCES posts(id),
-  content TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- post_shares
-CREATE TABLE post_shares (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id),
-  post_id UUID REFERENCES posts(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- followers (friendship)
-CREATE TABLE followers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  follower_id UUID REFERENCES profiles(id),
-  following_id UUID REFERENCES profiles(id),
-  status TEXT DEFAULT 'pending', -- 'pending', 'accepted', 'rejected'
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- wallet_transactions (gift/sponsor tracking)
-CREATE TABLE wallet_transactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id UUID REFERENCES profiles(id),
-  receiver_id UUID REFERENCES profiles(id),
-  amount BIGINT NOT NULL,
-  status TEXT DEFAULT 'pending', -- 'pending', 'completed', 'failed'
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- deleted_users (archive)
-CREATE TABLE deleted_users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  display_name TEXT,
-  deleted_at TIMESTAMPTZ DEFAULT now()
-);
+supabase/
+└── functions/
+    └── angel-chat/
+        └── index.ts             # Edge function AI
 ```
 
 ---
 
-## 11. Hướng Dẫn Triển Khai
+## 14. Hướng Dẫn Triển Khai
 
-### 11.1 Copy Files
+### 14.1 Copy Files
 
 ```bash
 # Copy components
-cp src/components/HonorBoard.tsx <project>/src/components/
-cp src/components/profile/ProfileHonorBoard.tsx <project>/src/components/profile/
-cp src/components/TopRanking.tsx <project>/src/components/
-cp src/components/wallet/TopSponsor.tsx <project>/src/components/wallet/
-cp src/components/feed/EcosystemSidebar.tsx <project>/src/components/feed/
+cp -r src/components/angel/ <project>/src/components/angel/
 
-# Copy utilities
-cp src/lib/honorBoardQueries.ts <project>/src/lib/
+# Copy GIF assets
+cp -r src/assets/angel-gifs/ <project>/src/assets/angel-gifs/
 
-# Copy assets
-cp -r src/assets/top*.png <project>/src/assets/
-cp src/assets/camly_coin.png <project>/src/assets/
-cp src/assets/logo_fun_farm_web3.png <project>/src/assets/
-cp -r src/assets/platforms/ <project>/src/assets/platforms/
+# Copy edge function
+cp -r supabase/functions/angel-chat/ <project>/supabase/functions/angel-chat/
+
+# Copy page (optional)
+cp src/pages/AngelAI.tsx <project>/src/pages/
 ```
 
-### 11.2 Update CSS
+### 14.2 Update App.tsx
 
-Thêm các keyframes và classes vào `src/index.css` như đã nêu ở Section 9.
+```typescript
+import { AngelProvider } from '@/components/angel';
 
-### 11.3 Customize
+function App() {
+  return (
+    <AngelProvider defaultEnabled={true}>
+      {/* Your app content */}
+    </AngelProvider>
+  );
+}
+```
 
-- Thay đổi logo từ `logo_fun_farm_web3.png` sang logo của platform mới
-- Cập nhật `CLAIMED_ON_BSC` constant nếu có
-- Thay đổi danh sách platforms trong EcosystemSidebar
-- Điều chỉnh màu sắc nếu cần (thay green palette sang màu khác)
+### 14.3 Deploy Edge Function
+
+```bash
+supabase functions deploy angel-chat
+```
+
+### 14.4 Customize System Prompt
+
+Thay đổi `SYSTEM_PROMPT` trong `supabase/functions/angel-chat/index.ts` cho platform mới:
+
+```typescript
+const SYSTEM_PROMPT = `Bạn là Angel - thiên thần đồng hành của [TÊN PLATFORM].
+
+Bạn có thể giúp đỡ về:
+- [Tính năng 1]
+- [Tính năng 2]
+- [Tính năng 3]
+...
+`;
+```
 
 ---
 
-## 12. Tóm Tắt
+## 15. Tóm Tắt
 
-| Component | Data Source | Refresh | Key Formula |
-|-----------|-------------|---------|-------------|
-| HonorBoard | profiles, posts | 5 phút | totalReward = CLAIMED_ON_BSC + sum(pending_reward) |
-| ProfileHonorBoard | profiles, posts, likes, comments, shares, followers, wallet_transactions | On mount | totalMoney = totalSent + (claimable + claimed + receivedFromUsers) |
-| TopRanking | profiles | 5 phút | total_reward = pending_reward + camly_balance |
-| TopSponsor | wallet_transactions, profiles | 5 phút | total_sent = sum(completed transactions) |
-| EcosystemSidebar | Static config | - | - |
+| Component | Chức năng | Dependencies |
+|-----------|-----------|--------------|
+| AngelCompanion | GIF animation + cursor follow | 24 GIFs, useState, useEffect, useCallback |
+| AngelContext | Global state | React Context, localStorage |
+| AngelChat | AI chat streaming | Supabase, Edge Function |
+| AngelChatButton | Draggable + speed dial | Touch/Mouse events, localStorage |
+| angel-chat | AI backend | Lovable AI Gateway, Deno |
 
-Tất cả components đều sử dụng chung **Design System** với:
-- Liquid Glass container effect
-- Green Mirror gradient cho stat rows
-- Golden border và text highlights
-- Animated counter cho số liệu
-- Phoenix frames cho Top 5 rankings
-- Sparkle effects và shine animations
+**Tổng cộng:**
+- 6 Components React
+- 24 GIF animations
+- 1 Edge Function
+- 1 Database Table
+- 18 AngelState types
+- 12 Random Behaviors
+- 6 Brightness Levels
 
-Chúc bạn triển khai thành công! 💖✨
+Chúc bạn triển khai thành công! 🧚✨💖
