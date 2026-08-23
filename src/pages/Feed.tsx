@@ -810,8 +810,7 @@ const Feed = () => {
         />
       )}
 
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
+      {/* /Feed */}
     </div>
   );
 };
