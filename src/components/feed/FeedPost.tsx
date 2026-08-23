@@ -373,7 +373,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
               {post.author.isGoodHeart && (
                 <GoodHeartBadge size="sm" />
               )}
-              {(post.is_product_post || post.author.type === 'farm') && (
+              {(post.is_product_post || post.category === 'farm_update' || post.author.type === 'farm') && (
                 <FarmBadge size="sm" />
               )}
               <LoveScoreBadge score={post.author.reputationScore} size="sm" />
