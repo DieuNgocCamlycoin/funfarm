@@ -45,10 +45,14 @@ const Feed = () => {
   const [page, setPage] = useState(0);
   const POSTS_PER_PAGE = 10;
 
-  // Register create post callback for Angel Speed Dial
+  // Register create post callback for Angel Speed Dial (opens global modal)
   useEffect(() => {
     if (!profile?.banned) {
-      setOnCreatePost(() => () => setIsCreateModalOpen(true));
+      setOnCreatePost(() => () => {
+        window.dispatchEvent(
+          new CustomEvent('open-create-post', { detail: { postKind: 'post', isSelling: false } })
+        );
+      });
     }
     return () => setOnCreatePost(null);
   }, [setOnCreatePost, profile?.banned]);
