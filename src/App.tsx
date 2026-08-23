@@ -59,7 +59,10 @@ const App = () => (
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/shipper" element={<ShipperDashboard />} />
                   <Route path="/shipper/register" element={<ShipperRegister />} />
-                <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/farm" element={<FarmFeed />} />
+                  <Route path="/market" element={<Market />} />
+                  <Route path="/chat" element={<Chat />} />
                   <Route path="/law-of-light" element={<LawOfLight />} />
                   <Route path="/about-fun-farm" element={<AboutFunFarm />} />
                   <Route path="/whitepaper" element={<Whitepaper />} />
