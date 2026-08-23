@@ -34,6 +34,7 @@ import Market from "./pages/Market";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import MobileBottomNav from "./components/MobileBottomNav";
+import GlobalCreatePostModal from "./components/create/GlobalCreatePostModal";
 
 const queryClient = new QueryClient();
 
