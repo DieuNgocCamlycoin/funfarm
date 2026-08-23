@@ -42,7 +42,15 @@ interface CreatePostModalProps {
   onClose: () => void;
   onPost?: (post: any) => void;
   initialTab?: string;
+  isSelling?: boolean;
 }
+
+const mapKindToTab = (kind: string, selling: boolean): string => {
+  if (selling) return "product";
+  if (kind === "video" || kind === "photo") return "photo";
+  if (kind === "live") return "live";
+  return "post";
+};
 
 const postTypes = [
   { id: "post", label: "Bài viết", icon: Sparkles, color: "text-primary" },
