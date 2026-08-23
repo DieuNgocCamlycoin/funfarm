@@ -54,6 +54,7 @@ export interface Post {
   location_lng?: number;
   delivery_options?: string[];
   commitments?: string[];
+  category?: string;
   // Share/Gift post fields
   post_type?: 'post' | 'share' | 'gift';
   original_post_id?: string;
