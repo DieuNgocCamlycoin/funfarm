@@ -18,6 +18,8 @@ import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { ReportModal } from "@/components/ReportModal";
+import { LoveScoreBadge } from "@/components/common/LoveScoreBadge";
+import { FarmBadge } from "@/components/common/FarmBadge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
