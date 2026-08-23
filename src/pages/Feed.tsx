@@ -40,6 +40,8 @@ const Feed = () => {
   const { setOnCreatePost } = useAngel();
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createPostKind, setCreatePostKind] = useState<string>("post");
+  const [createIsSelling, setCreateIsSelling] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
