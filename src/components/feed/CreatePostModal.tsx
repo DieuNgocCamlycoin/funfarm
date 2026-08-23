@@ -96,7 +96,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post", isSelli
           // Only restore if draft is less than 24 hours old
           if (Date.now() - draft.savedAt < 24 * 60 * 60 * 1000) {
             setContent(draft.content || "");
-            setPostType(draft.postType || initialTab);
+            setPostType(mapKindToTab(draft.postType, isSelling));
             setImages(draft.images || []);
             setLocation(draft.location || "");
             setHashtags(draft.hashtags || []);
