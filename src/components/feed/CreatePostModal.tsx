@@ -382,11 +382,26 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post", isSelli
                 >
                   <type.icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{type.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-            {/* Content for each post type */}
+          {/* Farm update toggle */}
+          {postType === "post" && (
+            <label className="flex items-center gap-2 mt-3 px-1 text-sm text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFarmUpdate}
+                onChange={(e) => setIsFarmUpdate(e.target.checked)}
+                className="rounded border-primary/50 text-primary focus:ring-primary"
+              />
+              <span className="flex items-center gap-1">
+                🌱 Đây là bài Farm Update (nhật ký nông trại)
+              </span>
+            </label>
+          )}
+
+          {/* Content for each post type */}
             <TabsContent value="post" className="space-y-4 mt-4">
               <PostContent
                 content={content}
