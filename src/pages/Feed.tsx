@@ -652,25 +652,62 @@ const Feed = () => {
 
               {/* Main Feed */}
               <div className="lg:col-span-6 space-y-6">
-                {/* Banned Warning */}
-                {profile?.banned && (
-                  <ViolationWarning 
-                    level={3} 
-                    banned={true} 
-                    banReason={profile.ban_reason || undefined}
-                  />
-                )}
+              {/* Banned Warning */}
+              {profile?.banned && (
+                <ViolationWarning 
+                  level={3} 
+                  banned={true} 
+                  banReason={profile.ban_reason || undefined}
+                />
+              )}
 
-                {/* Create Post Box - Facebook style - Hide if banned */}
-                {!profile?.banned && (
-                  <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
-                )}
+              {/* Top Home Bar - mobile-first */}
+              <div className="flex items-center justify-between gap-3 lg:hidden">
+                <button
+                  className="flex-1 flex items-center gap-2 px-3 py-2 rounded-full bg-muted/50 text-muted-foreground text-sm"
+                  onClick={() => {
+                    const search = document.querySelector('[data-search-trigger]') as HTMLElement | null;
+                    search?.click();
+                  }}
+                >
+                  <span className="text-base">🔍</span>
+                  Tìm kiếm...
+                </button>
+                <Link
+                  to="/notifications"
+                  className="relative p-2 rounded-full bg-muted/50 text-muted-foreground"
+                  aria-label="Thông báo"
+                >
+                  🔔
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  to="/chat"
+                  className="p-2 rounded-full bg-muted/50 text-muted-foreground"
+                  aria-label="Chat"
+                >
+                  💬
+                </Link>
+              </div>
 
-                {/* Mobile Honor Board & Top Ranking */}
-                <div className="lg:hidden space-y-4">
-                  <HonorBoard compact />
-                  <TopRanking compact />
-                </div>
+              {/* Create Post Box - Facebook style - Hide if banned */}
+              {!profile?.banned && (
+                <CreatePost onOpenModal={() => {
+                  setCreatePostKind("post");
+                  setCreateIsSelling(false);
+                  setIsCreateModalOpen(true);
+                }} />
+              )}
+
+              {/* Mobile Honor Board & Top Ranking */}
+              <div className="lg:hidden space-y-4">
+                <HonorBoard compact />
+                <TopRanking compact />
+              </div>
 
                 {/* Story Bar */}
                 <StoryBar />
