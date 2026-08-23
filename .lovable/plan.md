@@ -1,75 +1,75 @@
-# Báo Cáo Tiến Độ & Kế Hoạch Hoàn Thiện FUN FARM
+# FUN FARM – Wireframe Mobile-First: Social có thể mua ngay trong post
 
-## 1. Hiện trạng dự án (đã kiểm tra trực tiếp trong code)
+Triển khai đúng bộ wireframe Cha đưa: 5 tab bottom nav, feed hợp nhất, Farm feed kiểu TikTok, post bật "Farm mode", Market, Product Detail, Profile có tab Farm, Chat mua hàng.
 
-Quy mô hiện tại:
-- 20 trang (routes) trong `src/App.tsx`
-- ~35 bảng dữ liệu + ~20 database function
-- 13 edge function (claim-camly, angel-chat, check-content, check-avatar, upload-r2, merge tools, bscscan history...)
-- 14 tab Admin Dashboard
-- 5 file test (chỉ ở tầng logic tính thưởng / honor board / ngày giờ)
+## Hiện trạng (đã kiểm tra trong code)
 
-## 2. Đánh giá độ hoàn thiện theo mảng
+- Bottom nav hiện có 4 mục: Trang chủ, Ví & Quà, Thông báo, Cá nhân — chưa có Farm, chưa có nút Post ở giữa, chưa có Market.
+- Đã có sẵn: Feed, PostDetail, Profile, UserProfile, StoryBar (đang dùng dữ liệu mẫu), ProductPostForm, ProductPostCard, BuyProductModal (gọi RPC `process_order`), LocationPicker, OrderTrackingMap.
+- Chưa có trang: Farm feed, Market, Product Detail (trang riêng), Chat.
+- Bảng dữ liệu đã có nhưng chưa có UI: `order_messages`, `product_reviews`, `saved_products`.
+- Bài đăng đã hỗ trợ trường sản phẩm (`is_product_post`, `price_camly`, `quantity_kg`, `location_*`, `delivery_options`) và có `video`.
 
-| Mảng | Trạng thái | Ghi chú |
-|------|-----------|---------|
-| Mạng xã hội (Feed, post, comment, like, share, story, ảnh) | Gần hoàn thiện | Đủ trang Feed, PostDetail, Profile, UserProfile |
-| Hồ sơ & bạn bè | Gần hoàn thiện | FriendsList, FriendRequests, FriendSearch, follow |
-| Ví & CAMLY (MetaMask, claim, tặng quà, lịch sử, biểu đồ giá) | Gần hoàn thiện | Có claim on-chain BSC, gift flow đầy đủ |
-| Hệ thống thưởng V3.1 (cộng/trừ/thu hồi, giới hạn ngày) | Hoàn thiện | Đã có trigger revoke cho unlike, unshare, ban user |
-| Admin Dashboard | Hoàn thiện | 14 tab, `has_role()` + bảng `user_roles` riêng |
-| Angel AI (companion + chat) | Hoàn thiện | Có edge function `angel-chat`, bảng lưu hội thoại |
-| Bảng vinh danh / xếp hạng | Hoàn thiện | HonorBoard, TopRanking, TopSponsor, Leaderboard |
-| SSO Fun Profile (Fun-ID) | Cơ bản xong | Có callback, link Fun-ID, webhook, merge conflict tool |
-| Marketplace (đăng bán, mua) | Làm dở | Có ProductPostForm, ProductPostCard, BuyProductModal gọi `process_order`, nhưng **thiếu trang đơn hàng cho người mua và người bán** |
-| Giao vận (shipper) | Làm dở | Có ShipperDashboard + bản đồ; người mua không có trang theo dõi đơn |
-| Livestream | Mới có dữ liệu | Đã có bảng `livestreams`, `livestream_comments/likes/shares` và logic thưởng, nhưng **không có trang/route livestream nào trong app** |
-| Đánh giá sản phẩm & lưu sản phẩm | Chưa dùng | Bảng `product_reviews`, `saved_products` tồn tại nhưng frontend chưa gọi tới |
-| Kiểm thử tự động | Yếu | Chỉ test tầng lib, chưa test component/luồng |
-| Tài liệu | Rải rác | `docs/` + `.lovable/packages/`, chưa có trang tài liệu trong app |
+## Giai đoạn 1 – Khung điều hướng 5 tab
 
-**Ước tính tổng thể: khoảng 75–80% hoàn thiện.** Phần lõi (social + thưởng + ví + admin) đã chạy được; phần thương mại (đơn hàng, giao vận, livestream) mới xong một nửa.
+- Đổi bottom nav thành: 🏠 Home · 🌱 Farm · ➕ Post · 🛒 Market · 👤 Profile.
+- Nút ➕ ở giữa nổi bật, mở thẳng modal tạo bài (không chuyển trang).
+- Ví, Thông báo, Reward chuyển vào thanh trên cùng của Home (🔍 Tìm kiếm · 🔔 Thông báo · 💬 Chat) và menu Ecosystem, để không mất lối vào.
 
-## 3. Những việc cần làm thêm
+## Giai đoạn 2 – Home feed hợp nhất
 
-Ưu tiên 1 – Đóng vòng đời đơn hàng (đang hở nhất):
-- Trang "Đơn hàng của tôi" cho người mua: danh sách, trạng thái, chi tiết, theo dõi shipper trên bản đồ, xác nhận đã nhận
-- Trang "Đơn bán" cho người bán: nhận đơn, chuẩn bị, bàn giao shipper, huỷ đơn
-- Khung chat đơn hàng (bảng `order_messages` đã có sẵn nhưng chưa dùng)
-- Thông báo realtime khi đơn đổi trạng thái
+- Thanh trên: Search · Notification · Chat.
+- Story bar: "Story của bạn", Farm Story, Trending (thay dữ liệu mẫu bằng dữ liệu thật).
+- Post card: Avatar · Tên · Light Score ⭐ · badge 🌱 nếu là nhà nông; nội dung; ảnh/video; nếu có sản phẩm thì tự hiện nút 🛒 Mua ngay; Thích · Bình luận · Chia sẻ.
 
-Ưu tiên 2 – Marketplace đầy đủ:
-- Trang Marketplace riêng: tìm kiếm, lọc theo loại nông sản, giá, khoảng cách, tình trạng còn hàng
-- Lưu sản phẩm yêu thích (dùng `saved_products`)
-- Đánh giá sau khi nhận hàng (dùng `product_reviews`) + hiển thị điểm uy tín người bán
+## Giai đoạn 3 – Farm tab (TikTok nông sản)
 
-Ưu tiên 3 – Livestream:
-- Trang danh sách livestream đang phát + trang xem livestream
-- Bình luận / tim / chia sẻ realtime, nối vào logic thưởng đã có
-- Nút bắt đầu livestream cho người bán
+- Feed video toàn màn hình, cuộn dọc từng bài, tự phát khi vào khung nhìn, tắt tiếng mặc định.
+- Overlay: tên + avatar nhà nông, vị trí, tiêu đề sản phẩm, Light Score, giá CAMLY, nút 🛒 Mua ngay.
+- Cột hành động bên phải: ❤️ · 💬 · 🔁 · 💾 (lưu vào `saved_products`).
+- Thanh lọc danh mục cuộn ngang: Rau · Trái cây · Hải sản · Organic; tìm kiếm + "Gần bạn".
+- Nút chuyển 🗺 Map View: hiện pin các farm kèm khoảng cách.
 
-Ưu tiên 4 – Chất lượng & vận hành:
-- Test cho các luồng quan trọng: đặt hàng, claim thưởng, tặng quà
-- Rà soát RLS và cảnh báo bảo mật còn tồn đọng
-- Tối ưu Feed (phân trang / cuộn vô hạn, lazy ảnh)
-- Trang tài liệu nội bộ trong app cho thành viên mới
+## Giai đoạn 4 – Create Post "Farm mode"
 
-## 4. Kế hoạch triển khai theo giai đoạn
+- Một màn duy nhất: tải ảnh/video, viết caption, ô tick "Đây là bài Farm 🌱".
+- Khi tick mới hiện: Giá · Số lượng · Địa điểm · Hình thức giao.
+- Hai nút: Đăng · Lưu nháp (nháp lưu tại máy, đã có sẵn cơ chế nháp).
 
-| Giai đoạn | Nội dung | Kết quả mong đợi |
-|-----------|----------|------------------|
-| GĐ 1 | Vòng đời đơn hàng người mua + người bán, chat đơn hàng, thông báo trạng thái | Mua bán dùng thật được đầu-cuối |
-| GĐ 2 | Trang Marketplace, bộ lọc, lưu sản phẩm, đánh giá sau mua | Trải nghiệm chợ nông sản hoàn chỉnh |
-| GĐ 3 | Livestream: danh sách, xem, tương tác realtime, gắn thưởng | Kênh bán hàng trực tiếp |
-| GĐ 4 | Test, bảo mật, tối ưu hiệu năng, tài liệu | Sẵn sàng mở rộng người dùng |
+## Giai đoạn 5 – Market & Product Detail
 
-Mỗi giai đoạn làm xong sẽ kiểm thử rồi mới sang giai đoạn kế tiếp.
+- Market: tìm kiếm, bộ lọc (Giá · Khoảng cách · Organic · Đánh giá), lưới sản phẩm 2 cột (ảnh, tên, giá, sao).
+- Product Detail: slider ảnh/video; tên; người bán; Light Score; số đánh giá; giá; tồn kho; khoảng cách; nút 🛒 Mua ngay và 💬 Chat với nhà nông.
+- Danh sách đánh giá lấy từ `product_reviews`; cho phép đánh giá sau khi nhận hàng.
 
-## 5. Chi tiết kỹ thuật
+## Giai đoạn 6 – Profile có tab Farm
 
-- Trang mới dự kiến: `src/pages/Orders.tsx`, `src/pages/OrderDetail.tsx`, `src/pages/SellerOrders.tsx`, `src/pages/Marketplace.tsx`, `src/pages/Livestreams.tsx`, `src/pages/LivestreamRoom.tsx`; đăng ký route trong `src/App.tsx`
-- Tái sử dụng: `OrderTrackingMap`, `ShipperMap`, `ProductPostCard`, `BuyProductModal`, RPC `process_order` / `accept_order` / `complete_delivery`
-- Realtime: dùng Supabase realtime channel cho `orders`, `order_messages`, `livestream_comments`
-- Bảng cần dùng nhưng chưa có UI: `order_messages`, `product_reviews`, `saved_products`, `livestreams`
-- Có thể cần migration bổ sung: RLS cho `order_messages`, `product_reviews`, `saved_products` (sẽ kiểm tra và bổ sung GRANT + policy trước khi viết UI)
-- Không đụng tới logic thưởng V3.1 hiện tại, chỉ nối thêm sự kiện livestream vào luồng đã có
+- Đầu trang: avatar, tên, Light Score, bio, nút Theo dõi · Nhắn tin.
+- Tabs: Bài viết · 🌱 Farm · 🛒 Sản phẩm · ⭐ Đánh giá.
+- Tab Farm: tên farm, địa điểm, ảnh bìa, câu chuyện farm, các bài viết của farm.
+
+## Giai đoạn 7 – Chat mua hàng
+
+- Danh sách hội thoại + phòng chat realtime giữa người mua và nhà nông (dùng `order_messages`).
+- Trong khung chat có 💰 Gửi báo giá và 🛒 Mua trực tiếp.
+- Thông báo realtime khi có tin nhắn mới.
+
+## Giai đoạn 8 – Vòng tròn tin cậy
+
+- Sau khi nhận hàng: nhắc đánh giá → cộng Light Score cho nhà nông → ghi thưởng CAMLY theo luật thưởng V3.1 hiện hành.
+
+## Chi tiết kỹ thuật
+
+- Trang mới: `src/pages/FarmFeed.tsx`, `src/pages/Market.tsx`, `src/pages/ProductDetail.tsx`, `src/pages/Chat.tsx` (danh sách + phòng), đăng ký route trong `src/App.tsx`.
+- Component mới: `FarmVideoCard`, `CategoryScroll`, `MarketFilters`, `ProductGrid`, `ReviewList`, `ChatRoom`, `FarmTab`; tái sử dụng `BuyProductModal`, `ProductPostCard`, `LocationPicker`, `OrderTrackingMap`.
+- `MobileBottomNav` viết lại thành 5 mục với nút giữa nổi.
+- `CreatePostModal` gộp `ProductPostForm` thành phần bung ra khi tick "bài Farm" thay vì tab riêng.
+- Light Score: dùng công thức uy tín sẵn có trong `honorBoardQueries` / `contribution_score`, hiển thị thống nhất qua một component badge.
+- Realtime: channel Supabase cho `order_messages`, cập nhật tồn kho khi đặt hàng.
+- Trước khi viết UI sẽ kiểm tra và bổ sung GRANT + RLS cho `order_messages`, `product_reviews`, `saved_products` nếu còn thiếu.
+- Video autoplay dùng IntersectionObserver, `playsInline` + `muted` để chạy được trên iOS.
+- Không đổi logic thưởng V3.1, chỉ nối thêm sự kiện đánh giá / mua hàng vào luồng đã có.
+
+## Đề xuất thứ tự làm
+
+Làm GĐ 1–2 trước (khung nav + feed hợp nhất) để thấy hình hài ngay, rồi GĐ 3–4 (Farm feed + Farm mode) vì đây là trái tim sản phẩm, sau đó mới tới Market, Product Detail, Profile, Chat.
