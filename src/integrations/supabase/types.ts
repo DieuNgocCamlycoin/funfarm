@@ -2018,6 +2018,7 @@ export type Database = {
         Returns: {
           author_id: string
           author_is_good_heart: boolean
+          category: string
           comments_count: number
           commitments: string[]
           content: string
