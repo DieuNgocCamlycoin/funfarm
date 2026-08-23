@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
-import CreatePostModal from "@/components/feed/CreatePostModal";
+
 import StoryBar from "@/components/feed/StoryBar";
 import { useAngel } from "@/components/angel/AngelContext";
 import FeedPost from "@/components/feed/FeedPost";
