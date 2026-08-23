@@ -775,7 +775,13 @@ const Feed = () => {
 
       {/* Create Post Modal - Hide if banned */}
       {!profile?.banned && (
-        <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
+        <CreatePostModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          onPost={handleNewPost}
+          initialTab={createPostKind}
+          isSelling={createIsSelling}
+        />
       )}
 
       {/* Mobile Bottom Navigation */}
