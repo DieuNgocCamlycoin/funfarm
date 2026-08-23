@@ -67,6 +67,8 @@ const Feed = () => {
     return () => window.removeEventListener('refresh-feed', handleRefresh);
   }, []);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // Unread notifications for mobile top bar
   useEffect(() => {
     if (!user?.id) return;
