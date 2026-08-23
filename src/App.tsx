@@ -29,6 +29,9 @@ import Wallet from "./pages/Wallet";
 import Notifications from "./pages/Notifications";
 import PostDetail from "./pages/PostDetail";
 import AngelAI from "./pages/AngelAI";
+import FarmFeed from "./pages/FarmFeed";
+import Market from "./pages/Market";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
