@@ -33,6 +33,7 @@ import FarmFeed from "./pages/FarmFeed";
 import Market from "./pages/Market";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
+import MobileBottomNav from "./components/MobileBottomNav";
 
 const queryClient = new QueryClient();
 
