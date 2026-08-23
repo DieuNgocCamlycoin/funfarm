@@ -312,6 +312,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post", isSelli
           location: location || null,
           hashtags: hashtags.length > 0 ? hashtags : null,
           post_type: postType,
+          category: isFarmUpdate ? 'farm_update' : null,
         })
         .select()
         .single();
