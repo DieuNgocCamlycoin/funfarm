@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
 import CreatePostModal from "@/components/feed/CreatePostModal";
