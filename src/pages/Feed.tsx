@@ -57,18 +57,6 @@ const Feed = () => {
     return () => setOnCreatePost(null);
   }, [setOnCreatePost, profile?.banned]);
 
-  // Listen for action sheet selections from MobileBottomNav
-  useEffect(() => {
-    const handleOpenCreatePost = (e: Event) => {
-      const detail = (e as CustomEvent).detail || {};
-      setCreatePostKind(detail.postKind || "post");
-      setCreateIsSelling(!!detail.isSelling);
-      setIsCreateModalOpen(true);
-    };
-    window.addEventListener('open-create-post', handleOpenCreatePost);
-    return () => window.removeEventListener('open-create-post', handleOpenCreatePost);
-  }, []);
-
   // Unread notifications for mobile top bar
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
