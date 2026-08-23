@@ -18,6 +18,8 @@ import { BonusRequestButton } from "@/components/BonusRequestButton";
 import { GoodHeartBadge } from "@/components/GoodHeartBadge";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { ReportModal } from "@/components/ReportModal";
+import { LoveScoreBadge } from "@/components/common/LoveScoreBadge";
+import { FarmBadge } from "@/components/common/FarmBadge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -371,9 +373,10 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
               {post.author.isGoodHeart && (
                 <GoodHeartBadge size="sm" />
               )}
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 hidden xs:inline-flex">
-                ⭐ {post.author.reputationScore}
-              </Badge>
+              {(post.is_product_post || post.category === 'farm_update' || post.author.type === 'farm') && (
+                <FarmBadge size="sm" />
+              )}
+              <LoveScoreBadge score={post.author.reputationScore} size="sm" />
             </div>
             <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
               <span className="truncate max-w-[80px] sm:max-w-none">@{post.author.username}</span>

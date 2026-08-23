@@ -29,7 +29,12 @@ import Wallet from "./pages/Wallet";
 import Notifications from "./pages/Notifications";
 import PostDetail from "./pages/PostDetail";
 import AngelAI from "./pages/AngelAI";
+import FarmFeed from "./pages/FarmFeed";
+import Market from "./pages/Market";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
+import MobileBottomNav from "./components/MobileBottomNav";
+import GlobalCreatePostModal from "./components/create/GlobalCreatePostModal";
 
 const queryClient = new QueryClient();
 
@@ -56,7 +61,10 @@ const App = () => (
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/shipper" element={<ShipperDashboard />} />
                   <Route path="/shipper/register" element={<ShipperRegister />} />
-                <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/farm" element={<FarmFeed />} />
+                  <Route path="/market" element={<Market />} />
+                  <Route path="/chat" element={<Chat />} />
                   <Route path="/law-of-light" element={<LawOfLight />} />
                   <Route path="/about-fun-farm" element={<AboutFunFarm />} />
                   <Route path="/whitepaper" element={<Whitepaper />} />
@@ -67,6 +75,8 @@ const App = () => (
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                <MobileBottomNav />
+                <GlobalCreatePostModal />
               </BrowserRouter>
               
             </TooltipProvider>

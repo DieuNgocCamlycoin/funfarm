@@ -42,7 +42,15 @@ interface CreatePostModalProps {
   onClose: () => void;
   onPost?: (post: any) => void;
   initialTab?: string;
+  isSelling?: boolean;
 }
+
+const mapKindToTab = (kind: string, selling: boolean): string => {
+  if (selling) return "product";
+  if (kind === "video" || kind === "photo") return "photo";
+  if (kind === "live") return "live";
+  return "post";
+};
 
 const postTypes = [
   { id: "post", label: "Bài viết", icon: Sparkles, color: "text-primary" },
@@ -62,10 +70,11 @@ interface PostDraft {
   savedAt: number;
 }
 
-const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: CreatePostModalProps) => {
+const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post", isSelling = false }: CreatePostModalProps) => {
   const { user, profile } = useAuth();
   const [content, setContent] = useState("");
-  const [postType, setPostType] = useState(initialTab);
+  const [postType, setPostType] = useState(() => mapKindToTab(initialTab, isSelling));
+  const [isFarmUpdate, setIsFarmUpdate] = useState(initialTab === "farm_update" && !isSelling);
   const [images, setImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState<File[]>([]);
   const [location, setLocation] = useState("");
@@ -87,7 +96,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
           // Only restore if draft is less than 24 hours old
           if (Date.now() - draft.savedAt < 24 * 60 * 60 * 1000) {
             setContent(draft.content || "");
-            setPostType(draft.postType || initialTab);
+            setPostType(mapKindToTab(draft.postType, isSelling));
             setImages(draft.images || []);
             setLocation(draft.location || "");
             setHashtags(draft.hashtags || []);
@@ -130,9 +139,10 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
   // Reset postType when initialTab changes
   useEffect(() => {
     if (!isInitialLoad.current) {
-      setPostType(initialTab);
+      setPostType(mapKindToTab(initialTab, isSelling));
+      setIsFarmUpdate(initialTab === "farm_update" && !isSelling);
     }
-  }, [initialTab]);
+  }, [initialTab, isSelling]);
 
   // Clear draft function
   const clearDraft = () => {
@@ -302,6 +312,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
           location: location || null,
           hashtags: hashtags.length > 0 ? hashtags : null,
           post_type: postType,
+          category: isFarmUpdate ? 'farm_update' : null,
         })
         .select()
         .single();
@@ -372,11 +383,26 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
                 >
                   <type.icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{type.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-            {/* Content for each post type */}
+          {/* Farm update toggle */}
+          {postType === "post" && (
+            <label className="flex items-center gap-2 mt-3 px-1 text-sm text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFarmUpdate}
+                onChange={(e) => setIsFarmUpdate(e.target.checked)}
+                className="rounded border-primary/50 text-primary focus:ring-primary"
+              />
+              <span className="flex items-center gap-1">
+                🌱 Đây là bài Farm Update (nhật ký nông trại)
+              </span>
+            </label>
+          )}
+
+          {/* Content for each post type */}
             <TabsContent value="post" className="space-y-4 mt-4">
               <PostContent
                 content={content}

@@ -1,11 +1,10 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
 import CreatePost from "@/components/feed/CreatePost";
-import CreatePostModal from "@/components/feed/CreatePostModal";
+
 import StoryBar from "@/components/feed/StoryBar";
 import { useAngel } from "@/components/angel/AngelContext";
 import FeedPost from "@/components/feed/FeedPost";
@@ -36,10 +35,9 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
   return mapping[profileType] || 'farm';
 };
 const Feed = () => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { setOnCreatePost } = useAngel();
   const [activeFilter, setActiveFilter] = useState("all");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -47,13 +45,53 @@ const Feed = () => {
   const [page, setPage] = useState(0);
   const POSTS_PER_PAGE = 10;
 
-  // Register create post callback for Angel Speed Dial
+  // Register create post callback for Angel Speed Dial (opens global modal)
   useEffect(() => {
     if (!profile?.banned) {
-      setOnCreatePost(() => () => setIsCreateModalOpen(true));
+      setOnCreatePost(() => () => {
+        window.dispatchEvent(
+          new CustomEvent('open-create-post', { detail: { postKind: 'post', isSelling: false } })
+        );
+      });
     }
     return () => setOnCreatePost(null);
   }, [setOnCreatePost, profile?.banned]);
+
+  // Refresh feed after global create-post modal submits
+  useEffect(() => {
+    const handleRefresh = () => {
+      setPage(0);
+      fetchPosts(0);
+    };
+    window.addEventListener('refresh-feed', handleRefresh);
+    return () => window.removeEventListener('refresh-feed', handleRefresh);
+  }, []);
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Unread notifications for mobile top bar
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+    const channel = supabase
+      .channel('feed-top-bar-notifications')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, () => fetchUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const extractGiftReceiverName = (content: string | null | undefined) => {
     if (!content) return undefined;
@@ -305,6 +343,7 @@ const Feed = () => {
           location_lng: post.location_lng || undefined,
           delivery_options: post.delivery_options || [],
           commitments: post.commitments || [],
+          category: post.category || undefined,
           // Share post fields
           post_type: post.post_type || 'post',
           original_post_id: post.original_post_id,
@@ -530,6 +569,7 @@ const Feed = () => {
         location_lng: newPost.location_lng || undefined,
         delivery_options: newPost.delivery_options || [],
         commitments: newPost.commitments || [],
+        category: newPost.category || undefined,
         // Share post fields
         post_type: newPost.post_type || 'post',
         original_post_id: newPost.original_post_id,
@@ -638,25 +678,62 @@ const Feed = () => {
 
               {/* Main Feed */}
               <div className="lg:col-span-6 space-y-6">
-                {/* Banned Warning */}
-                {profile?.banned && (
-                  <ViolationWarning 
-                    level={3} 
-                    banned={true} 
-                    banReason={profile.ban_reason || undefined}
-                  />
-                )}
+              {/* Banned Warning */}
+              {profile?.banned && (
+                <ViolationWarning 
+                  level={3} 
+                  banned={true} 
+                  banReason={profile.ban_reason || undefined}
+                />
+              )}
 
-                {/* Create Post Box - Facebook style - Hide if banned */}
-                {!profile?.banned && (
-                  <CreatePost onOpenModal={() => setIsCreateModalOpen(true)} />
-                )}
+              {/* Top Home Bar - mobile-first */}
+              <div className="flex items-center justify-between gap-3 lg:hidden">
+                <button
+                  className="flex-1 flex items-center gap-2 px-3 py-2 rounded-full bg-muted/50 text-muted-foreground text-sm"
+                  onClick={() => {
+                    const search = document.querySelector('[data-search-trigger]') as HTMLElement | null;
+                    search?.click();
+                  }}
+                >
+                  <span className="text-base">🔍</span>
+                  Tìm kiếm...
+                </button>
+                <Link
+                  to="/notifications"
+                  className="relative p-2 rounded-full bg-muted/50 text-muted-foreground"
+                  aria-label="Thông báo"
+                >
+                  🔔
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <Link
+                  to="/chat"
+                  className="p-2 rounded-full bg-muted/50 text-muted-foreground"
+                  aria-label="Chat"
+                >
+                  💬
+                </Link>
+              </div>
 
-                {/* Mobile Honor Board & Top Ranking */}
-                <div className="lg:hidden space-y-4">
-                  <HonorBoard compact />
-                  <TopRanking compact />
-                </div>
+              {/* Create Post Box - Facebook style - Hide if banned */}
+              {!profile?.banned && (
+                <CreatePost onOpenModal={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('open-create-post', { detail: { postKind: 'post', isSelling: false } })
+                  );
+                }} />
+              )}
+
+              {/* Mobile Honor Board & Top Ranking */}
+              <div className="lg:hidden space-y-4">
+                <HonorBoard compact />
+                <TopRanking compact />
+              </div>
 
                 {/* Story Bar */}
                 <StoryBar />
@@ -722,13 +799,7 @@ const Feed = () => {
 
       <Footer />
 
-      {/* Create Post Modal - Hide if banned */}
-      {!profile?.banned && (
-        <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPost={handleNewPost} />
-      )}
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
+      {/* /Feed */}
     </div>
   );
 };
