@@ -2,7 +2,6 @@
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import MobileBottomNav from "@/components/MobileBottomNav";
 import Navbar from "@/components/Navbar";
 
 export default function Market() {

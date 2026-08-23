@@ -1,6 +1,5 @@
 // 💬 Chat – placeholder cho Phase 5
 import { MessageCircle } from "lucide-react";
-import MobileBottomNav from "@/components/MobileBottomNav";
 import Navbar from "@/components/Navbar";
 
 export default function Chat() {
