@@ -35,7 +35,7 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
   return mapping[profileType] || 'farm';
 };
 const Feed = () => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { setOnCreatePost } = useAngel();
   const [activeFilter, setActiveFilter] = useState("all");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -723,9 +723,9 @@ const Feed = () => {
               {/* Create Post Box - Facebook style - Hide if banned */}
               {!profile?.banned && (
                 <CreatePost onOpenModal={() => {
-                  setCreatePostKind("post");
-                  setCreateIsSelling(false);
-                  setIsCreateModalOpen(true);
+                  window.dispatchEvent(
+                    new CustomEvent('open-create-post', { detail: { postKind: 'post', isSelling: false } })
+                  );
                 }} />
               )}
 
