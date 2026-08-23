@@ -139,9 +139,10 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post", isSelli
   // Reset postType when initialTab changes
   useEffect(() => {
     if (!isInitialLoad.current) {
-      setPostType(initialTab);
+      setPostType(mapKindToTab(initialTab, isSelling));
+      setIsFarmUpdate(initialTab === "farm_update" && !isSelling);
     }
-  }, [initialTab]);
+  }, [initialTab, isSelling]);
 
   // Clear draft function
   const clearDraft = () => {
