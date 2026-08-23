@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import Footer from "@/components/Footer";
