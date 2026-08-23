@@ -70,10 +70,11 @@ interface PostDraft {
   savedAt: number;
 }
 
-const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: CreatePostModalProps) => {
+const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post", isSelling = false }: CreatePostModalProps) => {
   const { user, profile } = useAuth();
   const [content, setContent] = useState("");
-  const [postType, setPostType] = useState(initialTab);
+  const [postType, setPostType] = useState(() => mapKindToTab(initialTab, isSelling));
+  const [isFarmUpdate, setIsFarmUpdate] = useState(initialTab === "farm_update" && !isSelling);
   const [images, setImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState<File[]>([]);
   const [location, setLocation] = useState("");
