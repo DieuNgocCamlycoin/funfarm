@@ -35,7 +35,6 @@ export default function FarmFeed() {
           </div>
         </div>
       </main>
-      <MobileBottomNav />
     </div>
   );
 }

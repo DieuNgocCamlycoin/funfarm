@@ -15,7 +15,6 @@ export default function Chat() {
           </p>
         </div>
       </main>
-      <MobileBottomNav />
     </div>
   );
 }

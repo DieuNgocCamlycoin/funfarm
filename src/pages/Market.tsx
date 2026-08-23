@@ -29,7 +29,6 @@ export default function Market() {
           </div>
         </div>
       </main>
-      <MobileBottomNav />
     </div>
   );
 }
