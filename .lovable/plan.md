@@ -1,75 +1,79 @@
-# FUN FARM – Wireframe Mobile-First: Social có thể mua ngay trong post
+# FUN FARM – Kiến trúc mới & Phase 1
 
-Triển khai đúng bộ wireframe Cha đưa: 5 tab bottom nav, feed hợp nhất, Farm feed kiểu TikTok, post bật "Farm mode", Market, Product Detail, Profile có tab Farm, Chat mua hàng.
+North Star: Social → Trust → Commerce → Verified Contribution → Reward.
+Trải nghiệm lõi: See → Trust → Chat → Buy → Receive → Review → Reward.
 
-## Hiện trạng (đã kiểm tra trong code)
+## Phản hồi ngắn về 10 quyết định của Cha
 
-- Bottom nav hiện có 4 mục: Trang chủ, Ví & Quà, Thông báo, Cá nhân — chưa có Farm, chưa có nút Post ở giữa, chưa có Market.
-- Đã có sẵn: Feed, PostDetail, Profile, UserProfile, StoryBar (đang dùng dữ liệu mẫu), ProductPostForm, ProductPostCard, BuyProductModal (gọi RPC `process_order`), LocationPicker, OrderTrackingMap.
-- Chưa có trang: Farm feed, Market, Product Detail (trang riêng), Chat.
-- Bảng dữ liệu đã có nhưng chưa có UI: `order_messages`, `product_reviews`, `saved_products`.
-- Bài đăng đã hỗ trợ trường sản phẩm (`is_product_post`, `price_camly`, `quantity_kg`, `location_*`, `delivery_options`) và có `video`.
+Toàn bộ 10 điểm đều được tiếp thu. Ba điểm làm thay đổi rõ nhất so với bản kế hoạch trước:
 
-## Giai đoạn 1 – Khung điều hướng 5 tab
+- Farm Post ≠ Product Post: composer tách "Farm Update" và "Sell in this post" thành hai công tắc độc lập.
+- Chat phải sống trước khi có đơn: cần tầng `conversations` riêng, không dựa vào `order_messages`.
+- Love Score và phần thưởng không cộng trực tiếp từ hành vi, mà đi qua tầng sự kiện đã xác thực (verified event → PLP → quyết định thưởng).
 
-- Đổi bottom nav thành: 🏠 Home · 🌱 Farm · ➕ Post · 🛒 Market · 👤 Profile.
-- Nút ➕ ở giữa nổi bật, mở thẳng modal tạo bài (không chuyển trang).
-- Ví, Thông báo, Reward chuyển vào thanh trên cùng của Home (🔍 Tìm kiếm · 🔔 Thông báo · 💬 Chat) và menu Ecosystem, để không mất lối vào.
+Ba điều cần Cha lưu ý về hiện trạng (đã kiểm tra trong code):
 
-## Giai đoạn 2 – Home feed hợp nhất
+- Toàn hệ thống hiện chưa dùng chữ "Light Score"; điểm uy tín đang là `contribution_score` (persistence). Việc đổi tên là đưa tên **Love Score** ra UI một cách thống nhất, không phải đổi tên hàng loạt cái đang có.
+- Số lượng hiện đang hard-code `quantity_kg` trong bảng `posts` và trong `src/types/feed.ts` → cần thêm `quantity_value` + `unit` và giữ `quantity_kg` như trường cũ để không vỡ dữ liệu.
+- Chưa có bảng `conversations` / `messages`; chỉ có `order_messages` (gắn cứng vào đơn hàng) và cũng chưa có UI nào dùng nó.
 
-- Thanh trên: Search · Notification · Chat.
-- Story bar: "Story của bạn", Farm Story, Trending (thay dữ liệu mẫu bằng dữ liệu thật).
-- Post card: Avatar · Tên · Light Score ⭐ · badge 🌱 nếu là nhà nông; nội dung; ảnh/video; nếu có sản phẩm thì tự hiện nút 🛒 Mua ngay; Thích · Bình luận · Chia sẻ.
+## Nguyên tắc kiến trúc chốt cho mọi phase sau
 
-## Giai đoạn 3 – Farm tab (TikTok nông sản)
+| Chủ đề | Quyết định |
+|--------|-----------|
+| Điểm uy tín | Gọi là **Love Score** ở mọi UI/component/tài liệu; `contribution_score` chỉ tồn tại ở tầng dữ liệu |
+| Loại bài | `post_kind`: post · video · farm_update · story; cờ bán hàng `is_selling` độc lập |
+| Số lượng | `quantity_value` + `unit` (kg, g, ton, piece, box, pack, bunch, dozen, liter, tray) |
+| Chat | `conversations` · `conversation_members` · `messages`, tham chiếu tùy chọn product/post/order/offer |
+| Thưởng | `reward_asset` · `reward_amount` · `reward_rule_id` · `source_event_id` – không khoá vào CAMLY |
+| Tin cậy | `trust_events` (verified) → PLP đánh giá → mới sinh Love Score / reward |
+| Sản phẩm | `availability`: available_now · harvesting_today · pre_order · next_harvest · sold_out |
+| Nguồn gốc | Product → Farm → Farmer, có action 🌱 View Source ngay từ MVP |
 
-- Feed video toàn màn hình, cuộn dọc từng bài, tự phát khi vào khung nhìn, tắt tiếng mặc định.
-- Overlay: tên + avatar nhà nông, vị trí, tiêu đề sản phẩm, Light Score, giá CAMLY, nút 🛒 Mua ngay.
-- Cột hành động bên phải: ❤️ · 💬 · 🔁 · 💾 (lưu vào `saved_products`).
-- Thanh lọc danh mục cuộn ngang: Rau · Trái cây · Hải sản · Organic; tìm kiếm + "Gần bạn".
-- Nút chuyển 🗺 Map View: hiện pin các farm kèm khoảng cách.
+## Phase 1 – Navigation + Unified Home Feed (làm ngay)
 
-## Giai đoạn 4 – Create Post "Farm mode"
+Chỉ đụng tầng giao diện, không sửa logic thưởng, không redesign phần đang chạy tốt.
 
-- Một màn duy nhất: tải ảnh/video, viết caption, ô tick "Đây là bài Farm 🌱".
-- Khi tick mới hiện: Giá · Số lượng · Địa điểm · Hình thức giao.
-- Hai nút: Đăng · Lưu nháp (nháp lưu tại máy, đã có sẵn cơ chế nháp).
+1. **Bottom nav 5 tab**: 🏠 Home · 🌱 Farm · ➕ · 🛒 Market · 👤 Me.
+   - Ví, Thông báo chuyển lên thanh trên của Home (🔍 · 🔔 · 💬) để không mất lối vào.
+   - Farm và Market ở Phase 1 mở trang khung (placeholder có tiêu đề + trạng thái "đang mở dần"), tránh dead link.
+2. **Nút ➕ mở action sheet** với 5 lựa chọn: Post · Video · Farm Update · Sell Product · Story. Mỗi lựa chọn truyền `post_kind` (và `is_selling` cho Sell Product) vào composer hiện có — không mở thẳng modal như trước.
+3. **Home feed hợp nhất**:
+   - Thanh trên: Search · Notification · Chat (icon Chat tạm trỏ tới trang khung của Phase 5).
+   - Story bar dùng dữ liệu thật thay dữ liệu mẫu: Story của bạn · Farm Story · Trending.
+   - Post card: avatar · tên · **Love Score ⭐** · badge 🌱 khi là bài farm · nội dung · ảnh/video · nút 🛒 Mua ngay chỉ khi bài có bán · Thích/Bình luận/Chia sẻ.
+4. **Component dùng chung tạo mới ở Phase 1** để các phase sau cắm vào: `LoveScoreBadge`, `FarmBadge`, `AvailabilityBadge`, `formatQuantity(value, unit)`.
 
-## Giai đoạn 5 – Market & Product Detail
+Phase 1 không tạo bảng mới; chỉ đọc dữ liệu đã có.
 
-- Market: tìm kiếm, bộ lọc (Giá · Khoảng cách · Organic · Đánh giá), lưới sản phẩm 2 cột (ảnh, tên, giá, sao).
-- Product Detail: slider ảnh/video; tên; người bán; Light Score; số đánh giá; giá; tồn kho; khoảng cách; nút 🛒 Mua ngay và 💬 Chat với nhà nông.
-- Danh sách đánh giá lấy từ `product_reviews`; cho phép đánh giá sau khi nhận hàng.
+## Kiểm tra phụ thuộc Phase 2–7 (làm trước khi code Phase 1)
 
-## Giai đoạn 6 – Profile có tab Farm
+Rà soát để UI Phase 1 không khoá kiến trúc:
 
-- Đầu trang: avatar, tên, Light Score, bio, nút Theo dõi · Nhắn tin.
-- Tabs: Bài viết · 🌱 Farm · 🛒 Sản phẩm · ⭐ Đánh giá.
-- Tab Farm: tên farm, địa điểm, ảnh bìa, câu chuyện farm, các bài viết của farm.
+- `posts`: cần bổ sung (Phase 2) `post_kind`, `is_selling`, `quantity_value`, `unit`, `availability`, `next_harvest_date`, `farm_id`. Phase 1 đọc qua lớp bọc dữ liệu (adapter) để khi thêm cột không phải sửa lại UI.
+- `farms`: chưa có – Phase 4 tạo, liên kết `product → farm → farmer`.
+- `conversations` / `conversation_members` / `messages` / `offers`: chưa có – Phase 5.
+- `trust_events` + PLP: chưa có – Phase 6–7; `product_reviews` hiện có sẽ được gắn ràng buộc "chỉ hợp lệ khi có giao dịch đã xác thực".
+- Bảng thưởng: giữ nguyên V3.1, Phase 7 mới bổ sung các cột trừu tượng `reward_asset` / `reward_rule_id` / `source_event_id`.
+- `order_messages` giữ nguyên, Phase 5 sẽ nối vào `conversations` thay vì mở rộng thêm.
 
-## Giai đoạn 7 – Chat mua hàng
+## Lộ trình
 
-- Danh sách hội thoại + phòng chat realtime giữa người mua và nhà nông (dùng `order_messages`).
-- Trong khung chat có 💰 Gửi báo giá và 🛒 Mua trực tiếp.
-- Thông báo realtime khi có tin nhắn mới.
+| Phase | Nội dung |
+|-------|----------|
+| 1 | Navigation + Unified Home Feed |
+| 2 | Farm Feed + Create Composer (kind + sell độc lập, quantity/unit) |
+| 3 | Market + Product + Product Detail (availability, harvest badge) |
+| 4 | Profile + Farm Profile + View Source |
+| 5 | Conversation + Chat + Offer |
+| 6 | Orders + Reviews + Verified Trust Events |
+| 7 | PLP + Love Score + Reward integration |
+| 8 | Map + Nearby + Logistics + AI recommendation |
 
-## Giai đoạn 8 – Vòng tròn tin cậy
+## Chi tiết kỹ thuật Phase 1
 
-- Sau khi nhận hàng: nhắc đánh giá → cộng Light Score cho nhà nông → ghi thưởng CAMLY theo luật thưởng V3.1 hiện hành.
-
-## Chi tiết kỹ thuật
-
-- Trang mới: `src/pages/FarmFeed.tsx`, `src/pages/Market.tsx`, `src/pages/ProductDetail.tsx`, `src/pages/Chat.tsx` (danh sách + phòng), đăng ký route trong `src/App.tsx`.
-- Component mới: `FarmVideoCard`, `CategoryScroll`, `MarketFilters`, `ProductGrid`, `ReviewList`, `ChatRoom`, `FarmTab`; tái sử dụng `BuyProductModal`, `ProductPostCard`, `LocationPicker`, `OrderTrackingMap`.
-- `MobileBottomNav` viết lại thành 5 mục với nút giữa nổi.
-- `CreatePostModal` gộp `ProductPostForm` thành phần bung ra khi tick "bài Farm" thay vì tab riêng.
-- Light Score: dùng công thức uy tín sẵn có trong `honorBoardQueries` / `contribution_score`, hiển thị thống nhất qua một component badge.
-- Realtime: channel Supabase cho `order_messages`, cập nhật tồn kho khi đặt hàng.
-- Trước khi viết UI sẽ kiểm tra và bổ sung GRANT + RLS cho `order_messages`, `product_reviews`, `saved_products` nếu còn thiếu.
-- Video autoplay dùng IntersectionObserver, `playsInline` + `muted` để chạy được trên iOS.
-- Không đổi logic thưởng V3.1, chỉ nối thêm sự kiện đánh giá / mua hàng vào luồng đã có.
-
-## Đề xuất thứ tự làm
-
-Làm GĐ 1–2 trước (khung nav + feed hợp nhất) để thấy hình hài ngay, rồi GĐ 3–4 (Farm feed + Farm mode) vì đây là trái tim sản phẩm, sau đó mới tới Market, Product Detail, Profile, Chat.
+- Sửa: `src/components/MobileBottomNav.tsx` (5 tab, nút giữa nổi), `src/components/feed/StoryBar.tsx` (bỏ mock), `src/components/feed/FeedPost.tsx` (Love Score, badge farm, nút mua có điều kiện), `src/pages/Feed.tsx` (thanh trên), `src/App.tsx` (route mới).
+- Thêm: `src/pages/FarmFeed.tsx`, `src/pages/Market.tsx` (khung), `src/components/create/CreateActionSheet.tsx`, `src/components/common/LoveScoreBadge.tsx`, `FarmBadge`, `AvailabilityBadge`, `src/lib/quantity.ts`.
+- `CreatePostModal` nhận thêm `postKind` và `isSelling` thay vì `initialTab` dạng chuỗi tự do; giữ tương thích ngược cho các nơi đang gọi.
+- Tái sử dụng nguyên trạng: `BuyProductModal`, `ProductPostCard`, `ProductPostForm`, `LocationPicker`.
+- Mobile-first, thao tác một tay: vùng chạm tối thiểu 44px, nút chính nằm trong tầm ngón cái, thêm padding dưới cho các trang chính.
