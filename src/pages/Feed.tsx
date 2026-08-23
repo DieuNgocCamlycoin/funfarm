@@ -69,6 +69,31 @@ const Feed = () => {
     return () => window.removeEventListener('open-create-post', handleOpenCreatePost);
   }, []);
 
+  // Unread notifications for mobile top bar
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+    const channel = supabase
+      .channel('feed-top-bar-notifications')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, () => fetchUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   const extractGiftReceiverName = (content: string | null | undefined) => {
     if (!content) return undefined;
 
