@@ -57,8 +57,17 @@ const Feed = () => {
     return () => setOnCreatePost(null);
   }, [setOnCreatePost, profile?.banned]);
 
+  // Refresh feed after global create-post modal submits
+  useEffect(() => {
+    const handleRefresh = () => {
+      setPage(0);
+      fetchPosts(0);
+    };
+    window.addEventListener('refresh-feed', handleRefresh);
+    return () => window.removeEventListener('refresh-feed', handleRefresh);
+  }, []);
+
   // Unread notifications for mobile top bar
-  const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
     if (!user?.id) return;
     const fetchUnread = async () => {
