@@ -319,6 +319,7 @@ const Feed = () => {
           location_lng: post.location_lng || undefined,
           delivery_options: post.delivery_options || [],
           commitments: post.commitments || [],
+          category: post.category || undefined,
           // Share post fields
           post_type: post.post_type || 'post',
           original_post_id: post.original_post_id,
