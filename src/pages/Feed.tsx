@@ -545,6 +545,7 @@ const Feed = () => {
         location_lng: newPost.location_lng || undefined,
         delivery_options: newPost.delivery_options || [],
         commitments: newPost.commitments || [],
+        category: newPost.category || undefined,
         // Share post fields
         post_type: newPost.post_type || 'post',
         original_post_id: newPost.original_post_id,
