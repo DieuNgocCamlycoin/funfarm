@@ -8,7 +8,7 @@ import { Loader2, CheckCircle2, LogOut, Eye, EyeOff, Mail, Lock, Gift, ArrowLeft
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { WELCOME_BONUS } from '@/lib/constants';
 import { startSSOLogin } from '@/lib/sso';
@@ -18,6 +18,7 @@ import { OTPVerificationModal } from './OTPVerificationModal';
 const ConnectWallet = () => {
   const { signUp, signIn, user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -51,12 +52,16 @@ const ConnectWallet = () => {
         if (!profile.welcome_bonus_claimed) {
           navigate('/profile-setup');
         } else {
-          navigate('/feed');
+          const requestedPath = searchParams.get('returnTo');
+          const returnTo = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
+            ? requestedPath
+            : '/feed';
+          navigate(returnTo, { replace: true });
         }
       }
       // If email not verified, stay on auth page - OTP modal will show
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -324,7 +329,8 @@ const ConnectWallet = () => {
   };
 
   const handleExploreAsGuest = () => {
-    navigate('/');
+    setIsLoading(false);
+    navigate('/', { replace: true });
   };
 
   // Sync pending email/userId when user exists but email not verified (for refresh scenarios)

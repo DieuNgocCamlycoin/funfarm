@@ -6,12 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Award } from "lucide-react";
 import camlyCoin from "@/assets/camly_coin.png";
-import top1Frame from "@/assets/top1-frame.png";
-import top2Frame from "@/assets/top2-frame.png";
-import top3Frame from "@/assets/top3-frame.png";
-import top4Frame from "@/assets/top4-frame.png";
-import top5Frame from "@/assets/top5-frame.png";
 
 interface TopUser {
   id: string;
@@ -25,86 +21,8 @@ interface TopRankingProps {
   compact?: boolean;
 }
 
-// Styles - Stat rows với hiệu ứng bóng gương + viền vàng kim loại
-const userRowStyle = {
-  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-  border: '2px solid #fbbf24',
-  borderRadius: '20px',
-  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-};
-
-const userRowTop3Style = {
-  background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 40%, #15803d 70%, #166534 100%)',
-  border: '2.5px solid #fbbf24',
-  borderRadius: '20px',
-  boxShadow: 'inset 0 10px 20px rgba(255,255,255,0.45), inset 0 -5px 15px rgba(0,0,0,0.25), 0 0 15px rgba(251,191,36,0.6), 0 6px 12px rgba(0,0,0,0.35)',
-};
-
-// Frame Component - 5 khung riêng cho Top 5
-const LaurelFrame = ({ rank }: { rank: number }) => {
-  // Chọn khung theo từng hạng
-  const frameImages: Record<number, string> = {
-    1: top1Frame,  // Khung vàng phượng hoàng
-    2: top2Frame,  // Khung bạc
-    3: top3Frame,  // Khung đồng
-    4: top4Frame,  // Khung xanh lá
-    5: top5Frame,  // Khung tím
-  };
-  
-  const frameImage = frameImages[rank] || top5Frame;
-  
-  // Drop-shadow phù hợp với màu sắc từng khung
-  const glowColors: Record<number, string> = {
-    1: 'rgba(251, 191, 36, 1)',     // Vàng sáng
-    2: 'rgba(156, 163, 175, 0.9)',  // Bạc
-    3: 'rgba(217, 119, 6, 0.9)',    // Đồng
-    4: 'rgba(34, 197, 94, 0.9)',    // Xanh lá
-    5: 'rgba(168, 85, 247, 0.9)',   // Tím
-  };
-  
-  const glowSize = rank === 1 ? 18 : 12;
-  const glowColor = glowColors[rank] || glowColors[5];
-  
-  return (
-    <div 
-      className="absolute inset-0 flex items-center justify-center"
-      style={{
-        filter: `drop-shadow(0 0 ${glowSize}px ${glowColor})`,
-      }}
-    >
-      <img 
-        src={frameImage} 
-        alt="frame" 
-        className="w-full h-full object-contain"
-        draggable={false}
-      />
-    </div>
-  );
-};
-
-// Rank Badge - Huy hiệu thứ hạng nhỏ gọn
 const RankBadge = ({ rank }: { rank: number }) => {
-  const colors = {
-    1: { bg: 'linear-gradient(135deg, #fbbf24, #fef3c7)', border: '#b45309', text: '#78350f' },
-    2: { bg: 'linear-gradient(135deg, #9ca3af, #e5e7eb)', border: '#6b7280', text: '#374151' },
-    3: { bg: 'linear-gradient(135deg, #d97706, #fcd34d)', border: '#92400e', text: '#78350f' },
-  };
-  const style = colors[rank as keyof typeof colors] || { bg: 'linear-gradient(135deg, #059669, #34d399)', border: '#047857', text: '#ffffff' };
-  
-  return (
-    <div 
-      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-20"
-      style={{
-        background: style.bg,
-        border: `2px solid ${style.border}`,
-        color: style.text,
-        boxShadow: `0 2px 8px rgba(0,0,0,0.4)`,
-        fontSize: '11px',
-      }}
-    >
-      {rank}
-    </div>
-  );
+  return <span className={`ff-rank-medal ff-rank-${Math.min(rank, 4)}`}>{rank}</span>;
 };
 
 const TopRanking = ({ compact = false }: TopRankingProps) => {
@@ -154,64 +72,12 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
   const displayedUsers = showAll ? topUsers.slice(0, 10) : topUsers.slice(0, 5);
 
   return (
-    <div 
-      className="relative overflow-hidden rounded-xl"
-      data-angel-perch="ranking"
-      style={{
-        background: 'linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)',
-        backdropFilter: 'saturate(120%)',
-        border: '3px solid #fbbf24',
-        borderRadius: '20px',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(200,150,0,0.4), 0 0 20px rgba(251,191,36,0.4), 0 8px 32px rgba(0,0,0,0.25)',
-      }}
-    >
-      {/* Top highlight - Liquid Glass edge */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+    <div className="ff-luxury-panel ff-ranking-panel relative overflow-hidden rounded-2xl" data-angel-perch="ranking">
 
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
-        {/* Title - 2 vương miện cố định 2 góc với animation, chữ TOP = RANKING */}
-        <div className="relative mb-5">
-          {/* Ngôi sao trái - animation glow pulse */}
-          <span 
-            className="absolute left-2 top-0 text-2xl"
-            style={{ 
-              filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.9))',
-              animation: 'pulse 2s ease-in-out infinite',
-            }}
-          >
-            ⭐
-          </span>
-          
-          {/* Ngôi sao phải - animation glow pulse */}
-          <span 
-            className="absolute right-2 top-0 text-2xl"
-            style={{ 
-              filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.9))',
-              animation: 'pulse 2s ease-in-out infinite',
-              animationDelay: '1s',
-            }}
-          >
-            ⭐
-          </span>
-          
-          {/* Chữ TOP RANKING - 2 hàng, căn giữa, cùng kích thước */}
-          <div 
-            className="text-center"
-            style={{ 
-              fontFamily: "system-ui, -apple-system, sans-serif",
-              fontWeight: 900,
-              color: '#ffd700',
-              textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 25px rgba(255,215,0,0.7)',
-              letterSpacing: '0.15em',
-            }}
-          >
-            <div style={{ fontSize: compact ? '1.8rem' : '2.2rem', lineHeight: 1.1 }}>
-              TOP
-            </div>
-            <div style={{ fontSize: compact ? '1.8rem' : '2.2rem', lineHeight: 1.1 }}>
-              RANKING
-            </div>
-          </div>
+        <div className="mb-4 flex items-center justify-center gap-2.5">
+          <Award className="h-5 w-5 text-[#bd8b18]" />
+          <h2 className="ff-metallic-gold-text text-xl font-black tracking-[0.12em]">TOP RANKING</h2>
         </div>
 
         {/* User List - Compact Rows */}
@@ -227,36 +93,14 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
           ) : (
             displayedUsers.map((user, index) => {
               const rank = index + 1;
-              const isTop3 = rank <= 3;
-              
               return (
                 <div
                   key={user.id}
                   onClick={() => navigate(`/user/${user.id}`)}
-                  className="stat-row-shine flex items-center gap-2 p-2.5 cursor-pointer hover:brightness-110"
-                  style={isTop3 ? userRowTop3Style : userRowStyle}
+                  className="ff-compact-rank-row flex items-center gap-2.5 px-3 py-2 cursor-pointer"
                 >
-                  {/* Avatar with Frame - khung lớn hơn, sát mép trái */}
-                  <div 
-                    className="relative flex-shrink-0"
-                    style={{ 
-                      width: rank === 1 ? 140 : 130, 
-                      height: rank === 1 ? 100 : 92,
-                    }}
-                  >
-                    <LaurelFrame rank={rank} />
-                    <Avatar 
-                      className="absolute rounded-full"
-                      style={{ 
-                        width: rank === 1 ? 48 : 44, 
-                        height: rank === 1 ? 48 : 44, 
-                        top: '42%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        border: `2px solid ${isTop3 ? '#fbbf24' : 'rgba(251, 191, 36, 0.5)'}`,
-                        boxShadow: isTop3 ? '0 0 8px rgba(251, 191, 36, 0.5)' : 'none',
-                      }}
-                    >
+                  <RankBadge rank={rank} />
+                  <Avatar className="h-10 w-10 shrink-0 rounded-full border border-[#e2c46f]">
                       <AvatarImage src={user.avatar_url || ""} alt={user.display_name} />
                       <AvatarFallback 
                         className="text-sm font-bold"
@@ -267,35 +111,16 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
                       >
                         {user.display_name?.charAt(0)?.toUpperCase() || "F"}
                       </AvatarFallback>
-                    </Avatar>
-                    {/* Ẩn RankBadge cho Top 1-5 vì khung đã có badge */}
-                    {rank > 5 && <RankBadge rank={rank} />}
-                  </div>
+                  </Avatar>
 
                   {/* User Info - căn phải */}
-                  <div className="flex-1 min-w-0 text-right">
-                    <div 
-                      className="font-bold truncate"
-                      style={{ 
-                        fontSize: '1rem',
-                        color: isTop3 ? '#ffd700' : '#ffffff',
-                        textShadow: isTop3 
-                          ? '0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(251, 191, 36, 0.7)' 
-                          : '0 2px 4px rgba(0,0,0,0.9)',
-                      }}
-                    >
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-sm font-bold text-white">
                       {user.display_name}
                     </div>
-                    <div className="flex items-center justify-end gap-1.5 mt-1">
-                      <img src={camlyCoin} alt="CAMLY" className="w-5 h-5" />
-                      <span 
-                        className="font-extrabold"
-                        style={{ 
-                          fontSize: '1rem',
-                          color: '#fbbf24',
-                          textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(251, 191, 36, 0.8)',
-                        }}
-                      >
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <img src={camlyCoin} alt="CAMLY" className="w-4 h-4" />
+                      <span className="ff-clean-gold-text text-sm font-extrabold tabular-nums">
                         {formatNumber(user.total_reward)}
                       </span>
                     </div>
@@ -307,7 +132,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
         </div>
 
         {/* Divider */}
-        <div className="mt-4 mb-3 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+        <div className="my-3 h-px bg-emerald-900/10" />
 
         {/* View More / View Less Button */}
         {topUsers.length > 5 && (
@@ -316,8 +141,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
               variant="ghost"
               size="sm"
               onClick={() => setShowAll(!showAll)}
-              className="hover:bg-white/15 text-sm px-5 font-semibold"
-              style={{ color: '#fbbf24', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+              className="px-5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50"
             >
               {showAll ? 'Thu gọn ↑' : 'Xem thêm ↓'}
             </Button>
@@ -330,13 +154,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
             variant="ghost"
             size="sm"
             onClick={() => navigate("/leaderboard")}
-            className="stat-row-shine flex items-center gap-2 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all hover:scale-[1.02]"
-            style={{
-              background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
-              border: '2px solid #ffd700',
-              boxShadow: '0 0 15px rgba(255,215,0,0.5), inset 0 2px 4px rgba(255,255,255,0.4)',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-            }}
+            className="ff-ranking-link flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold"
           >
             <span>🏆</span>
             <span>Bảng xếp hạng đầy đủ</span>
@@ -344,8 +162,6 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
         </div>
       </div>
 
-      {/* Bottom edge - Liquid Glass */}
-      <div className="relative z-10 h-1.5 bg-gradient-to-r from-white/10 via-white/30 to-white/10" />
     </div>
   );
 };

@@ -1,317 +1,148 @@
-import { useState, useEffect } from "react";
+import { CSSProperties, ReactNode, SyntheticEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Zap, BookOpen, FileText, ChevronDown, ShoppingBag } from "lucide-react";
+import { BookOpen, ChevronDown, FileText, ShoppingBag, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
-
-// Platform logos
 import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
 import funProfileLogo from "@/assets/platforms/fun-profile.png";
 import funPlayLogo from "@/assets/platforms/fun-play.png";
 import funPlanetLogo from "@/assets/platforms/fun-planet.png";
 import funCharityLogo from "@/assets/platforms/fun-charity.png";
-import funWalletLogo from "@/assets/platforms/fun-wallet.png";
-import angelAiLogo from "@/assets/platforms/angel-ai.png";
 import greenEarthLogo from "@/assets/platforms/green-earth.png";
-import camlyCoinLogo from "@/assets/camly_coin.png";
-import funMoneyLogo from "@/assets/platforms/fun-money.png";
-import funLifeLogo from "@/assets/platforms/fun-life.png";
+import ecosystemLogo from "@/assets/ecosystem/fun-ecosystem.png";
+import plpLogo from "@/assets/ecosystem/plp.png";
+import urantiaLogo from "@/assets/ecosystem/urantia.png";
+import funMoneyLogo from "@/assets/ecosystem/fun-money.png";
+import camlyCoinLogo from "@/assets/ecosystem/camly-coin.png";
+import funCosmosLogo from "@/assets/ecosystem/fun-cosmos.png";
+import funWalletLogo from "@/assets/ecosystem/fun-wallet.png";
+import loveHubLogo from "@/assets/ecosystem/lovehub.png";
+import angelAiLogo from "@/assets/ecosystem/angel-ai.png";
 
-interface Platform {
-  name: string;
-  logo: string;
-  link: string | null;
-  internal?: boolean; // For internal routes (react-router)
-}
+interface Platform { name: string; logo: string; link: string; internal?: boolean }
 
 const platforms: Platform[] = [
+  { name: "LOVEHUB", logo: loveHubLogo, link: "https://lovehub.fun.rich/" },
   { name: "FUN Profile", logo: funProfileLogo, link: "https://fun.rich/" },
   { name: "FUN Play", logo: funPlayLogo, link: "https://play.fun.rich/" },
   { name: "FUN Planet", logo: funPlanetLogo, link: "https://planet.fun.rich/" },
-  { name: "FUN Charity", logo: funCharityLogo, link: "https://angelaivan.fun.rich/" },
   { name: "FUN Wallet", logo: funWalletLogo, link: "https://funwallet-rich.lovable.app/dashboard" },
-  { name: "Angel AI", logo: angelAiLogo, link: "/angel-ai", internal: true },
+  { name: "FUN Charity", logo: funCharityLogo, link: "https://angelaivan.fun.rich/" },
   { name: "Green Earth", logo: greenEarthLogo, link: "https://greenearth-fun.lovable.app" },
-  { name: "Camly Coin", logo: camlyCoinLogo, link: "https://camly.co/" },
-  { name: "FUN Money", logo: funMoneyLogo, link: null },
-  { name: "FUN Life", logo: funLifeLogo, link: null },
+  { name: "FUN FARM", logo: funFarmLogo, link: "/feed", internal: true },
+  { name: "FUN COSMOS", logo: funCosmosLogo, link: "https://cosmos.fun.rich/" },
+  { name: "URANTIA", logo: urantiaLogo, link: "https://urantia.fun.rich/" },
+  { name: "Angel AI", logo: angelAiLogo, link: "/angel-ai", internal: true },
 ];
+
+const coins = Array.from({ length: 16 }, (_, index) => ({
+  name: index % 2 === 0 ? "FUN Money" : "CAMLY Coin",
+  logo: index % 2 === 0 ? funMoneyLogo : camlyCoinLogo,
+  link: index % 2 === 0 ? "https://money.fun.rich/" : "https://camly.co/",
+}));
+
+const orbitPosition = (index: number, count: number, radius: number): CSSProperties => {
+  const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+  return { left: `${50 + radius * Math.cos(angle)}%`, top: `${50 + radius * Math.sin(angle)}%` };
+};
+
+const NormalizedLogo = ({ src, alt }: { src: string; alt: string }) => {
+  const [scale, setScale] = useState(1);
+
+  const measureVisibleBounds = (event: SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return;
+
+    context.drawImage(image, 0, 0);
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+
+    for (let y = 0; y < canvas.height; y += 2) {
+      for (let x = 0; x < canvas.width; x += 2) {
+        if (data[(y * canvas.width + x) * 4 + 3] > 18) {
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+
+    if (maxX < 0 || maxY < 0) return;
+    const visibleRatio = Math.max((maxX - minX) / canvas.width, (maxY - minY) / canvas.height);
+    setScale(Math.min(1.75, Math.max(.86, .92 / visibleRatio)));
+  };
+
+  return <img src={src} alt={alt} onLoad={measureVisibleBounds} style={{ transform: `scale(${scale})` }} />;
+};
+
+const OrbitLink = ({ item }: { item: Platform }) => {
+  const logo = <span className="ff-orbit-logo"><NormalizedLogo src={item.logo} alt={item.name} /><span className="ff-orbit-tooltip">{item.name}</span></span>;
+  return item.internal
+    ? <Link className="ff-orbit-hitarea" to={item.link} onClick={() => window.scrollTo(0, 0)} aria-label={item.name}>{logo}</Link>
+    : <a className="ff-orbit-hitarea" href={item.link} target="_blank" rel="noopener noreferrer" aria-label={item.name}>{logo}</a>;
+};
+
+const GreenButton = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
+  <span className={cn("ff-luxury-green-button flex w-full items-center gap-3 rounded-xl px-4 py-3", className)}>{children}</span>
+);
 
 const EcosystemSidebar = () => {
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [productCount, setProductCount] = useState<number>(0);
+  const [productCount, setProductCount] = useState(0);
 
-  // Fetch product count
   useEffect(() => {
-    const fetchProductCount = async () => {
-      const { count } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_product_post', true)
-        .eq('product_status', 'active');
-      
-      setProductCount(count || 0);
-    };
-    
-    fetchProductCount();
+    supabase.from("posts").select("*", { count: "exact", head: true }).eq("is_product_post", true).eq("product_status", "active")
+      .then(({ count }) => setProductCount(count || 0));
   }, []);
 
   return (
-    <div
-      className="sticky top-24 space-y-4 overflow-y-auto scrollbar-thin pr-2"
-      style={{
-        maxHeight: "calc(100vh - 120px)",
-        scrollbarWidth: "thin",
-        scrollbarColor: "rgba(16, 185, 129, 0.5) transparent",
-      }}
-    >
-      {/* Header */}
-      <div
-        className="p-4"
-        style={{
-          background: "linear-gradient(135deg, rgba(120,200,255,0.12) 0%, rgba(255,255,255,0.08) 30%, rgba(180,220,255,0.15) 70%, rgba(255,255,255,0.1) 100%)",
-          backdropFilter: "saturate(120%)",
-          border: "3px solid #fbbf24",
-          borderRadius: "20px",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(200,150,0,0.4), 0 0 20px rgba(251,191,36,0.4), 0 8px 32px rgba(0,0,0,0.25)",
-        }}
-      >
-        <h2
-          className="text-xl font-bold flex items-center gap-2 mb-4"
-          style={{
-            color: "#ffd700",
-            textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 15px rgba(255,215,0,0.7)",
-          }}
-        >
-          🌱 FUN ECOSYSTEM
-        </h2>
+    <div className="sticky top-20 overflow-visible pr-2">
+      <section className="ff-luxury-panel ff-ecosystem-map p-4">
+        <div className="mb-3 flex items-center justify-center gap-2">
+          <img src={ecosystemLogo} alt="FUN Ecosystem" className="ff-hologram-ring h-10 w-10 rounded-full object-cover" />
+          <h2 className="ff-hologram-text text-center text-xl font-black tracking-wide">FUN ECOSYSTEM</h2>
+        </div>
 
-        {/* Law of Light Button */}
-        <Link
-          to="/law-of-light"
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-3 transition-all hover:scale-[1.02]"
-          style={{
-            background: "linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 165, 0, 0.4))",
-            border: "2px solid #ffd700",
-            boxShadow: "0 0 20px rgba(255, 215, 0, 0.5), inset 0 2px 4px rgba(255,255,255,0.4)",
-          }}
-        >
-          <Zap className="w-6 h-6 text-yellow-400" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.8))" }} />
-          <span
-            className="text-base font-bold"
-            style={{
-              color: "#ffd700",
-              textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(255,215,0,0.5)",
-            }}
-          >
-            Law of Light
-          </span>
-        </Link>
-
-        {/* Marketplace Button with product count */}
-        <Link
-          to="/marketplace"
-          onClick={() => window.scrollTo(0, 0)}
-          className="stat-row-shine flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-3 transition-all hover:scale-[1.02] hover:brightness-110"
-          style={{
-            background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-            border: '2px solid #fbbf24',
-            boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-            borderRadius: '16px',
-          }}
-        >
-          <ShoppingBag className="w-6 h-6 text-amber-300" style={{ filter: "drop-shadow(0 0 8px rgba(255,215,0,0.8))" }} />
-          <div className="flex-1">
-            <span
-              className="text-base font-bold block"
-              style={{
-                color: "#ffd700",
-                textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(255,215,0,0.5)",
-              }}
-            >
-              🛒 Chợ Nông Sản
-            </span>
-            {productCount > 0 && (
-              <span
-                className="text-xs"
-                style={{
-                  color: "rgba(255,255,255,0.9)",
-                  textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                }}
-              >
-                {productCount} sản phẩm đang bán
-              </span>
-            )}
+        <div className="ff-orbit-stage" aria-label="Bản đồ FUN Ecosystem">
+          <div className="ff-orbit-layer ff-orbit-platforms">
+            {platforms.map((platform, index) => (
+              <div key={platform.name} className="ff-orbit-node ff-orbit-face-counter" style={orbitPosition(index, platforms.length, 41.5)}><OrbitLink item={platform} /></div>
+            ))}
           </div>
-        </Link>
+          <div className="ff-orbit-layer ff-orbit-coins">
+            {coins.map((coin, index) => (
+              <a key={`${coin.name}-${index}`} href={coin.link} target="_blank" rel="noopener noreferrer" className="ff-orbit-node ff-orbit-face-clockwise" style={orbitPosition(index, coins.length, 21.5)} aria-label={coin.name}>
+                <span className="ff-orbit-coin"><img src={coin.logo} alt={coin.name} /></span>
+              </a>
+            ))}
+          </div>
+          <a href="https://money.fun.rich/" target="_blank" rel="noopener noreferrer" className="ff-orbit-center" aria-label="PureLove Protocol"><img src={plpLogo} alt="PLP - PureLove Protocol" /></a>
+        </div>
+        <p className="ff-orbit-caption mb-4 text-center text-[11px] font-medium text-emerald-900/70">Chạm vào logo để khám phá hệ sinh thái</p>
 
-        {/* About FUN FARM Dropdown */}
+        <Link to="/marketplace" onClick={() => window.scrollTo(0, 0)} className="mb-3 block transition-transform hover:scale-[1.015]">
+          <GreenButton><ShoppingBag className="h-6 w-6 text-amber-300" /><span className="flex-1"><strong className="ff-clean-gold-text block">Chợ Nông Sản</strong>{productCount > 0 && <small className="text-white/90">{productCount} sản phẩm đang bán</small>}</span></GreenButton>
+        </Link>
+        <Link to="/law-of-light" className="ff-luxury-gold-button mb-3 flex items-center gap-3 rounded-xl px-4 py-3 transition-transform hover:scale-[1.015]"><Zap className="h-6 w-6" /><span className="font-extrabold">Law of Light</span></Link>
         <Collapsible open={aboutOpen} onOpenChange={setAboutOpen}>
           <CollapsibleTrigger asChild>
-            <button
-              className="stat-row-shine flex items-center gap-3 w-full p-3 rounded-xl mb-3 hover:brightness-110 transition-all"
-              style={{
-                background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-                border: '2px solid #fbbf24',
-                boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-                borderRadius: '16px',
-              }}
-            >
-              <div 
-                className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden relative"
-                style={{
-                  outline: "2px solid #fbbf24",
-                  outlineOffset: "0px",
-                  boxShadow: "0 0 8px rgba(251,191,36,0.4)"
-                }}
-              >
-                <img
-                  src={funFarmLogo}
-                  alt="FUN FARM"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-              <span 
-                className="flex-1 text-left font-bold"
-                style={{
-                  color: "#ffd700",
-                  textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
-                }}
-              >
-                ABOUT FUN FARM
-              </span>
-              <ChevronDown 
-                className={cn(
-                  "w-5 h-5 text-amber-300 transition-transform duration-200",
-                  aboutOpen && "rotate-180"
-                )} 
-                style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} 
-              />
-            </button>
+            <button className="w-full transition-transform hover:scale-[1.015]"><GreenButton><img src={funFarmLogo} alt="FUN FARM" className="h-10 w-10 rounded-full object-cover ring-2 ring-amber-300" /><span className="ff-clean-gold-text flex-1 text-left font-extrabold">ABOUT FUN FARM</span><ChevronDown className={cn("h-5 w-5 text-amber-300 transition-transform", aboutOpen && "rotate-180")} /></GreenButton></button>
           </CollapsibleTrigger>
-          
-          <CollapsibleContent className="pl-4 space-y-2 mb-3">
-            {/* Thông tin chung */}
-            <Link
-              to="/about-fun-farm"
-              onClick={() => window.scrollTo(0, 0)}
-              className="stat-row-shine flex items-center gap-3 w-full p-2.5 rounded-xl hover:brightness-110 transition-all"
-              style={{
-                background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-                border: '2px solid #fbbf24',
-                boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-                borderRadius: '14px',
-              }}
-            >
-              <BookOpen className="w-5 h-5 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-              <span 
-                className="flex-1 text-left font-semibold text-sm"
-                style={{
-                  color: "#ffd700",
-                  textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
-                }}
-              >
-                Thông tin chung
-              </span>
-            </Link>
-
-            {/* Whitepaper */}
-            <Link
-              to="/whitepaper"
-              onClick={() => window.scrollTo(0, 0)}
-              className="stat-row-shine flex items-center gap-3 w-full p-2.5 rounded-xl hover:brightness-110 transition-all"
-              style={{
-                background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-                border: '2px solid #fbbf24',
-                boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-                borderRadius: '14px',
-              }}
-            >
-              <FileText className="w-5 h-5 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-              <span 
-                className="flex-1 text-left font-semibold text-sm"
-                style={{
-                  color: "#ffd700",
-                  textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
-                }}
-              >
-                Whitepaper
-              </span>
-            </Link>
+          <CollapsibleContent className="mt-2 space-y-2 pl-3">
+            <Link to="/about-fun-farm" className="block"><GreenButton className="py-2.5"><BookOpen className="h-5 w-5 text-amber-300" /><span className="ff-clean-gold-text font-bold">Thông tin chung</span></GreenButton></Link>
+            <Link to="/whitepaper" className="block"><GreenButton className="py-2.5"><FileText className="h-5 w-5 text-amber-300" /><span className="ff-clean-gold-text font-bold">Whitepaper</span></GreenButton></Link>
           </CollapsibleContent>
         </Collapsible>
-
-        {/* Platforms List */}
-        <div className="space-y-3">
-          {platforms.map((platform) => {
-            const content = (
-              <div
-                className={cn(
-                  "stat-row-shine flex items-center gap-3 p-2.5 rounded-xl",
-                  platform.link
-                    ? "hover:brightness-110 cursor-pointer"
-                    : "opacity-70 cursor-default"
-                )}
-                style={{
-                  background: 'linear-gradient(180deg, #4ade80 0%, #22c55e 30%, #16a34a 60%, #15803d 100%)',
-                  border: '2px solid #fbbf24',
-                  boxShadow: 'inset 0 8px 16px rgba(255,255,255,0.5), inset 0 -4px 12px rgba(0,0,0,0.2), 0 0 10px rgba(251,191,36,0.5), 0 4px 8px rgba(0,0,0,0.3)',
-                  borderRadius: '16px',
-                }}
-              >
-                <div className="w-14 h-14 rounded-full flex-shrink-0 overflow-hidden">
-                  <img
-                    src={platform.logo}
-                    alt={platform.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <span 
-                  className="flex-1 text-base font-semibold"
-                  style={{
-                    color: "#ffd700",
-                    textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(255,215,0,0.5)"
-                  }}
-                >
-                  {platform.name}
-                </span>
-                {platform.link && !platform.internal && (
-                  <ExternalLink className="w-4 h-4 text-amber-300" style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.6))" }} />
-                )}
-              </div>
-            );
-
-            if (platform.link) {
-              // Internal link - use React Router
-              if (platform.internal) {
-                return (
-                  <Link
-                    key={platform.name}
-                    to={platform.link}
-                    onClick={() => window.scrollTo(0, 0)}
-                  >
-                    {content}
-                  </Link>
-                );
-              }
-              // External link
-              return (
-                <a
-                  key={platform.name}
-                  href={platform.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {content}
-                </a>
-              );
-            }
-
-            return <div key={platform.name}>{content}</div>;
-          })}
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

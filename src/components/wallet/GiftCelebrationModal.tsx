@@ -6,8 +6,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, Sparkles, PartyPopper, Crown, Gem } from 'lucide-react';
+import { Heart, Sparkles, PartyPopper, Crown, Gem, Copy, ExternalLink, ShieldCheck, Check } from 'lucide-react';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import angelClappingGif from '@/assets/angel-gifs/angel-clapping.gif';
 import { getGiftLevel, GiftLevel } from '@/lib/giftLevels';
 
 interface GiftCelebrationModalProps {
@@ -20,6 +21,7 @@ interface GiftCelebrationModalProps {
   receiverName: string;
   receiverAvatar: string | null;
   message?: string;
+  txHash?: string;
   onCreatePost?: () => void;
 }
 
@@ -87,11 +89,13 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
   receiverName,
   receiverAvatar,
   message,
+  txHash,
   onCreatePost,
 }) => {
   const [windowSize, setWindowSize] = useState({ width: 400, height: 600 });
   const [showConfetti, setShowConfetti] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
+  const [copied, setCopied] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const giftLevel = getGiftLevel(amount);
@@ -145,9 +149,25 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
     return num.toLocaleString('vi-VN');
   };
 
+  const copyTxHash = async () => {
+    if (!txHash) return;
+    await navigator.clipboard.writeText(txHash);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   // Generate elements based on level
   const generateLevelEffects = () => {
     const elements: React.ReactNode[] = [];
+
+    // Every successful gift deserves a visible, tasteful celebration.
+    for (let i = 0; i < 12; i++) {
+      elements.push(<RichRainCoin key={`celebration-coin-${i}`} delay={Math.random() * 2.5} startX={Math.random() * 100} size={20 + Math.random() * 14} />);
+    }
+    const celebrationColors = ['#D4AF37', '#16A34A', '#F59E0B', '#F8D77A'];
+    for (let i = 0; i < 4; i++) {
+      elements.push(<FireworkBurst key={`celebration-firework-${i}`} x={12 + i * 25} y={12 + (i % 2) * 16} color={celebrationColors[i]} delay={i * 0.35} />);
+    }
     
     // Basic: Floating hearts
     if (levelConfig.level === 'basic') {
@@ -247,7 +267,7 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className={`sm:max-w-md overflow-hidden border-0 bg-gradient-to-b from-primary/20 via-background to-background transition-transform ${isShaking ? 'animate-shake' : ''}`}
+        className={`max-h-[92dvh] overflow-y-auto border border-amber-300/70 bg-gradient-to-br from-[#fff8e8] via-background to-[#eefbf2] shadow-[0_30px_100px_rgba(90,65,10,0.28)] sm:max-w-lg transition-transform ${isShaking ? 'animate-shake' : ''}`}
       >
         {/* Confetti - different intensity per level */}
         {showConfetti && (
@@ -269,6 +289,11 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
 
         {/* Content */}
         <div className="relative z-10 text-center py-6">
+          <img
+            src={angelClappingGif}
+            alt="Angel vỗ tay chúc mừng"
+            className="pointer-events-none absolute right-0 top-0 h-24 w-24 object-contain drop-shadow-[0_10px_18px_rgba(212,175,55,0.35)] sm:h-28 sm:w-28"
+          />
           {/* Header with Level Badge */}
           <div className="flex flex-col items-center gap-3 mb-4">
             <LevelBadge />
@@ -281,6 +306,9 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
           <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-500 via-pink-500 to-purple-500 bg-clip-text text-transparent mb-2">
             🎉 Tặng Quà Thành Công!
           </h2>
+          <div className="mx-auto mt-1 w-fit rounded-full border border-amber-300/70 bg-white/75 px-4 py-1 text-xs font-black tracking-[0.22em] text-emerald-700 shadow-sm">
+            RICH · RICH · RICH
+          </div>
 
           {/* Amount display with level glow */}
           <div className="my-6 relative">
@@ -358,6 +386,29 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
             </div>
           )}
 
+          {txHash && (
+            <div className="mx-4 mt-4 rounded-2xl border border-emerald-300/60 bg-white/80 p-4 text-left shadow-sm backdrop-blur-sm">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 font-semibold text-emerald-800">
+                  <ShieldCheck className="h-5 w-5" /> Biên nhận blockchain
+                </div>
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">Đã xác minh on-chain</span>
+              </div>
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
+                <span className="text-muted-foreground">Mạng</span><span className="text-right font-medium">BNB Smart Chain · Chain ID 56</span>
+                <span className="text-muted-foreground">Mã giao dịch</span><span className="truncate text-right font-mono" title={txHash}>{txHash}</span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={copyTxHash} className="gap-2">
+                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}{copied ? 'Đã sao chép' : 'Sao chép mã'}
+                </Button>
+                <Button asChild type="button" variant="outline" size="sm" className="gap-2 border-emerald-300 text-emerald-800">
+                  <a href={`https://bscscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer">Xem trên BscScan <ExternalLink className="h-4 w-4" /></a>
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3 mt-6 px-4">
             <Button
@@ -369,7 +420,7 @@ const GiftCelebrationModal: React.FC<GiftCelebrationModalProps> = ({
             </Button>
             {onCreatePost && (
               <Button
-                className="flex-1 gap-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                className="flex-1 gap-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-500 text-emerald-950 hover:brightness-105"
                 onClick={onCreatePost}
               >
                 <Sparkles className="w-4 h-4" />

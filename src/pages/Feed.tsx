@@ -37,23 +37,9 @@ const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ran
 };
 const Feed = () => {
   const navigate = useNavigate();
-  const { user, profile, isLoading: authLoading } = useAuth();
+  const { user, profile } = useAuth();
   const { setOnCreatePost } = useAngel();
 
-  // Auth guard: redirect to /auth if not logged in or email not verified
-  useEffect(() => {
-    if (authLoading) return; // Wait for auth to settle
-    
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
-    if (profile && !profile.email_verified) {
-      navigate('/auth');
-      return;
-    }
-  }, [user, profile, authLoading, navigate]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [initialModalTab, setInitialModalTab] = useState("post");
@@ -67,10 +53,10 @@ const Feed = () => {
   // Register create post callback for Angel Speed Dial
   useEffect(() => {
     if (!profile?.banned) {
-      setOnCreatePost(() => () => setIsCreateModalOpen(true));
+      setOnCreatePost(() => () => user ? setIsCreateModalOpen(true) : navigate('/auth?returnTo=%2F'));
     }
     return () => setOnCreatePost(null);
-  }, [setOnCreatePost, profile?.banned]);
+  }, [setOnCreatePost, profile?.banned, user, navigate]);
 
   const extractGiftReceiverName = (content: string | null | undefined) => {
     if (!content) return undefined;
@@ -128,18 +114,20 @@ const Feed = () => {
           .map((p: any) => p.id)
       )];
 
-      const giftTxMap = new Map<string, { amount: number; currency: string }>();
+      const giftTxMap = new Map<string, { amount: number; currency: string; txHash?: string }>();
       if (giftPostIds.length) {
         const { data: txRows } = await supabase
           .from('wallet_transactions')
-          .select('post_id, amount, currency')
-          .in('post_id', giftPostIds);
+          .select('post_id, amount_decimal, currency, tx_hash')
+          .in('post_id', giftPostIds)
+          .eq('status', 'verified');
 
         (txRows || []).forEach((r: any) => {
           if (!r?.post_id) return;
           giftTxMap.set(r.post_id, {
-            amount: Number(r.amount) || 0,
+            amount: Number(r.amount_decimal) || 0,
             currency: r.currency || 'CAMLY',
+            txHash: r.tx_hash || undefined,
           });
         });
       }
@@ -152,7 +140,10 @@ const Feed = () => {
       const receiverNameCache = new Map<string, { display_name?: string; avatar_url?: string }>();
 
       // Transform amalgamated database posts to Post type
-      const transformedPosts: Post[] = await Promise.all(postsData.map(async (post: any) => {
+      const verifiedPosts = postsData.filter(
+        (post: any) => post.post_type !== 'gift' || giftTxMap.has(post.id),
+      );
+      const transformedPosts: Post[] = await Promise.all(verifiedPosts.map(async (post: any) => {
         const profile = profilesMap.get(post.author_id);
         const displayName = profile?.display_name?.trim() || 'Nông dân FUN';
 
@@ -177,6 +168,7 @@ const Feed = () => {
             let origReceiverAvatar: string | undefined;
             let origGiftAmount: number | undefined;
             let origGiftCurrency: string | undefined;
+            let origGiftTxHash: string | undefined;
 
             if (origPost.post_type === 'gift') {
               if (origPost.gift_receiver_id) {
@@ -190,19 +182,21 @@ const Feed = () => {
 
               const { data: tx } = await supabase
                 .from('wallet_transactions')
-                .select('amount, currency')
+                .select('amount_decimal, currency, tx_hash')
                 .eq('post_id', origPost.id)
+                .eq('status', 'verified')
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
               if (tx) {
-                origGiftAmount = Number((tx as any).amount) || 0;
+                origGiftAmount = Number((tx as any).amount_decimal) || 0;
                 origGiftCurrency = (tx as any).currency || undefined;
+                origGiftTxHash = (tx as any).tx_hash || undefined;
               }
             }
 
-            originalPost = {
+            originalPost = origPost.post_type === 'gift' && origGiftAmount === undefined ? undefined : {
               id: origPost.id,
               author: {
                 id: origPost.author_id,
@@ -240,6 +234,7 @@ const Feed = () => {
               receiver_avatar: origReceiverAvatar,
               gift_amount: origGiftAmount,
               gift_currency: origGiftCurrency,
+              gift_tx_hash: origGiftTxHash,
             };
           }
         }
@@ -335,6 +330,7 @@ const Feed = () => {
           receiver_avatar: receiverAvatar,
           gift_amount: giftTxMap.get(post.id)?.amount,
           gift_currency: giftTxMap.get(post.id)?.currency,
+          gift_tx_hash: giftTxMap.get(post.id)?.txHash,
         };
       }));
       if (append) {
@@ -399,6 +395,7 @@ const Feed = () => {
           let origReceiverAvatar: string | undefined;
           let origGiftAmount: number | undefined;
           let origGiftCurrency: string | undefined;
+          let origGiftTxHash: string | undefined;
 
           if (origPost.post_type === 'gift') {
             // Fetch receiver profile
@@ -429,19 +426,21 @@ const Feed = () => {
             // Fetch gift amount from wallet_transactions
             const { data: tx } = await supabase
               .from('wallet_transactions')
-              .select('amount, currency')
+              .select('amount_decimal, currency, tx_hash')
               .eq('post_id', origPost.id)
+              .eq('status', 'verified')
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
 
             if (tx) {
-              origGiftAmount = Number((tx as any).amount) || 0;
+              origGiftAmount = Number((tx as any).amount_decimal) || 0;
               origGiftCurrency = (tx as any).currency || 'CAMLY';
+              origGiftTxHash = (tx as any).tx_hash || undefined;
             }
           }
           
-          originalPost = {
+          originalPost = origPost.post_type === 'gift' && origGiftAmount === undefined ? undefined : {
             id: origPost.id,
             author: {
               id: origPost.author_id,
@@ -478,6 +477,7 @@ const Feed = () => {
             receiver_avatar: origReceiverAvatar,
             gift_amount: origGiftAmount,
             gift_currency: origGiftCurrency,
+            gift_tx_hash: origGiftTxHash,
           };
         }
       }
@@ -639,15 +639,15 @@ const Feed = () => {
     await fetchPosts(0);
   };
   return (
-    <div className="min-h-screen">
+    <div className="ff-luxury-page min-h-screen">
       <Navbar />
       
       
       <main className="pt-20 pb-16">
-        <div className="container max-w-[1600px] mx-auto px-2 lg:px-4">
-          <div className="rounded-2xl p-2 lg:p-4">
+        <div className="container max-w-[1640px] mx-auto px-2 lg:px-5">
+          <div className="rounded-2xl p-1 lg:p-3">
             {/* 3-Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 xl:gap-6">
               {/* Left Sidebar - Ecosystem */}
               <div className="hidden lg:block lg:col-span-3">
                 <EcosystemSidebar />
@@ -667,10 +667,14 @@ const Feed = () => {
                 {/* Create Post Box - Facebook style - Hide if banned */}
                 {!profile?.banned && (
                   <CreatePost 
-                    onOpenModal={() => setIsCreateModalOpen(true)} 
+                    onOpenModal={() => user ? setIsCreateModalOpen(true) : navigate('/auth?returnTo=%2F')}
                     onOpenModalWithTab={(tab) => {
-                      setInitialModalTab(tab);
-                      setIsCreateModalOpen(true);
+                      if (!user) {
+                        navigate('/auth?returnTo=%2F');
+                      } else {
+                        setInitialModalTab(tab);
+                        setIsCreateModalOpen(true);
+                      }
                     }}
                   />
                 )}
@@ -727,14 +731,7 @@ const Feed = () => {
 
               {/* Right Sidebar - Honor Board & Rankings */}
               <div className="hidden lg:block lg:col-span-3">
-                <div 
-                  className="sticky top-24 overflow-y-auto scrollbar-thin pr-2"
-                  style={{
-                    maxHeight: 'calc(100vh - 120px)',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(255, 215, 0, 0.5) transparent',
-                  }}
-                >
+                <div className="sticky top-20 overflow-visible pr-2">
                   <FeedSidebar trendingHashtags={trendingHashtags} suggestedFarms={suggestedFarms} />
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserProvider, formatEther, parseEther, parseUnits, Contract } from 'ethers';
+import { BrowserProvider, formatEther, formatUnits, parseEther, parseUnits, Contract } from 'ethers';
 
 // BSC Mainnet config
 export const BSC_CHAIN_ID = '0x38'; // 56 in hex
@@ -17,6 +17,7 @@ export const BSC_CHAIN_CONFIG = {
 
 // Token addresses on BSC
 export const TOKEN_ADDRESSES = {
+  CAMLY: '0x0910320181889fefde0bb1ca63962b0a8882e413',
   USDT: '0x55d398326f99059fF775485246999027B3197955', // BSC USDT
   BTCB: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', // Wrapped BTC on BSC
 };
@@ -36,6 +37,7 @@ interface MetaMaskState {
   address: string | null;
   chainId: string | null;
   bnbBalance: string;
+  camlyBalance: string;
   usdtBalance: string;
   btcbBalance: string;
   error: string | null;
@@ -49,6 +51,7 @@ export const useMetaMask = () => {
     address: null,
     chainId: null,
     bnbBalance: '0',
+    camlyBalance: '0',
     usdtBalance: '0',
     btcbBalance: '0',
     error: null,
@@ -75,11 +78,12 @@ export const useMetaMask = () => {
           isConnected: false,
           address: null,
           bnbBalance: '0',
+          camlyBalance: '0',
           usdtBalance: '0',
           btcbBalance: '0',
         }));
       } else {
-        setState(prev => ({ ...prev, address: accounts[0] }));
+        setState(prev => ({ ...prev, isConnected: true, address: accounts[0] }));
         fetchBalances(accounts[0]);
       }
     };
@@ -138,8 +142,10 @@ export const useMetaMask = () => {
       // Get token balances
       const usdtContract = new Contract(TOKEN_ADDRESSES.USDT, ERC20_ABI, provider);
       const btcbContract = new Contract(TOKEN_ADDRESSES.BTCB, ERC20_ABI, provider);
+      const camlyContract = new Contract(TOKEN_ADDRESSES.CAMLY, ERC20_ABI, provider);
       
-      const [usdtBalance, btcbBalance] = await Promise.all([
+      const [camlyBalance, usdtBalance, btcbBalance] = await Promise.all([
+        camlyContract.balanceOf(address),
         usdtContract.balanceOf(address),
         btcbContract.balanceOf(address),
       ]);
@@ -147,6 +153,7 @@ export const useMetaMask = () => {
       setState(prev => ({
         ...prev,
         bnbBalance: formatEther(bnbBalance),
+        camlyBalance: formatUnits(camlyBalance, 3),
         usdtBalance: formatEther(usdtBalance), // USDT has 18 decimals on BSC
         btcbBalance: formatEther(btcbBalance),
       }));
@@ -216,6 +223,7 @@ export const useMetaMask = () => {
       isConnected: false,
       address: null,
       bnbBalance: '0',
+      camlyBalance: '0',
       usdtBalance: '0',
       btcbBalance: '0',
     }));
@@ -234,7 +242,7 @@ export const useMetaMask = () => {
         value: parseEther(amount),
       });
 
-      await tx.wait();
+      await tx.wait(3);
       await fetchBalances(state.address);
       
       return tx.hash;
@@ -259,7 +267,7 @@ export const useMetaMask = () => {
       const contract = new Contract(tokenAddress, ERC20_ABI, signer);
       
       const tx = await contract.transfer(to, parseUnits(amount, decimals));
-      await tx.wait();
+      await tx.wait(3);
       await fetchBalances(state.address);
       
       return tx.hash;
@@ -273,6 +281,10 @@ export const useMetaMask = () => {
     return sendToken(TOKEN_ADDRESSES.USDT, to, amount, 18);
   }, [sendToken]);
 
+  const sendCAMLY = useCallback(async (to: string, amount: string) => {
+    return sendToken(TOKEN_ADDRESSES.CAMLY, to, amount, 3);
+  }, [sendToken]);
+
   const sendBTCB = useCallback(async (to: string, amount: string) => {
     return sendToken(TOKEN_ADDRESSES.BTCB, to, amount, 18);
   }, [sendToken]);
@@ -282,6 +294,7 @@ export const useMetaMask = () => {
     connect,
     disconnect,
     sendBNB,
+    sendCAMLY,
     sendUSDT,
     sendBTCB,
     refreshBalances: () => state.address && fetchBalances(state.address),

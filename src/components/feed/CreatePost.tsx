@@ -30,10 +30,10 @@ const CreatePost = ({ onOpenModal, onOpenModalWithTab }: CreatePostProps) => {
   };
 
   return (
-    <div className="bg-card rounded-2xl shadow-card border border-border p-4">
+    <div className="ff-content-card ff-composer p-4">
       {/* Input Row */}
       <div className="flex items-center gap-3">
-        <Avatar className="w-10 h-10 md:w-12 md:h-12 ring-2 ring-primary/20">
+        <Avatar className="w-10 h-10 md:w-12 md:h-12 ring-1 ring-[#d8b85a] ring-offset-2 ring-offset-white">
           <AvatarImage src={profile?.avatar_url || defaultAvatarGirl} />
           <AvatarFallback className="bg-primary/10 text-lg">
             {profileTypeEmojis[profile?.profile_type || 'farmer'] || '🌱'}
@@ -42,14 +42,14 @@ const CreatePost = ({ onOpenModal, onOpenModalWithTab }: CreatePostProps) => {
 
         <button
           onClick={() => handleOpenTab("post")}
-          className="flex-1 text-left px-4 py-3 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+          className="ff-composer-input flex-1 rounded-full px-4 py-3 text-left text-muted-foreground transition-colors"
         >
           Bạn đang nghĩ gì vậy?
         </button>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-border mt-4 pt-3" />
+      <div className="mt-4 border-t border-emerald-900/10 pt-3" />
 
       {/* Action Buttons - 2 buttons: Chia sẻ & Bán hàng */}
       <div className="flex items-center justify-center gap-4">

@@ -17,7 +17,6 @@ import {
   ArrowDownLeft, 
   ArrowUpRight, 
   Gift,
-  Bitcoin,
   Heart
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,7 +28,6 @@ import WalletPriceChart from '@/components/wallet/WalletPriceChart';
 import MetaMaskConnect from '@/components/wallet/MetaMaskConnect';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import TopSponsor from '@/components/wallet/TopSponsor';
-import camlyCoinImg from '@/assets/camly_coin.png';
 import funFarmLogo from '@/assets/logo_fun_farm_web3.png';
 
 // FUN FARM TREASURY wallet info
@@ -49,6 +47,8 @@ interface GiftSuccessData {
   receiverAvatar: string | null;
   receiverWallet?: string;
   message: string;
+  transactionId: string;
+  txHash: string;
 }
 
 interface Transaction {
@@ -56,6 +56,7 @@ interface Transaction {
   sender_id: string;
   receiver_id: string;
   amount: number;
+  amount_decimal?: number | null;
   currency: string;
   message: string | null;
   tx_hash: string | null;
@@ -114,6 +115,8 @@ const Wallet_Page = () => {
       const { data, error } = await supabase
         .from('wallet_transactions')
         .select('*')
+        .eq('status', 'verified')
+        .not('tx_hash', 'is', null)
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -148,12 +151,12 @@ const Wallet_Page = () => {
   };
 
   const totalSent = transactions
-    .filter(t => t.sender_id === user?.id && t.currency === 'CLC')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => t.sender_id === user?.id && t.currency === 'CAMLY')
+    .reduce((sum, t) => sum + Number(t.amount_decimal || 0), 0);
 
   const totalReceived = transactions
-    .filter(t => t.receiver_id === user?.id && t.currency === 'CLC')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => t.receiver_id === user?.id && t.currency === 'CAMLY')
+    .reduce((sum, t) => sum + Number(t.amount_decimal || 0), 0);
 
   if (authLoading) {
     return (
@@ -208,59 +211,6 @@ const Wallet_Page = () => {
         {/* MetaMask Connect */}
         <MetaMaskConnect />
 
-        {/* Balance Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {/* CLC Balance */}
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <img src={camlyCoinImg} alt="CLC" className="w-6 h-6" />
-                <span className="text-sm font-medium">CAMLY</span>
-              </div>
-              <div className="text-2xl font-bold text-primary">
-                {formatNumber(profile?.camly_balance || 0)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">CLC</div>
-            </CardContent>
-          </Card>
-
-          {/* BTC Balance */}
-          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Bitcoin className="w-6 h-6 text-orange-500" />
-                <span className="text-sm font-medium">Bitcoin</span>
-              </div>
-              <div className="text-2xl font-bold text-orange-500">0</div>
-              <div className="text-xs text-muted-foreground mt-1">BTC</div>
-            </CardContent>
-          </Card>
-
-          {/* USDT Balance */}
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-green-500 font-bold text-xl">₮</span>
-                <span className="text-sm font-medium">USDT</span>
-              </div>
-              <div className="text-2xl font-bold text-green-500">0</div>
-              <div className="text-xs text-muted-foreground mt-1">USDT</div>
-            </CardContent>
-          </Card>
-
-          {/* BNB Balance */}
-          <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-yellow-500 font-bold text-xl">◆</span>
-                <span className="text-sm font-medium">BNB</span>
-              </div>
-              <div className="text-2xl font-bold text-yellow-500">0</div>
-              <div className="text-xs text-muted-foreground mt-1">BNB</div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card>
@@ -270,7 +220,7 @@ const Wallet_Page = () => {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Đã tặng</div>
-                <div className="text-lg font-bold text-red-500">-{formatNumber(totalSent)} CLC</div>
+                <div className="text-lg font-bold text-red-500">-{formatNumber(totalSent)} CAMLY</div>
               </div>
             </CardContent>
           </Card>
@@ -281,7 +231,7 @@ const Wallet_Page = () => {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Đã nhận</div>
-                <div className="text-lg font-bold text-green-500">+{formatNumber(totalReceived)} CLC</div>
+                <div className="text-lg font-bold text-green-500">+{formatNumber(totalReceived)} CAMLY</div>
               </div>
             </CardContent>
           </Card>
@@ -345,6 +295,7 @@ const Wallet_Page = () => {
           receiverName={celebrationData.receiverName}
           receiverAvatar={celebrationData.receiverAvatar}
           message={celebrationData.message}
+          txHash={celebrationData.txHash}
           onCreatePost={() => {
             setShowCelebration(false);
             setShowCreatePost(true);
@@ -368,6 +319,8 @@ const Wallet_Page = () => {
             receiverAvatar: celebrationData.receiverAvatar,
             receiverWallet: celebrationData.receiverWallet,
             message: celebrationData.message,
+            transactionId: celebrationData.transactionId,
+            txHash: celebrationData.txHash,
           }}
         />
       )}

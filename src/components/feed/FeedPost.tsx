@@ -357,7 +357,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
   const isSharePost = post.post_type === 'share' && post.original_post;
 
   return (
-    <article className="bg-card rounded-2xl shadow-card border border-border overflow-hidden transition-all duration-300 hover:shadow-soft">
+    <article className="ff-content-card ff-feed-post overflow-hidden transition-all duration-300">
       {/* Share Header - shows when this is a shared post */}
       {isSharePost && (
         <div className="px-3 sm:px-4 pt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -381,7 +381,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
             <img 
               src={post.author.avatar} 
               alt={post.author.name}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-primary/20"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-1 ring-[#d8b85a] ring-offset-2 ring-offset-white"
             />
             <span className="absolute -bottom-1 -right-1 text-xs sm:text-sm">
               {getUserTypeIcon(post.author.type)}
@@ -498,6 +498,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
           receiverWallet={(post as any).receiver_wallet}
           receiverAvatar={(post as any).receiver_avatar}
           giftAmount={(post as any).gift_amount}
+          txHash={(post as any).gift_tx_hash}
         />
       )}
 
@@ -662,7 +663,7 @@ const FeedPost = ({ post: initialPost, onCountsUpdate }: FeedPostProps) => {
       )}
 
       {/* Actions */}
-      <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+      <div className="ff-post-actions px-4 py-2.5 border-t border-emerald-900/10 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <div className="relative">
             <Button 

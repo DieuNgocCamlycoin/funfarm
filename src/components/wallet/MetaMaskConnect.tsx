@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMetaMask } from '@/hooks/useMetaMask';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +12,8 @@ import {
   Link2Off, 
   ExternalLink,
   RefreshCw,
-  Bitcoin
+  Bitcoin,
+  ShieldCheck,
 } from 'lucide-react';
 
 const formatAddress = (address: string) => {
@@ -24,12 +28,15 @@ const formatBalance = (balance: string, decimals: number = 4) => {
 };
 
 const MetaMaskConnect: React.FC = () => {
+  const { profile, refreshProfile } = useAuth();
+  const [isLinking, setIsLinking] = useState(false);
   const {
     isInstalled,
     isConnected,
     isConnecting,
     address,
     bnbBalance,
+    camlyBalance,
     usdtBalance,
     btcbBalance,
     error,
@@ -37,6 +44,35 @@ const MetaMaskConnect: React.FC = () => {
     disconnect,
     refreshBalances,
   } = useMetaMask();
+  const isVerifiedWallet = Boolean(
+    address && profile?.wallet_address && address.toLowerCase() === profile.wallet_address.toLowerCase()
+  );
+
+  const linkCurrentWallet = async () => {
+    if (!address || !(window as any).ethereum) return;
+    setIsLinking(true);
+    try {
+      const { data: request, error: requestError } = await supabase.functions.invoke('link-wallet', {
+        body: { action: 'request', wallet: address },
+      });
+      if (requestError || !request?.success) throw new Error(request?.error || requestError?.message);
+
+      const signature = await (window as any).ethereum.request({
+        method: 'personal_sign',
+        params: [request.message, address],
+      });
+      const { data: verified, error: verifyError } = await supabase.functions.invoke('link-wallet', {
+        body: { action: 'verify', challengeId: request.challengeId, signature },
+      });
+      if (verifyError || !verified?.success) throw new Error(verified?.error || verifyError?.message);
+      await refreshProfile();
+      toast.success('Đã xác minh và liên kết ví FUN PLAY an toàn.');
+    } catch (error: any) {
+      if (error?.code !== 4001) toast.error(error?.message || 'Không thể liên kết ví');
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   if (!isInstalled) {
     return (
@@ -151,7 +187,16 @@ const MetaMaskConnect: React.FC = () => {
         </div>
 
         {/* On-chain Balances */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-primary font-bold">C</span>
+              <span className="text-xs">CAMLY</span>
+            </div>
+            <div className="text-lg font-bold text-primary">
+              {formatBalance(camlyBalance, 2)}
+            </div>
+          </div>
           <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <div className="flex items-center gap-1 mb-1">
               <span className="text-yellow-500 font-bold">◆</span>
@@ -181,6 +226,18 @@ const MetaMaskConnect: React.FC = () => {
               {formatBalance(btcbBalance, 6)}
             </div>
           </div>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className={`flex items-center gap-2 text-sm ${isVerifiedWallet ? 'text-green-600' : 'text-amber-700'}`}>
+            <ShieldCheck className="h-4 w-4" />
+            {isVerifiedWallet ? 'Ví này đã được xác minh cho tài khoản FUN FARM' : 'Ví này chưa liên kết với tài khoản FUN FARM'}
+          </div>
+          {!isVerifiedWallet && (
+            <Button type="button" onClick={linkCurrentWallet} disabled={isLinking} className="gap-2">
+              {isLinking ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {isLinking ? 'Đang xác minh...' : 'Xác minh & đổi sang ví này'}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

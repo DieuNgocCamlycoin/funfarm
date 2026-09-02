@@ -47,6 +47,22 @@ const PostDetail = () => {
         return;
       }
 
+      let verifiedGift: { amount_decimal: number | null; currency: string; tx_hash: string | null } | null = null;
+      if (postData.post_type === 'gift') {
+        const { data: transaction } = await supabase
+          .from('wallet_transactions')
+          .select('amount_decimal, currency, tx_hash')
+          .eq('post_id', postData.id)
+          .eq('status', 'verified')
+          .not('tx_hash', 'is', null)
+          .maybeSingle();
+        if (!transaction) {
+          setError('Bài tặng quà này không có giao dịch BSC đã xác minh');
+          return;
+        }
+        verifiedGift = transaction;
+      }
+
       // Fetch author profile
       const { data: profileData } = await supabase
         .from('profiles')
@@ -136,6 +152,8 @@ const PostDetail = () => {
         receiver_approved: postData.receiver_approved || undefined,
         receiver_name: receiverProfile?.display_name || undefined,
         receiver_avatar: receiverProfile?.avatar_url || undefined,
+        gift_amount: Number(verifiedGift?.amount_decimal) || undefined,
+        gift_currency: verifiedGift?.currency || undefined,
         original_post: originalPost ? {
           id: originalPost.id,
           author: {

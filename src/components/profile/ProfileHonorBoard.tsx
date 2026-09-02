@@ -311,15 +311,15 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
           
           supabase
             .from('wallet_transactions')
-            .select('amount')
+            .select('amount_decimal')
             .eq('sender_id', userId)
-            .eq('status', 'completed'),
+            .eq('status', 'verified'),
           
           supabase
             .from('wallet_transactions')
-            .select('amount')
+            .select('amount_decimal')
             .eq('receiver_id', userId)
-            .eq('status', 'completed')
+            .eq('status', 'verified')
         ]);
 
         const pendingReward = profileResult.data?.pending_reward || 0;
@@ -327,10 +327,10 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
         const camlyBalance = profileResult.data?.camly_balance || 0;
         
         const totalSent = (sentResult.data || []).reduce(
-          (sum, tx) => sum + (tx.amount || 0), 0
+          (sum, tx) => sum + Number(tx.amount_decimal || 0), 0
         );
         const totalReceivedFromUsers = (receivedResult.data || []).reduce(
-          (sum, tx) => sum + (tx.amount || 0), 0
+          (sum, tx) => sum + Number(tx.amount_decimal || 0), 0
         );
 
         setStats({

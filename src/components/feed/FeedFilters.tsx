@@ -18,7 +18,7 @@ const filters = [
 
 const FeedFilters = ({ activeFilter, onFilterChange }: FeedFiltersProps) => {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="ff-filter-rail flex gap-2 overflow-x-auto p-1.5 scrollbar-hide">
       {filters.map((filter) => (
         <Button
           key={filter.id}
@@ -26,10 +26,10 @@ const FeedFilters = ({ activeFilter, onFilterChange }: FeedFiltersProps) => {
           size="sm"
           onClick={() => onFilterChange(filter.id)}
           className={cn(
-            "flex-shrink-0 gap-2 rounded-full transition-all",
+            "ff-filter-pill flex-shrink-0 gap-2 rounded-full transition-all",
             activeFilter === filter.id 
-              ? "gradient-hero border-0 shadow-soft" 
-              : "bg-card hover:bg-muted"
+              ? "ff-filter-pill-active border-0"
+              : "bg-white hover:bg-emerald-50"
           )}
         >
           <span>{filter.icon}</span>

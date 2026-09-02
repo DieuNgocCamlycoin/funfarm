@@ -1833,39 +1833,69 @@ export type Database = {
       wallet_transactions: {
         Row: {
           amount: number
+          amount_atomic: number | null
+          amount_decimal: number | null
+          block_number: number | null
+          chain_id: number | null
+          confirmations: number | null
           created_at: string
           currency: string
           id: string
           message: string | null
+          from_wallet: string | null
           post_id: string | null
           receiver_id: string
           sender_id: string
           status: string
+          to_wallet: string | null
+          token_address: string | null
           tx_hash: string | null
+          verification_source: string | null
+          verified_at: string | null
         }
         Insert: {
           amount: number
+          amount_atomic?: number | null
+          amount_decimal?: number | null
+          block_number?: number | null
+          chain_id?: number | null
+          confirmations?: number | null
           created_at?: string
           currency?: string
           id?: string
           message?: string | null
+          from_wallet?: string | null
           post_id?: string | null
           receiver_id: string
           sender_id: string
           status?: string
+          to_wallet?: string | null
+          token_address?: string | null
           tx_hash?: string | null
+          verification_source?: string | null
+          verified_at?: string | null
         }
         Update: {
           amount?: number
+          amount_atomic?: number | null
+          amount_decimal?: number | null
+          block_number?: number | null
+          chain_id?: number | null
+          confirmations?: number | null
           created_at?: string
           currency?: string
           id?: string
           message?: string | null
+          from_wallet?: string | null
           post_id?: string | null
           receiver_id?: string
           sender_id?: string
           status?: string
+          to_wallet?: string | null
+          token_address?: string | null
           tx_hash?: string | null
+          verification_source?: string | null
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -2100,6 +2130,10 @@ export type Database = {
           p_seller_id: string
         }
         Returns: string
+      }
+      link_verified_gift_post: {
+        Args: { p_post_id: string; p_transaction_id: string }
+        Returns: undefined
       }
       reject_user_reward: {
         Args: { p_admin_id: string; p_note?: string; p_user_id: string }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useMetaMask, TOKEN_ADDRESSES } from '@/hooks/useMetaMask';
+import { useMetaMask } from '@/hooks/useMetaMask';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -25,7 +25,10 @@ import {
   Send,
   AlertTriangle,
   ExternalLink,
-  Wallet
+  Wallet,
+  ArrowLeft,
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
@@ -53,6 +56,8 @@ interface GiftSuccessData {
   receiverAvatar: string | null;
   receiverWallet?: string;
   message: string;
+  transactionId: string;
+  txHash: string;
 }
 
 interface UserResult {
@@ -63,14 +68,19 @@ interface UserResult {
 }
 
 const currencies = [
-  { id: 'CLC', name: 'Camly Coin', icon: camlyCoinImg, color: 'primary', isOnChain: false },
+  { id: 'CAMLY', name: 'Camly Coin', icon: camlyCoinImg, color: 'primary', isOnChain: true },
   { id: 'BNB', name: 'BNB', icon: null, iconComponent: <span className="text-yellow-500 font-bold">◆</span>, color: 'yellow-500', isOnChain: true },
   { id: 'USDT', name: 'USDT', icon: null, iconComponent: <span className="text-green-500 font-bold">₮</span>, color: 'green-500', isOnChain: true },
   { id: 'BTCB', name: 'BTCB', icon: null, iconComponent: <Bitcoin className="w-5 h-5 text-orange-500" />, color: 'orange-500', isOnChain: true },
 ];
 
-const quickAmounts = [10000, 50000, 100000, 500000, 1000000];
+const quickAmounts = [1, 10, 100, 1000, 10000];
 const cryptoQuickAmounts = [0.001, 0.01, 0.1, 0.5, 1];
+const messageTemplates = [
+  { label: 'Biết ơn', icon: '🙌', text: 'Biết ơn bạn vì những điều tốt đẹp bạn đã trao tặng cho cuộc sống. Gửi đến bạn món quà ngập tràn năng lượng yêu thương thay lời cảm ơn. Chúc bạn luôn hạnh phúc, giàu sang, sung sướng đủ đầy. 💚' },
+  { label: 'Yêu thương', icon: '💗', text: 'Gửi bạn thật nhiều năng lượng ánh sáng yêu thương thuần khiết. Chúc mỗi ngày của bạn đều ngập tràn hạnh phúc, thịnh vượng, giàu sang, sung sướng, đủ đầy. ✨' },
+  { label: 'Chúc mừng', icon: '🎉', text: 'Chúc mừng bạn nha! Chúc cho niềm vui hôm nay sẽ mở ra thêm nhiều điều tuyệt vời phía trước. Chúc bạn ngày càng thành công, hạnh phúc, thịnh vượng, giàu sang, sung sướng, đủ đầy. 🌟' },
+];
 
 const SendGiftModal: React.FC<SendGiftModalProps> = ({ 
   isOpen, 
@@ -81,20 +91,21 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   treasuryLogo,
 }) => {
   const isTreasuryMode = !!treasuryWallet;
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const metamask = useMetaMask();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserResult | null>(
     preselectedUser ? { ...preselectedUser, profile_type: preselectedUser.profile_type || 'eater' } : null
   );
-  const [selectedCurrency, setSelectedCurrency] = useState('CLC');
+  const [selectedCurrency, setSelectedCurrency] = useState('CAMLY');
   const [amount, setAmount] = useState('');
   const [receiverWallet, setReceiverWallet] = useState('');
   const [message, setMessage] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [transactionStatus, setTransactionStatus] = useState<'idle' | 'wallet' | 'verifying'>('idle');
 
   useEffect(() => {
     if (preselectedUser) {
@@ -106,14 +117,15 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       // Reset form when modal closes
-      setStep(1);
+      setStep(2);
       setSearchQuery('');
       setSearchResults([]);
       setSelectedUser(preselectedUser ? { ...preselectedUser, profile_type: preselectedUser.profile_type || 'eater' } : null);
-      setSelectedCurrency('CLC');
+      setSelectedCurrency('CAMLY');
       setAmount('');
       setReceiverWallet('');
       setMessage('');
+      setTransactionStatus('idle');
     }
   }, [isOpen, preselectedUser]);
 
@@ -126,7 +138,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         return;
       }
       
-      if (selectedUser && selectedCurrency !== 'CLC') {
+      if (selectedUser) {
         const { data } = await supabase
           .from('profiles')
           .select('wallet_address')
@@ -141,7 +153,12 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
     fetchReceiverWallet();
   }, [selectedUser, selectedCurrency, isTreasuryMode, treasuryWallet]);
 
-  const isOnChainCurrency = currencies.find(c => c.id === selectedCurrency)?.isOnChain || false;
+  const isOnChainCurrency = true;
+  const walletMatchesProfile = Boolean(
+    metamask.address
+    && profile?.wallet_address
+    && metamask.address.toLowerCase() === profile.wallet_address.toLowerCase()
+  );
 
   const searchUsers = async (query: string) => {
     if (query.length < 2) {
@@ -176,30 +193,29 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
 
   const handleSelectUser = (user: UserResult) => {
     setSelectedUser(user);
+    setSearchQuery('');
+    setSearchResults([]);
     setStep(2);
   };
 
   const handleSendGift = async () => {
     if (!user || !selectedUser || !amount) return;
 
-    const amountNum = selectedCurrency === 'CLC' ? parseInt(amount) : parseFloat(amount);
-    
-    // Validate for CLC
-    if (selectedCurrency === 'CLC') {
-      if (amountNum > (profile?.camly_balance || 0)) {
-        toast.error('Số dư CAMLY không đủ!');
-        return;
-      }
-      if (amountNum < 1000) {
-        toast.error('Số tiền tối thiểu là 1,000 CLC');
-        return;
-      }
+    if (isTreasuryMode) {
+      toast.error('Ví Treasury cần được liên kết với một tài khoản FUN FARM đã xác minh trước khi nhận quà.');
+      return;
     }
+
+    const amountNum = parseFloat(amount);
 
     // Validate for on-chain currencies
     if (isOnChainCurrency) {
       if (!metamask.isConnected) {
         toast.error('Vui lòng kết nối MetaMask trước!');
+        return;
+      }
+      if (!profile?.wallet_address || metamask.address?.toLowerCase() !== profile.wallet_address.toLowerCase()) {
+        toast.error('Ví MetaMask đang kết nối không trùng với ví đã liên kết với tài khoản FUN FARM.');
         return;
       }
       if (!receiverWallet || !receiverWallet.startsWith('0x')) {
@@ -213,6 +229,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
     }
 
     setIsSending(true);
+    setTransactionStatus('wallet');
     let txHash: string | null = null;
 
     try {
@@ -221,7 +238,9 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         toast.info('Đang xử lý giao dịch on-chain...');
         
         try {
-          if (selectedCurrency === 'BNB') {
+          if (selectedCurrency === 'CAMLY') {
+            txHash = await metamask.sendCAMLY(receiverWallet, amount);
+          } else if (selectedCurrency === 'BNB') {
             txHash = await metamask.sendBNB(receiverWallet, amount);
           } else if (selectedCurrency === 'USDT') {
             txHash = await metamask.sendUSDT(receiverWallet, amount);
@@ -239,67 +258,19 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
           setIsSending(false);
           return;
         }
-      } else {
-        // Handle CLC in-app transfer
-        // 1. Trừ tiền người gửi
-        const { error: deductError } = await supabase
-          .from('profiles')
-          .update({ 
-            camly_balance: (profile?.camly_balance || 0) - amountNum 
-          })
-          .eq('id', user.id);
-
-        if (deductError) throw deductError;
-
-        // 2. Cộng tiền người nhận
-        const { data: receiverProfile, error: fetchError } = await supabase
-          .from('profiles')
-          .select('camly_balance')
-          .eq('id', selectedUser.id)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        const { error: addError } = await supabase
-          .from('profiles')
-          .update({ 
-            camly_balance: (receiverProfile?.camly_balance || 0) + amountNum 
-          })
-          .eq('id', selectedUser.id);
-
-        if (addError) throw addError;
-
-        // Refresh profile
-        refreshProfile();
       }
 
-      // 3. Ghi log giao dịch
-      const { error: txError } = await supabase
-        .from('wallet_transactions')
-        .insert({
-          sender_id: user.id,
-          receiver_id: selectedUser.id,
-          amount: isOnChainCurrency ? Math.floor(parseFloat(amount) * 1e8) : amountNum, // Store in smallest unit for crypto
-          currency: selectedCurrency,
-          message: message || null,
-          tx_hash: txHash,
-          status: 'completed',
-        });
+      // Backend independently verifies the mined BSC receipt before recording it.
+      setTransactionStatus('verifying');
+      const { data: verification, error: verificationError } = await supabase.functions.invoke(
+        'verify-onchain-gift',
+        { body: { txHash, receiverId: selectedUser.id, currency: selectedCurrency, amount, message } },
+      );
+      if (verificationError || !verification?.success) {
+        throw new Error(verification?.error || verificationError?.message || 'Không thể xác minh giao dịch trên BSC');
+      }
 
-      if (txError) throw txError;
-
-      // 4. Tạo thông báo cho người nhận
-      const amountDisplay = isOnChainCurrency ? amount : amountNum.toLocaleString();
-      await supabase.from('notifications').insert({
-        user_id: selectedUser.id,
-        from_user_id: user.id,
-        type: 'gift',
-        content: `${profile?.display_name || 'Ai đó'} đã tặng bạn ${amountDisplay} ${selectedCurrency}${message ? `: "${message}"` : ''}`,
-      });
-
-      const successMessage = txHash 
-        ? `Đã gửi ${amount} ${selectedCurrency} on-chain!`
-        : `Đã gửi ${amountNum.toLocaleString()} ${selectedCurrency} đến ${selectedUser.display_name}`;
+      const successMessage = `Đã gửi và xác minh ${amount} ${selectedCurrency} trên BSC!`;
 
       toast.success('🎉 Tặng quà thành công!', {
         description: successMessage,
@@ -313,76 +284,71 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         receiverAvatar: selectedUser.avatar_url,
         receiverWallet: receiverWallet || undefined,
         message: message,
+        transactionId: verification.transaction.id,
+        txHash,
       });
     } catch (error) {
       console.error('Error sending gift:', error);
       toast.error('Có lỗi xảy ra khi gửi quà');
     } finally {
       setIsSending(false);
+      setTransactionStatus('idle');
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden p-0 sm:h-auto sm:max-h-[82dvh] sm:max-w-lg">
+        <DialogHeader className="shrink-0 border-b bg-background px-6 py-4 pr-14">
           <DialogTitle className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-primary" />
-            {step === 1 ? 'Chọn người nhận' : 'Gửi quà tặng'}
+            {step === 2 ? 'Trao gửi yêu thương' : 'Xem lại giao dịch'}
           </DialogTitle>
+          {(
+            <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full ${step === 2 ? 'bg-primary text-primary-foreground' : 'bg-primary/15 text-primary'}`}>1</span>
+              <span>Thông tin</span>
+              <span className="h-px flex-1 bg-border" />
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full ${step === 3 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>2</span>
+              <span>Xác nhận</span>
+            </div>
+          )}
         </DialogHeader>
 
-        {step === 1 && (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm người dùng..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <div className="max-h-64 overflow-y-auto space-y-2">
-              {isSearching ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        {step === 2 && (
+          <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-6">
+            {!selectedUser && (
+              <section className="rounded-2xl border border-amber-300/60 bg-gradient-to-br from-amber-50 via-background to-emerald-50 p-4 shadow-sm dark:from-amber-950/20 dark:to-emerald-950/20">
+                <Label className="mb-2 block font-semibold">Người nhận</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    autoFocus
+                    placeholder="Tìm theo tên người dùng..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-11 border-amber-300 bg-background/90 pl-10 focus-visible:ring-emerald-500"
+                  />
                 </div>
-              ) : searchResults.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  {searchQuery.length >= 2 
-                    ? 'Không tìm thấy người dùng' 
-                    : 'Nhập tên để tìm kiếm'}
+                <div className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+                  {isSearching ? (
+                    <div className="flex justify-center py-5"><Loader2 className="h-5 w-5 animate-spin text-emerald-600" /></div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map((result) => (
+                      <button key={result.id} onClick={() => handleSelectUser(result)} className="flex w-full items-center gap-3 rounded-xl border border-transparent p-3 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20">
+                        <Avatar><AvatarImage src={result.avatar_url || ''} /><AvatarFallback>{result.display_name?.charAt(0) || '?'}</AvatarFallback></Avatar>
+                        <div className="min-w-0 flex-1"><div className="truncate font-medium">{result.display_name}</div><Badge variant="outline" className="mt-1 text-[10px]">{result.profile_type}</Badge></div>
+                        <span className="text-xs font-medium text-emerald-700">Chọn</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="py-5 text-center text-sm text-muted-foreground">{searchQuery.length >= 2 ? 'Không tìm thấy người dùng phù hợp' : 'Nhập ít nhất 2 ký tự để tìm người nhận'}</p>
+                  )}
                 </div>
-              ) : (
-                searchResults.map((result) => (
-                  <button
-                    key={result.id}
-                    onClick={() => handleSelectUser(result)}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                  >
-                    <Avatar>
-                      <AvatarImage src={result.avatar_url || ''} />
-                      <AvatarFallback>
-                        {result.display_name?.charAt(0) || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="font-medium">{result.display_name}</div>
-                      <Badge variant="outline" className="text-xs">
-                        {result.profile_type}
-                      </Badge>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+              </section>
+            )}
 
-        {step === 2 && selectedUser && (
-          <div className="space-y-4">
+            {selectedUser && <>
             {/* Selected User */}
             <div 
               className="flex items-center gap-3 p-3 rounded-lg"
@@ -420,7 +386,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                   size="sm"
                   onClick={() => {
                     setSelectedUser(null);
-                    setStep(1);
+                    setReceiverWallet('');
                   }}
                 >
                   Đổi
@@ -463,6 +429,15 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
               </Alert>
             )}
 
+            {isOnChainCurrency && metamask.isConnected && !walletMatchesProfile && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Ví MetaMask đang kết nối không trùng với ví đã liên kết trong tài khoản FUN FARM. Hệ thống sẽ không cho gửi giao dịch.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* MetaMask Connect for on-chain */}
             {isOnChainCurrency && !metamask.isConnected && (
               <Button
@@ -483,10 +458,9 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 <Label className="mb-2 block">Ví người nhận (BSC)</Label>
                 <Input
                   value={receiverWallet}
-                  onChange={(e) => !isTreasuryMode && setReceiverWallet(e.target.value)}
                   placeholder="0x..."
                   className="font-mono text-sm"
-                  disabled={isTreasuryMode}
+                  disabled
                 />
                 {receiverWallet && (
                   <a
@@ -512,9 +486,9 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 className="text-lg font-semibold"
                 step={isOnChainCurrency ? "0.001" : "1000"}
               />
-              {selectedCurrency === 'CLC' && (
+              {selectedCurrency === 'CAMLY' && metamask.isConnected && (
                 <div className="text-sm text-muted-foreground mt-1">
-                  Số dư: {(profile?.camly_balance || 0).toLocaleString()} CLC
+                  Số dư on-chain: {parseFloat(metamask.camlyBalance).toLocaleString('vi-VN', { maximumFractionDigits: 4 })} CAMLY
                 </div>
               )}
               {selectedCurrency === 'BNB' && metamask.isConnected && (
@@ -534,7 +508,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
               )}
               
               {/* Quick amounts */}
-              {selectedCurrency === 'CLC' && (
+              {selectedCurrency === 'CAMLY' ? (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {quickAmounts.map((qa) => (
                     <Button
@@ -545,12 +519,11 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                       onClick={() => setAmount(qa.toString())}
                       className="text-xs"
                     >
-                      {qa >= 1000000 ? `${qa/1000000}M` : `${qa/1000}K`}
+                      {qa.toLocaleString('vi-VN')}
                     </Button>
                   ))}
                 </div>
-              )}
-              {isOnChainCurrency && (
+              ) : (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {cryptoQuickAmounts.map((qa) => (
                     <Button
@@ -574,33 +547,119 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 <Heart className="w-4 h-4 text-pink-500" />
                 Lời nhắn yêu thương
               </Label>
+              <div className="mb-2 grid grid-cols-3 gap-2">
+                {messageTemplates.map((template) => (
+                  <button
+                    key={template.label}
+                    type="button"
+                    onClick={() => setMessage(template.text)}
+                    className={`rounded-xl border px-3 py-2 text-left text-xs transition-colors hover:border-primary hover:bg-primary/5 ${message === template.text ? 'border-primary bg-primary/10 text-primary' : 'border-border'}`}
+                  >
+                    <span className="mr-1">{template.icon}</span>{template.label}
+                  </button>
+                ))}
+              </div>
               <Textarea
                 placeholder="Viết lời chúc của bạn..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
-                maxLength={200}
+                maxLength={500}
               />
               <div className="text-xs text-muted-foreground text-right mt-1">
-                {message.length}/200
+                {message.length}/500
               </div>
             </div>
 
-            {/* Send Button */}
+            {/* Review Button */}
             <Button
-              onClick={handleSendGift}
-              disabled={!amount || parseInt(amount) <= 0 || isSending}
+              onClick={() => setStep(3)}
+              disabled={!amount || Number(amount) <= 0 || !walletMatchesProfile || !receiverWallet}
               className="w-full gap-2 bg-gradient-to-r from-primary to-green-500"
             >
-              {isSending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Gửi {amount ? parseInt(amount).toLocaleString() : '0'} {selectedCurrency}
-                </>
-              )}
+              Xem lại &amp; xác nhận
+              <CheckCircle2 className="w-4 h-4" />
             </Button>
+            </>}
+          </div>
+        )}
+
+        {step === 3 && selectedUser && (
+          <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-6">
+            <div className="rounded-2xl border bg-gradient-to-br from-amber-50/80 via-background to-emerald-50/70 p-4 dark:from-amber-950/20 dark:to-emerald-950/20">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-11 w-11 border-2 border-primary/30">
+                  <AvatarImage src={profile?.avatar_url || ''} />
+                  <AvatarFallback>{profile?.display_name?.charAt(0) || '?'}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{profile?.display_name || 'Tài khoản FUN FARM'}</p>
+                  <p className="truncate font-mono text-xs text-muted-foreground">{metamask.address}</p>
+                </div>
+                <span className="text-xs text-muted-foreground">Người gửi</span>
+              </div>
+
+              <div className="my-4 flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <div className="rounded-full border border-primary/30 bg-background px-5 py-2 text-center shadow-sm">
+                  <p className="text-lg font-bold text-primary">{Number(amount).toLocaleString('vi-VN')} {selectedCurrency}</p>
+                  <p className="text-[11px] text-muted-foreground">trên BNB Smart Chain</p>
+                </div>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Avatar className="h-11 w-11 border-2 border-emerald-500/30">
+                  <AvatarImage src={selectedUser.avatar_url || ''} />
+                  <AvatarFallback>{selectedUser.display_name?.charAt(0) || '?'}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{selectedUser.display_name || 'Người nhận'}</p>
+                  <p className="truncate font-mono text-xs text-muted-foreground">{receiverWallet}</p>
+                </div>
+                <span className="text-xs text-muted-foreground">Người nhận</span>
+              </div>
+            </div>
+
+            {message && (
+              <div className="rounded-xl border bg-muted/30 p-3">
+                <p className="mb-1 text-xs text-muted-foreground">Lời nhắn</p>
+                <p className="italic">“{message}”</p>
+              </div>
+            )}
+
+            <Alert className="border-amber-400/50 bg-amber-50/80 dark:bg-amber-950/20">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-sm">
+                Giao dịch blockchain không thể hoàn tác. Hãy kiểm tra kỹ người nhận, số lượng và phí gas trong MetaMask.
+              </AlertDescription>
+            </Alert>
+
+            {isSending && (
+              <div className="rounded-xl border border-emerald-400/40 bg-emerald-50/70 p-4 dark:bg-emerald-950/20">
+                <div className="flex items-center gap-3 font-medium text-emerald-700 dark:text-emerald-300">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {transactionStatus === 'wallet' ? 'Vui lòng xác nhận trong MetaMask…' : 'Đang xác minh giao dịch trên blockchain…'}
+                </div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-900">
+                  <div className={`h-full rounded-full bg-emerald-500 transition-all ${transactionStatus === 'verifying' ? 'w-3/4' : 'w-1/3'}`} />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={() => setStep(2)} disabled={isSending} className="gap-2">
+                <ArrowLeft className="h-4 w-4" /> Quay lại
+              </Button>
+              <Button
+                onClick={handleSendGift}
+                disabled={isSending || !walletMatchesProfile}
+                className="gap-2 bg-gradient-to-r from-amber-400 via-primary to-emerald-500 text-primary-foreground shadow-lg"
+              >
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                {isSending ? 'Đang xử lý…' : 'Xác nhận & Tặng'}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>

@@ -152,8 +152,9 @@ const GiftBackfillTab = () => {
 
         const { data: transactions } = await supabase
           .from('wallet_transactions')
-          .select('receiver_id, amount, created_at')
+          .select('receiver_id, amount_decimal, created_at')
           .eq('sender_id', post.author_id)
+          .eq('status', 'verified')
           .gte('created_at', timeWindowStart.toISOString())
           .lte('created_at', timeWindowEnd.toISOString())
           .order('created_at', { ascending: false })
@@ -167,7 +168,7 @@ const GiftBackfillTab = () => {
           
           if (postAmount) {
             // Find transaction with matching amount
-            const amountMatch = transactions.find(t => t.amount === postAmount);
+            const amountMatch = transactions.find(t => Number(t.amount_decimal) === postAmount);
             if (amountMatch) {
               bestMatch = amountMatch;
             }

@@ -1,6 +1,6 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ConnectWallet from '@/components/auth/ConnectWallet';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +9,7 @@ import { Sprout, Waves, Sun } from 'lucide-react';
 const Auth = () => {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -19,15 +20,20 @@ const Auth = () => {
         return; // Stay on auth page - ConnectWallet will handle OTP modal
       }
       
+      const requestedPath = searchParams.get('returnTo');
+      const returnTo = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
+        ? requestedPath
+        : '/feed';
+
       if (!profile.welcome_bonus_claimed) {
         // Chưa hoàn tất profile → chuyển đến profile-setup
         navigate('/profile-setup');
       } else {
         // Đã hoàn tất → chuyển Feed
-        navigate('/feed');
+        navigate(returnTo, { replace: true });
       }
     }
-  }, [user, profile, isLoading, navigate]);
+  }, [user, profile, isLoading, navigate, searchParams]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">

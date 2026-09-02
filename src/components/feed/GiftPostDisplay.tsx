@@ -1,8 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Gift, Volume2, VolumeX, Sparkles, ArrowRight, Heart, Crown, Gem, Download } from 'lucide-react';
+import { Gift, Volume2, VolumeX, Sparkles, ArrowRight, Heart, Crown, Gem, Download, ShieldCheck, ExternalLink, Copy, Check, PartyPopper, Trophy, Sprout, CakeSlice, Coins, HandHeart, Star, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
+import gratitudeBg from '@/assets/gift-themes/gratitude.jpeg';
+import loveBg from '@/assets/gift-themes/love.jpeg';
+import celebrationBg from '@/assets/gift-themes/celebration.jpeg';
+import gratitudeDaisyBg from '@/assets/gift-themes/gratitude-daisy.jpeg';
+import gratitudeMeadowBg from '@/assets/gift-themes/gratitude-meadow.jpeg';
+import gratitudeMorningBg from '@/assets/gift-themes/gratitude-morning.jpeg';
+import gratitudeLightBg from '@/assets/gift-themes/gratitude-light.jpeg';
+import loveRoseBg from '@/assets/gift-themes/love-rose.jpeg';
+import loveRainbowBg from '@/assets/gift-themes/love-rainbow.jpeg';
+import loveTulipBg from '@/assets/gift-themes/love-tulip.jpeg';
+import loveHeartsBg from '@/assets/gift-themes/love-hearts.jpeg';
+import celebrationBalloonsBg from '@/assets/gift-themes/celebration-balloons.jpeg';
+import celebrationSparkleBg from '@/assets/gift-themes/celebration-sparkle.jpeg';
+import celebrationLightBg from '@/assets/gift-themes/celebration-light.jpeg';
+import celebrationRainbowBg from '@/assets/gift-themes/celebration-rainbow.jpeg';
 import { getGiftLevel, parseAmountFromString, GiftLevel } from '@/lib/giftLevels';
 import { toast } from 'sonner';
 
@@ -22,29 +38,29 @@ export const giftSoundOptions = [
 // 29 Gift templates - Clean & Positive only (matching CreateGiftPostModal)
 const giftTemplates = [
   // LOVE & ROMANCE (3)
-  { id: 'love', gradient: 'from-pink-500 via-rose-500 to-red-500', emoji: '💝', effect: 'hearts' },
+  { id: 'love', gradient: 'from-[#65172f] via-[#a52d50] to-[#531226]', emoji: '💝', effect: 'hearts' },
   { id: 'romance', gradient: 'from-rose-400 via-pink-500 to-fuchsia-500', emoji: '💕', effect: 'hearts' },
   { id: 'kiss', gradient: 'from-red-400 via-rose-500 to-pink-400', emoji: '💋', effect: 'hearts' },
   // THANKS (2)
-  { id: 'thanks', gradient: 'from-amber-400 via-orange-500 to-yellow-500', emoji: '🙏', effect: 'stars' },
+  { id: 'thanks', gradient: 'from-[#5f3c08] via-[#a56f13] to-[#3e2907]', emoji: '🙏', effect: 'stars' },
   { id: 'appreciate', gradient: 'from-yellow-400 via-amber-500 to-orange-400', emoji: '🌟', effect: 'stars' },
   // CELEBRATION (2)
-  { id: 'congrats', gradient: 'from-green-400 via-emerald-500 to-teal-500', emoji: '🎉', effect: 'confetti' },
-  { id: 'trophy', gradient: 'from-yellow-500 via-amber-400 to-orange-400', emoji: '🏆', effect: 'confetti' },
+  { id: 'congrats', gradient: 'from-[#073d2c] via-[#0b7650] to-[#052d23]', emoji: '🎉', effect: 'confetti' },
+  { id: 'trophy', gradient: 'from-[#15344a] via-[#24617a] to-[#10283b]', emoji: '🏆', effect: 'confetti' },
   // NATURE & FARM (4)
-  { id: 'farm', gradient: 'from-green-500 via-lime-500 to-emerald-400', emoji: '🌾', effect: 'leaves' },
+  { id: 'farm', gradient: 'from-[#164a2e] via-[#2f7a43] to-[#0d3824]', emoji: '🌾', effect: 'leaves' },
   { id: 'flower', gradient: 'from-pink-400 via-rose-400 to-red-300', emoji: '🌸', effect: 'petals' },
   { id: 'garden', gradient: 'from-emerald-400 via-green-500 to-teal-400', emoji: '🌻', effect: 'leaves' },
   { id: 'rainbow', gradient: 'from-red-400 via-yellow-400 to-green-400', emoji: '🌈', effect: 'rainbow' },
   // TẾT (6)
-  { id: 'tet-lucky', gradient: 'from-red-600 via-red-500 to-orange-500', emoji: '🧧', effect: 'coins' },
+  { id: 'tet-lucky', gradient: 'from-[#741b24] via-[#b32d35] to-[#591219]', emoji: '🧧', effect: 'coins' },
   { id: 'tet-lantern', gradient: 'from-red-500 via-orange-400 to-yellow-400', emoji: '🏮', effect: 'sparkle' },
   { id: 'tet-dragon', gradient: 'from-red-600 via-orange-500 to-yellow-500', emoji: '🐉', effect: 'coins' },
   { id: 'tet-banhchung', gradient: 'from-green-600 via-green-500 to-lime-400', emoji: '🍀', effect: 'leaves' },
   { id: 'tet-peach', gradient: 'from-pink-500 via-rose-400 to-red-400', emoji: '🌺', effect: 'petals' },
   { id: 'tet-fireworks', gradient: 'from-red-500 via-yellow-500 to-orange-400', emoji: '🎇', effect: 'fireworks' },
   // BIRTHDAY (4)
-  { id: 'birthday-cake', gradient: 'from-fuchsia-500 via-pink-500 to-rose-400', emoji: '🎂', effect: 'confetti' },
+  { id: 'birthday-cake', gradient: 'from-[#57255f] via-[#8b3f86] to-[#3e1948]', emoji: '🎂', effect: 'confetti' },
   { id: 'birthday-balloon', gradient: 'from-sky-400 via-blue-400 to-purple-500', emoji: '🎈', effect: 'confetti' },
   { id: 'birthday-party', gradient: 'from-purple-500 via-pink-500 to-red-400', emoji: '🥳', effect: 'confetti' },
   { id: 'birthday-gift', gradient: 'from-purple-500 via-violet-500 to-indigo-500', emoji: '🎁', effect: 'sparkle' },
@@ -53,13 +69,43 @@ const giftTemplates = [
   // CRYPTO MEME (3)
   { id: 'crypto-rocket', gradient: 'from-orange-500 via-red-500 to-purple-600', emoji: '🚀', effect: 'fireworks' },
   { id: 'crypto-diamond-hands', gradient: 'from-cyan-400 via-blue-500 to-purple-500', emoji: '💎', effect: 'sparkle' },
-  { id: 'crypto-money', gradient: 'from-green-500 via-emerald-500 to-teal-400', emoji: '🤑', effect: 'coins' },
+  { id: 'crypto-money', gradient: 'from-[#06402e] via-[#12845a] to-[#073225]', emoji: '🤑', effect: 'coins' },
   // FUN & CUTE (4)
   { id: 'fun-cool', gradient: 'from-blue-500 via-cyan-500 to-teal-400', emoji: '😎', effect: 'sparkle' },
   { id: 'fun-star', gradient: 'from-amber-300 via-yellow-400 to-orange-400', emoji: '⭐', effect: 'stars' },
   { id: 'fun-rainbow', gradient: 'from-red-400 via-yellow-400 to-blue-400', emoji: '🦄', effect: 'rainbow' },
-  { id: 'fun-angel', gradient: 'from-sky-300 via-blue-300 to-purple-300', emoji: '😇', effect: 'sparkle' },
+  { id: 'fun-angel', gradient: 'from-[#315d72] via-[#5f8f91] to-[#274658]', emoji: '😇', effect: 'sparkle' },
 ];
+
+const giftBackgrounds: Record<string, string> = {
+  'gratitude-leaves': gratitudeBg,
+  'gratitude-daisy': gratitudeDaisyBg,
+  'gratitude-meadow': gratitudeMeadowBg,
+  'gratitude-morning': gratitudeMorningBg,
+  'gratitude-light': gratitudeLightBg,
+  'love-blossom': loveBg,
+  'love-rose': loveRoseBg,
+  'love-rainbow': loveRainbowBg,
+  'love-tulip': loveTulipBg,
+  'love-hearts': loveHeartsBg,
+  'celebration-party': celebrationBg,
+  'celebration-balloons': celebrationBalloonsBg,
+  'celebration-sparkle': celebrationSparkleBg,
+  'celebration-light': celebrationLightBg,
+  'celebration-rainbow': celebrationRainbowBg,
+};
+
+const CardIcon = ({ id, className = 'h-5 w-5' }: { id: string; className?: string }) => {
+  const props = { className, strokeWidth: 1.7 };
+  if (id === 'love' || id === 'romance' || id === 'kiss' || id === 'valentine-heart') return <Heart {...props} />;
+  if (id === 'thanks' || id === 'appreciate') return <HandHeart {...props} />;
+  if (id === 'congrats' || id.includes('fireworks')) return <PartyPopper {...props} />;
+  if (id === 'trophy') return <Trophy {...props} />;
+  if (id === 'farm' || id === 'garden') return <Sprout {...props} />;
+  if (id.includes('birthday')) return <CakeSlice {...props} />;
+  if (id === 'tet-lucky' || id === 'crypto-money') return <Coins {...props} />;
+  return <Star {...props} />;
+};
 
 interface GiftPostDisplayProps {
   content: string;
@@ -73,6 +119,7 @@ interface GiftPostDisplayProps {
   receiverAvatar?: string;
   giftAmount?: number;
   giftMessage?: string;
+  txHash?: string;
 }
 
 const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({ 
@@ -86,11 +133,13 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   receiverWallet,
   receiverAvatar,
   giftAmount,
-  giftMessage 
+  giftMessage,
+  txHash,
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
+  const [copied, setCopied] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -98,7 +147,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   // Support formats like: "10000 CLC", "10.000 CLC", "10,000 CLC" (and crypto)
   // Improved regex to capture full number with thousands separators
   const amountMatch = content.match(/(\d{1,3}(?:[\.,]\d{3})*|\d+)\s*(CLC|CAMLY|BNB|USDT|BTCB)/i);
-  const emojiMatch = content.match(/^(💝|💕|💋|🙏|🌟|🎉|🏆|🌾|🌸|🌻|🌈|🧧|🏮|🐉|🍀|🌺|🎇|🎂|🎈|🥳|🎁|❤️|🚀|💎|🤑|😎|⭐|🦄|😇)/);
+  const emojiMatch = content.match(/^(🙌|💗|💝|💕|💋|🙏|🌟|🎉|🏆|🌾|🌸|🌻|🌈|🧧|🏮|🐉|🍀|🌺|🎇|🎂|🎈|🥳|🎁|❤️|🚀|💎|🤑|😎|⭐|🦄|😇)/);
 
   // Parse custom message - use prop first, then content
   let customMessage = giftMessage || '';
@@ -144,6 +193,13 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   
   // Find matching template
   const template = giftTemplates.find(t => t.emoji === emoji) || giftTemplates[giftTemplates.length - 1];
+  const selectedBackgroundId = content.match(/\[gift-bg:([\w-]+)\]/)?.[1];
+  const themeVisual = emoji === '🙌' || emoji === '🙏'
+    ? { label: 'Biết ơn', background: gratitudeBg, accent: '#22734c' }
+    : emoji === '🎉' || emoji === '🏆'
+      ? { label: 'Chúc mừng', background: celebrationBg, accent: '#8a5420' }
+      : { label: 'Yêu thương', background: loveBg, accent: '#9e416d' };
+  const selectedBackground = (selectedBackgroundId && giftBackgrounds[selectedBackgroundId]) || themeVisual.background;
 
   // Play sound when component becomes visible, pause when scrolls out
   useEffect(() => {
@@ -242,6 +298,13 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
   };
 
+  const copyTxHash = async () => {
+    if (!txHash) return;
+    await navigator.clipboard.writeText(txHash);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
   // Download gift card as image
   const handleDownloadGift = async () => {
     if (!containerRef.current) return;
@@ -298,7 +361,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
   };
 
-  // Level badge component
+  // Botanical level badge — every tier shares one calm FUN FARM language.
   const LevelBadge = () => {
     const icons: Record<GiftLevel, React.ReactNode> = {
       basic: <Heart className="w-3 h-3" />,
@@ -307,584 +370,176 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       diamond: <Gem className="w-3 h-3" />,
     };
     
-    const bgColors: Record<GiftLevel, string> = {
-      basic: 'from-pink-400 to-rose-500',
-      silver: 'from-gray-300 to-gray-400',
-      gold: 'from-yellow-400 to-amber-500',
-      diamond: 'from-cyan-400 to-blue-500',
+    const badgeColors: Record<GiftLevel, string> = {
+      basic: 'border-[#c9dfbd] bg-[#f4faef] text-[#357348]',
+      silver: 'border-[#cbd8d4] bg-[#f2f7f5] text-[#42665f]',
+      gold: 'border-[#ead59a] bg-[#fff8df] text-[#8b6720]',
+      diamond: 'border-[#b9dcd8] bg-[#edf9f7] text-[#176f69]',
     };
     
     return (
-      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r ${bgColors[giftLevel.level]} text-white text-[10px] font-bold shadow-lg`}>
+      <div className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badgeColors[giftLevel.level]}`}>
         {icons[giftLevel.level]}
         <span>{giftLevel.name}</span>
       </div>
     );
   };
 
-  // Render animated particles based on level
+  // A restrained celebration: a few coins behind the content, then they rest.
   const renderLevelEffects = () => {
-    const particles: React.ReactNode[] = [];
-    
-    // Basic: Gentle floating hearts
-    if (giftLevel.level === 'basic') {
-      for (let i = 0; i < 12; i++) {
-        particles.push(
-          <div
-            key={`heart-${i}`}
-            className="absolute text-lg pointer-events-none"
-            style={{
-              left: `${5 + i * 8}%`,
-              bottom: `${10 + (i % 3) * 15}%`,
-              animation: `floatUp ${4 + Math.random() * 2}s ease-out infinite`,
-              animationDelay: `${i * 0.3}s`,
-              opacity: 0.7,
-            }}
-          >
-            {['💕', '❤️', '💖', '💗'][i % 4]}
-          </div>
-        );
-      }
-    }
-    
-    // Silver: Confetti + light coin rain
-    if (giftLevel.level === 'silver') {
-      // Confetti
-      for (let i = 0; i < 20; i++) {
-        const colors = ['#C0C0C0', '#E8E8E8', '#FFD700', '#FFA500'];
-        particles.push(
-          <div
-            key={`confetti-${i}`}
-            className="absolute w-2 h-2 rounded-sm pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `-5%`,
-              backgroundColor: colors[i % colors.length],
-              animation: `silverFall ${3 + Math.random() * 2}s linear infinite`,
-              animationDelay: `${Math.random() * 2}s`,
-              transform: `rotate(${Math.random() * 360}deg)`,
-            }}
-          />
-        );
-      }
-      // Light coins
-      for (let i = 0; i < 8; i++) {
-        particles.push(
-          <div
-            key={`silver-coin-${i}`}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${10 + i * 11}%`,
-              top: `-10%`,
-              animation: `silverFall ${4 + Math.random() * 2}s linear infinite`,
-              animationDelay: `${i * 0.4}s`,
-            }}
-          >
-            <img src={camlyCoinImg} alt="" className="w-5 h-5 animate-spin opacity-60" />
-          </div>
-        );
-      }
-    }
-    
-    // Gold: Fireworks + trumpet feel
-    if (giftLevel.level === 'gold') {
-      // Firework bursts
-      const fireworkColors = ['#FFD700', '#FF6347', '#FF69B4', '#00CED1'];
-      for (let i = 0; i < 6; i++) {
-        const x = 15 + Math.random() * 70;
-        const y = 10 + Math.random() * 40;
-        particles.push(
-          <div
-            key={`firework-${i}`}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${x}%`,
-              top: `${y}%`,
-              animation: `fireworkBurst 2s ease-out infinite`,
-              animationDelay: `${i * 0.5}s`,
-            }}
-          >
-            {[...Array(8)].map((_, j) => (
-              <div
-                key={j}
-                className="absolute w-1.5 h-1.5 rounded-full"
-                style={{
-                  backgroundColor: fireworkColors[i % fireworkColors.length],
-                  transform: `rotate(${j * 45}deg) translateY(-20px)`,
-                  boxShadow: `0 0 8px ${fireworkColors[i % fireworkColors.length]}`,
-                }}
-              />
-            ))}
-          </div>
-        );
-      }
-      // Golden sparkles
-      for (let i = 0; i < 25; i++) {
-        particles.push(
-          <div
-            key={`gold-sparkle-${i}`}
-            className="absolute text-yellow-400 pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              fontSize: `${10 + Math.random() * 10}px`,
-              animation: `sparkle ${1 + Math.random()}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 2}s`,
-            }}
-          >
-            ✦
-          </div>
-        );
-      }
-    }
-    
-    // Diamond: RICH RAIN - coins falling everywhere!
-    if (giftLevel.level === 'diamond') {
-      // Massive coin rain
-      for (let i = 0; i < 30; i++) {
-        const size = 20 + Math.random() * 20;
-        particles.push(
-          <div
-            key={`diamond-coin-${i}`}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `-15%`,
-              animation: `richRain ${2 + Math.random() * 3}s linear infinite`,
-              animationDelay: `${Math.random() * 3}s`,
-            }}
-          >
-            <img 
-              src={camlyCoinImg} 
-              alt="" 
-              className="animate-spin"
-              style={{ 
-                width: size, 
-                height: size,
-                filter: 'drop-shadow(0 0 10px rgba(0,206,209,0.8))',
-              }} 
-            />
-          </div>
-        );
-      }
-      // Diamond sparkles
-      for (let i = 0; i < 20; i++) {
-        particles.push(
-          <div
-            key={`diamond-sparkle-${i}`}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `diamondGlow 1.5s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 1.5}s`,
-            }}
-          >
-            <Gem 
-              className="text-cyan-300"
-              style={{ 
-                width: 12 + Math.random() * 12,
-                filter: 'drop-shadow(0 0 8px rgba(0,206,209,0.9))',
-              }}
-            />
-          </div>
-        );
-      }
-    }
-    
-    return particles;
-  };
-
-  // Dynamic gradient based on level
-  const getLevelGradient = () => {
-    switch (giftLevel.level) {
-      case 'diamond':
-        return 'from-cyan-400 via-blue-500 to-indigo-600';
-      case 'gold':
-        return 'from-yellow-400 via-amber-500 to-orange-500';
-      case 'silver':
-        return 'from-gray-300 via-gray-400 to-gray-500';
-      default:
-        return template.gradient;
-    }
+    const count = giftLevel.level === 'diamond' ? 10 : giftLevel.level === 'gold' ? 8 : 6;
+    return Array.from({ length: count }, (_, i) => (
+      <img
+        key={`garden-coin-${i}`}
+        src={camlyCoinImg}
+        alt=""
+        className="gift-garden-coin absolute h-5 w-5 opacity-0"
+        style={{
+          left: `${7 + ((i * 17) % 87)}%`,
+          animationDelay: `${i * 0.38}s`,
+          animationDuration: `${4.3 + (i % 3) * 0.45}s`,
+        }}
+      />
+    ));
   };
 
   return (
     <div 
       ref={containerRef}
-      className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${getLevelGradient()} p-1 text-white shadow-2xl mx-2 sm:mx-4 my-3 transition-transform ${isShaking ? 'animate-shake' : ''}`}
+      className={`gift-garden-card relative mx-1 my-2 overflow-hidden rounded-[22px] border border-[#dfcc91] text-[#174c38] shadow-[0_14px_36px_rgba(42,88,57,0.14)] transition-transform sm:mx-2 ${isShaking ? 'animate-shake' : ''}`}
     >
-      {/* Inner container with glass effect */}
-      <div className="relative bg-black/20 backdrop-blur-sm rounded-xl p-4 sm:p-5">
-        {/* Sound control button - prominent position */}
+      <div className="relative overflow-hidden bg-cover bg-center px-4 py-3 sm:px-5 sm:py-4" style={{ backgroundImage: `url(${selectedBackground})` }}>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,.38),rgba(255,255,255,.08)_52%,rgba(247,240,205,.16))]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-[linear-gradient(90deg,transparent,#f8e5a5_28%,#fff9d9_50%,#d9bc63_72%,transparent)]" />
+        <div className="pointer-events-none absolute -left-16 -top-16 h-44 w-44 rounded-full bg-white/80 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-20 h-52 w-52 rounded-full bg-[#cce9bd]/55 blur-3xl" />
+
         <button
           onClick={toggleMute}
-          className={`absolute top-3 right-3 z-20 rounded-full p-2.5 transition-all shadow-lg ${
-            isMuted 
-              ? 'bg-white/30 hover:bg-white/40' 
-              : 'bg-white/40 hover:bg-white/50 ring-2 ring-white/50'
-          }`}
+          className="absolute right-4 top-3.5 z-20 rounded-full border border-[#d9c990] bg-white/70 p-1.5 text-[#56725f] shadow-sm transition hover:bg-white"
           title={isMuted ? 'Bật âm thanh 🔊' : 'Tắt âm thanh 🔇'}
         >
-          {isMuted ? (
-            <VolumeX className="w-5 h-5" />
-          ) : (
-            <Volume2 className="w-5 h-5 animate-pulse" />
-          )}
+          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
 
-        {/* Level-specific animated effects */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
+        <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[22px]">
           {renderLevelEffects()}
-          
-          {/* Radial glow - intensity based on level */}
-          <div 
-            className="absolute inset-0"
-            style={{
-              background: `radial-gradient(circle at 50% 40%, ${giftLevel.colors.glow} 0%, transparent 60%)`,
-              animation: 'pulse 2s infinite',
-              opacity: giftLevel.level === 'diamond' ? 0.7 : giftLevel.level === 'gold' ? 0.5 : 0.3,
-            }}
-          />
         </div>
 
-        {/* Header badge with Level indicator */}
-        <div className="relative z-10 flex items-center justify-between mb-4">
+        <div className="relative z-10 mb-2.5 flex items-center justify-between pr-10">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-white/25 rounded-full px-4 py-1.5 backdrop-blur-md border border-white/30">
-              <Gift className="w-5 h-5" />
-              <span className="font-bold text-sm">Fun Farm Gift</span>
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#176b48]">
+              <img src={logoFunFarm} alt="FUN FARM" className="h-7 w-7 rounded-full object-cover shadow-sm" />
+              <span>Fun Farm Gift</span>
             </div>
-            <LevelBadge />
+            <span className="h-3 w-px bg-[#dccb95]" />
+            <span className="rounded-full border border-white/80 bg-white/65 px-2 py-0.5 text-[10px] font-semibold backdrop-blur" style={{ color: themeVisual.accent }}>{emoji} {themeVisual.label}</span>
           </div>
-          <span className="text-4xl animate-bounce drop-shadow-lg">{giftLevel.emoji}</span>
-        </div>
-
-        {/* Main title - Celebration message with receiver avatar */}
-        <div className="relative z-10 text-center mb-5">
-          <div className="bg-white/20 rounded-2xl py-3 px-4 backdrop-blur-md border border-white/30">
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <span className="text-xl">🎁</span>
-              <Avatar className="w-6 h-6 border border-white/50 inline-flex">
-                <AvatarImage src={receiverAvatar || ''} />
-                <AvatarFallback className="bg-white/30 text-white text-xs">
-                  {receiverName?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-lg sm:text-xl font-bold text-yellow-200">@{receiverName || 'Bạn'}</span>
-              <span className="text-base sm:text-lg">vừa được</span>
-              <Avatar className="w-6 h-6 border border-white/50 inline-flex">
-                <AvatarImage src={senderAvatar || ''} />
-                <AvatarFallback className="bg-white/30 text-white text-xs">
-                  {senderName?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-lg sm:text-xl font-bold text-yellow-200">@{senderName || 'ai đó'}</span>
-              <span className="text-base sm:text-lg">tặng</span>
-            </div>
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f8efcf] text-[#9d7927]">
+            <CardIcon id={template.id} className="h-4 w-4" />
           </div>
         </div>
 
-        {/* Sender → Receiver with avatars and wallets */}
-        <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 my-5">
-          {/* Sender */}
-          <div className="flex flex-col items-center">
+        <div className="relative z-10 flex items-center justify-center gap-4 py-1 sm:gap-9">
+          <div className="flex min-w-0 flex-col items-center">
             <div className="relative">
-              <Avatar className="w-14 h-14 sm:w-16 sm:h-16 border-3 border-white/60 shadow-xl">
+              <Avatar className="h-11 w-11 border-2 border-white shadow-[0_3px_12px_rgba(27,91,59,0.18)] sm:h-12 sm:w-12">
                 <AvatarImage src={senderAvatar || ''} />
-                <AvatarFallback className="bg-white/30 text-white text-lg font-bold">
-                  {senderName?.charAt(0) || '?'}
-                </AvatarFallback>
+                <AvatarFallback className="bg-[#e6f2df] text-[#34704c]">{senderName?.charAt(0) || '?'}</AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-white">
-                <Gift className="w-3 h-3" />
+              <div className="absolute -bottom-1 -right-1 rounded-full border-2 border-white bg-[#2aa66b] p-1 text-white">
+                <Gift className="h-2.5 w-2.5" />
               </div>
             </div>
-            <span className="text-sm font-bold mt-2 max-w-[80px] truncate drop-shadow-md">
-              {senderName || 'Người tặng'}
-            </span>
+            <span className="mt-1 max-w-[112px] truncate text-xs font-semibold text-[#234d3a]">{senderName || 'Người tặng'}</span>
             {senderWallet && (
-              <span className="text-[10px] opacity-80 font-mono bg-black/30 px-2 py-0.5 rounded-full mt-1">
-                {shortenWallet(senderWallet)}
-              </span>
+              <span className="mt-0.5 font-mono text-[9px] text-[#6c8175]">{shortenWallet(senderWallet)}</span>
             )}
           </div>
 
-          {/* Arrow with hearts */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex gap-0.5">
-              {['❤️', '💖', '❤️'].map((heart, i) => (
-                <span 
-                  key={i} 
-                  className="text-sm animate-pulse"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                >
-                  {heart}
-                </span>
-              ))}
-            </div>
-            <ArrowRight className="w-6 h-6 text-yellow-300 animate-pulse" />
-            <span className="text-xs opacity-80 font-medium">tặng</span>
+          <div className="flex flex-col items-center gap-0.5 text-[#b98c2b]">
+            <div className="flex items-center gap-1"><Sparkles className="h-2.5 w-2.5" /><Heart className="h-3.5 w-3.5 fill-[#f4d889]" /><Sparkles className="h-2.5 w-2.5" /></div>
+            <ArrowRight className="h-5 w-5" />
+            <span className="text-[10px] font-medium text-[#6e806f]">trao tặng</span>
           </div>
 
-          {/* Receiver */}
-          <div className="flex flex-col items-center">
+          <div className="flex min-w-0 flex-col items-center">
             <div className="relative">
-              <Avatar 
-                className="w-14 h-14 sm:w-16 sm:h-16 border-3 border-white/60 shadow-xl"
-                style={{
-                  boxShadow: giftLevel.level === 'diamond' 
-                    ? '0 0 20px rgba(0,206,209,0.8), 0 0 40px rgba(0,206,209,0.4)' 
-                    : giftLevel.level === 'gold'
-                    ? '0 0 15px rgba(255,215,0,0.6)'
-                    : undefined,
-                }}
-              >
+              <Avatar className="h-11 w-11 border-2 border-white shadow-[0_3px_12px_rgba(27,91,59,0.18)] sm:h-12 sm:w-12">
                 <AvatarImage src={receiverAvatar || ''} />
-                <AvatarFallback className="bg-white/30 text-white text-lg font-bold">
-                  {receiverName?.charAt(0) || '?'}
-                </AvatarFallback>
+                <AvatarFallback className="bg-[#e6f2df] text-[#34704c]">{receiverName?.charAt(0) || '?'}</AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1 border-2 border-white">
-                <Sparkles className="w-3 h-3" />
+              <div className="absolute -bottom-1 -right-1 rounded-full border-2 border-white bg-[#d5a62e] p-1 text-white">
+                <Sparkles className="h-2.5 w-2.5" />
               </div>
             </div>
-            <span className="text-sm font-bold mt-2 max-w-[80px] truncate drop-shadow-md">
-              {receiverName || 'Người nhận'}
-            </span>
+            <span className="mt-1 max-w-[112px] truncate text-xs font-semibold text-[#234d3a]">{receiverName || 'Người nhận'}</span>
             {receiverWallet && (
-              <span className="text-[10px] opacity-80 font-mono bg-black/30 px-2 py-0.5 rounded-full mt-1">
-                {shortenWallet(receiverWallet)}
-              </span>
+              <span className="mt-0.5 font-mono text-[9px] text-[#6c8175]">{shortenWallet(receiverWallet)}</span>
             )}
           </div>
         </div>
 
-        {/* BIG Amount with spinning coin - CENTERPIECE */}
-        <div className="relative z-10 text-center my-5">
-          <div 
-            className="rounded-2xl py-5 px-6 backdrop-blur-md border-2 shadow-xl"
-            style={{
-              background: `linear-gradient(135deg, ${giftLevel.colors.primary}40, ${giftLevel.colors.secondary}50)`,
-              borderColor: `${giftLevel.colors.primary}80`,
-              boxShadow: `0 0 30px ${giftLevel.colors.glow}`,
-            }}
-          >
-            <div className="flex items-center justify-center gap-4">
-              {/* Spinning coin with level glow */}
-              <div className="relative">
-                <img 
-                  src={camlyCoinImg} 
-                  alt="coin" 
-                  className={`w-14 h-14 sm:w-16 sm:h-16 drop-shadow-lg ${giftLevel.level === 'diamond' ? 'animate-spin' : ''}`}
-                  style={{ 
-                    animation: giftLevel.level === 'diamond' ? 'spin 1s linear infinite' : 'spin 3s linear infinite',
-                    filter: `drop-shadow(0 0 15px ${giftLevel.colors.glow})`,
-                  }} 
-                />
-                <div 
-                  className="absolute inset-0"
-                  style={{
-                    background: `radial-gradient(circle, ${giftLevel.colors.glow} 0%, transparent 70%)`,
-                    animation: 'pulse 1s infinite',
-                  }}
-                />
-              </div>
-              
-              {/* Amount number - LARGE */}
-              <div className="flex flex-col items-start">
-                <span 
-                  className="text-4xl sm:text-5xl font-black drop-shadow-lg"
-                  style={{
-                    textShadow: `0 0 20px ${giftLevel.colors.glow}, 2px 2px 0 rgba(0,0,0,0.3)`,
-                    background: `linear-gradient(180deg, #fff 0%, ${giftLevel.colors.primary} 100%)`,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  {displayAmount}
-                </span>
-                <span className="text-sm font-bold opacity-90 tracking-wider">
-                  {currency === 'CAMLY' || currency === 'CLC' ? 'CAMLY COIN' : currency}
-                </span>
-              </div>
-            </div>
+        <div className="relative z-10 my-2 flex items-center justify-center gap-2 border-y border-[#dce9d5] py-2.5">
+          <img src={camlyCoinImg} alt="Camly Coin" className="h-9 w-9 drop-shadow-[0_3px_5px_rgba(122,83,16,0.28)] sm:h-10 sm:w-10" />
+          <div className="flex items-baseline gap-2">
+            <span className="bg-[linear-gradient(180deg,#8e6818_0%,#d4aa42_48%,#765211_100%)] bg-clip-text text-3xl font-extrabold leading-none text-transparent sm:text-[34px]">{displayAmount}</span>
+            <span className="text-[11px] font-bold tracking-[0.12em] text-[#2f6b4a]">{currency === 'CAMLY' || currency === 'CLC' ? 'CAMLY COIN' : currency}</span>
           </div>
         </div>
 
-        {/* Custom Message - Highlighted (truncated on card) */}
         {truncatedMessage && (
-          <div className="relative z-10 mt-4">
-            <div className="bg-white/25 rounded-xl p-4 backdrop-blur-md border border-white/30">
-              <div className="flex items-start gap-2">
-                <span className="text-2xl">💬</span>
-                <p className="text-base sm:text-lg font-medium italic leading-relaxed">
-                  "{truncatedMessage}"
-                </p>
-              </div>
+          <div className="relative z-10 flex items-start justify-center gap-2 rounded-xl border border-white/75 bg-white/72 px-3 py-2 text-center shadow-sm backdrop-blur-md">
+            <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#b78b2c]" />
+            <p className="text-sm italic leading-relaxed text-[#4e6657]">“{truncatedMessage}”</p>
+          </div>
+        )}
+
+        {txHash && (
+          <div className="relative z-10 mt-2 flex items-center gap-2 rounded-xl border border-[#c9dfc1] bg-white/70 px-3 py-2 text-[#285b42] shadow-[0_3px_10px_rgba(51,97,65,0.06)]">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[#219565]" />
+            <span className="hidden text-[11px] font-semibold sm:inline">Đã xác minh trên BSC</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[#667b6e]" title={txHash}>{shortenWallet(txHash)}</span>
+            <span className="rounded-full bg-[#e2f6e9] px-2 py-0.5 text-[9px] font-bold text-[#238358]">ON-CHAIN</span>
+            <div className="flex shrink-0 items-center gap-0.5">
+              <button type="button" onClick={copyTxHash} className="rounded-md p-1 hover:bg-[#e7f4df]" title="Sao chép mã giao dịch">
+                {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+              </button>
+              <a href={`https://bscscan.com/tx/${txHash}`} target="_blank" rel="noopener noreferrer" className="rounded-md p-1 hover:bg-[#e7f4df]" title="Xem giao dịch trên BscScan"><ExternalLink className="h-4 w-4" /></a>
             </div>
           </div>
         )}
 
-        {/* Footer with Rich Rich Rich + Download Button */}
-        <div className="relative z-10 mt-4 flex items-center justify-center gap-3">
-          <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-4 py-2 backdrop-blur-sm">
-            <span className="text-xl animate-bounce" style={{ animationDelay: '0s' }}>💰</span>
-            <span className="font-bold text-sm tracking-wide">Rich Rich Rich!</span>
-            <span className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>💎</span>
-          </div>
-          
-          {/* Download Button */}
+        <div className="relative z-10 mt-2 flex items-center justify-center gap-3">
+          <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-[#7f6a32]"><Sprout className="h-3.5 w-3.5 text-[#4a985f]" /> Gieo yêu thương · Gặt thịnh vượng</span>
           <Button
             onClick={handleDownloadGift}
             variant="outline"
             size="sm"
-            className="bg-white/20 border-white/30 hover:bg-white/30 text-white gap-1.5 backdrop-blur-sm"
+            className="h-7 gap-1 border-[#d9c78c] bg-white/60 px-2.5 text-[11px] text-[#5f684e] hover:bg-white"
           >
-            <Download className="w-4 h-4" />
+            <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Tải về</span>
           </Button>
         </div>
       </div>
 
-      {/* Text content with icons below the card */}
-      <div className="px-4 py-3 bg-gradient-to-r from-transparent via-white/5 to-transparent">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl flex-shrink-0">🎁</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-white/90 leading-relaxed">
-              <span className="font-semibold text-yellow-300">@{receiverName || 'Người nhận'}</span>
-              {' '}vừa được{' '}
-              <span className="font-semibold text-yellow-300">@{senderName || 'Người tặng'}</span>
-              {' '}tặng{' '}
-              <span className="font-bold text-green-300">{displayAmount} {currency}</span>
-              {customMessage && (
-                <>
-                  {' '}kèm lời nhắn: 
-                  <span className="italic text-white/80"> "{customMessage.length > 100 ? customMessage.substring(0, 100) + '...' : customMessage}"</span>
-                </>
-              )}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-xs text-white/60">
-              <span>💝 Yêu thương</span>
-              <span>•</span>
-              <span>🌾 FUN FARM</span>
-              <span>•</span>
-              <span>✨ {giftLevel.name}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* CSS Animations for all levels */}
       <style>{`
-        @keyframes floatUp {
-          0% {
-            transform: translateY(0) scale(1);
-            opacity: 0.7;
-          }
-          100% {
-            transform: translateY(-300px) scale(1.2);
-            opacity: 0;
-          }
+        @keyframes gardenCoinFall {
+          0% { transform: translate3d(0,-36px,0) rotate(0); opacity: 0; }
+          12% { opacity: .42; }
+          75% { opacity: .28; }
+          100% { transform: translate3d(12px,390px,0) rotate(420deg); opacity: 0; }
         }
-        
-        @keyframes silverFall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateY(500px) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        
-        @keyframes richRain {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(600px) rotate(1080deg);
-            opacity: 0.5;
-          }
-        }
-        
-        @keyframes fireworkBurst {
-          0%, 100% {
-            transform: scale(0);
-            opacity: 0;
-          }
-          20% {
-            transform: scale(1.2);
-            opacity: 1;
-          }
-          80% {
-            transform: scale(1.5);
-            opacity: 0.5;
-          }
-        }
-        
-        @keyframes sparkle {
-          0%, 100% {
-            transform: scale(0) rotate(0deg);
-            opacity: 0;
-          }
-          50% {
-            transform: scale(1) rotate(180deg);
-            opacity: 1;
-          }
-        }
-        
-        @keyframes diamondGlow {
-          0%, 100% {
-            transform: scale(0.8);
-            opacity: 0.5;
-          }
-          50% {
-            transform: scale(1.2);
-            opacity: 1;
-          }
-        }
-        
+        .gift-garden-coin { animation: gardenCoinFall 5s ease-in forwards; filter: drop-shadow(0 2px 3px rgba(117,83,20,.18)); }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
           20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
-        
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-        
-        @keyframes fall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateY(400px) rotate(360deg);
-            opacity: 0;
-          }
-        }
-        
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-15px);
-          }
-        }
-        
-        @keyframes bounce {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+        @media (prefers-reduced-motion: reduce) {
+          .gift-garden-coin, .animate-shake { animation: none !important; }
         }
       `}</style>
     </div>

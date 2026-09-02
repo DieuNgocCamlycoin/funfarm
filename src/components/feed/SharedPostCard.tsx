@@ -79,6 +79,7 @@ export const SharedPostCard = ({ originalPost, className }: SharedPostCardProps)
           receiverWallet={(originalPost as any).receiver_wallet}
           receiverAvatar={(originalPost as any).receiver_avatar}
           giftAmount={(originalPost as any).gift_amount}
+          txHash={(originalPost as any).gift_tx_hash}
         />
         {/* View Original Post Button */}
         <Link 

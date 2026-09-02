@@ -15,6 +15,7 @@ import { useState } from "react";
 import HonorBoard from "@/components/HonorBoard";
 import TopRanking from "@/components/TopRanking";
 import TopSponsor from "@/components/wallet/TopSponsor";
+import FunKingdomCard from "@/components/feed/FunKingdomCard";
 
 interface FeedSidebarProps {
   trendingHashtags: { tag: string; count: number }[];
@@ -39,7 +40,10 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
   const [showFriendSearch, setShowFriendSearch] = useState(false);
 
   return (
-    <aside className="space-y-6">
+    <aside className="space-y-4">
+      {/* FUN Kingdom - đặt trước các bảng vinh danh */}
+      <FunKingdomCard />
+
       {/* Honor Board - Bảng vinh danh */}
       <HonorBoard />
 
@@ -50,7 +54,7 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
       <TopSponsor />
 
       {/* Find Friends Section */}
-      <div className="bg-card rounded-2xl shadow-card border border-border p-5">
+      <div className="ff-content-card p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-primary/20">
@@ -82,7 +86,7 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
       </div>
 
       {/* Trending Hashtags */}
-      <div className="bg-card rounded-2xl shadow-card border border-border p-5">
+      <div className="ff-content-card p-4">
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg gradient-hero">
             <Flame className="w-5 h-5 text-primary-foreground" />
@@ -117,7 +121,7 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
       </div>
 
       {/* Suggested Farms */}
-      <div className="bg-card rounded-2xl shadow-card border border-border p-5">
+      <div className="ff-content-card p-4">
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-secondary/20">
             <Users className="w-5 h-5 text-secondary" />
@@ -165,7 +169,7 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
       </div>
 
       {/* Earn Info Card */}
-      <div className="bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 rounded-2xl border border-border p-5">
+      <div className="ff-content-card bg-gradient-to-br from-emerald-50/70 to-white p-4">
         <div className="flex items-center gap-2 mb-3">
           <img src={camlyCoinLogo} alt="CAMLY Coin" className="w-8 h-8 object-contain" />
           <h3 className="font-display font-semibold text-foreground">Free-Fee & Earn</h3>

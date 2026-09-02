@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,10 +21,34 @@ import {
   Wallet,
   Music,
   Play,
-  Pause
+  Pause,
+  ShieldCheck,
+  PartyPopper,
+  Trophy,
+  Sprout,
+  CakeSlice,
+  Coins,
+  HandHeart,
+  Star
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
+import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
+import gratitudeBg from '@/assets/gift-themes/gratitude.jpeg';
+import loveBg from '@/assets/gift-themes/love.jpeg';
+import celebrationBg from '@/assets/gift-themes/celebration.jpeg';
+import gratitudeDaisyBg from '@/assets/gift-themes/gratitude-daisy.jpeg';
+import gratitudeMeadowBg from '@/assets/gift-themes/gratitude-meadow.jpeg';
+import gratitudeMorningBg from '@/assets/gift-themes/gratitude-morning.jpeg';
+import gratitudeLightBg from '@/assets/gift-themes/gratitude-light.jpeg';
+import loveRoseBg from '@/assets/gift-themes/love-rose.jpeg';
+import loveRainbowBg from '@/assets/gift-themes/love-rainbow.jpeg';
+import loveTulipBg from '@/assets/gift-themes/love-tulip.jpeg';
+import loveHeartsBg from '@/assets/gift-themes/love-hearts.jpeg';
+import celebrationBalloonsBg from '@/assets/gift-themes/celebration-balloons.jpeg';
+import celebrationSparkleBg from '@/assets/gift-themes/celebration-sparkle.jpeg';
+import celebrationLightBg from '@/assets/gift-themes/celebration-light.jpeg';
+import celebrationRainbowBg from '@/assets/gift-themes/celebration-rainbow.jpeg';
 import { giftSoundOptions } from '@/components/feed/GiftPostDisplay';
 
 interface CreateGiftPostModalProps {
@@ -38,58 +62,57 @@ interface CreateGiftPostModalProps {
     receiverAvatar: string | null;
     receiverWallet?: string;
     message: string;
+    transactionId: string;
+    txHash: string;
   };
 }
 
-// 41 Gift card templates - Clean & Positive only
+const giftMessages = {
+  gratitude: 'Biết ơn bạn vì những điều tốt đẹp bạn đã trao tặng cho cuộc sống. Gửi đến bạn món quà ngập tràn năng lượng yêu thương thay lời cảm ơn. Chúc bạn luôn hạnh phúc, giàu sang, sung sướng đủ đầy. 💚',
+  love: 'Gửi bạn thật nhiều năng lượng ánh sáng yêu thương thuần khiết. Chúc mỗi ngày của bạn đều ngập tràn hạnh phúc, thịnh vượng, giàu sang, sung sướng, đủ đầy. ✨',
+  celebration: 'Chúc mừng bạn nha! Chúc cho niềm vui hôm nay sẽ mở ra thêm nhiều điều tuyệt vời phía trước. Chúc bạn ngày càng thành công, hạnh phúc, thịnh vượng, giàu sang, sung sướng, đủ đầy. 🌟',
+};
+
+// Three lasting themes, shared by the transfer form, preview and published card.
 const giftTemplates = [
-  // === LOVE & ROMANCE (3) ===
-  { id: 'love', gradient: 'from-pink-500 via-rose-500 to-red-500', emoji: '💝', title: 'Yêu thương', effect: 'hearts', category: 'love' },
-  { id: 'romance', gradient: 'from-rose-400 via-pink-500 to-fuchsia-500', emoji: '💕', title: 'Lãng mạn', effect: 'hearts', category: 'love' },
-  { id: 'kiss', gradient: 'from-red-400 via-rose-500 to-pink-400', emoji: '💋', title: 'Thương yêu', effect: 'hearts', category: 'love' },
-  
-  // === THANKS & APPRECIATION (2) ===
-  { id: 'thanks', gradient: 'from-amber-400 via-orange-500 to-yellow-500', emoji: '🙏', title: 'Cảm ơn', effect: 'stars', category: 'thanks' },
-  { id: 'appreciate', gradient: 'from-yellow-400 via-amber-500 to-orange-400', emoji: '🌟', title: 'Tri ân', effect: 'stars', category: 'thanks' },
-  
-  // === CELEBRATION (2) ===
-  { id: 'congrats', gradient: 'from-green-400 via-emerald-500 to-teal-500', emoji: '🎉', title: 'Chúc mừng', effect: 'confetti', category: 'celebration' },
-  { id: 'trophy', gradient: 'from-yellow-500 via-amber-400 to-orange-400', emoji: '🏆', title: 'Chiến thắng', effect: 'confetti', category: 'celebration' },
-  
-  // === NATURE & FARM (4) ===
-  { id: 'farm', gradient: 'from-green-500 via-lime-500 to-emerald-400', emoji: '🌾', title: 'Nông trại', effect: 'leaves', category: 'nature' },
-  { id: 'flower', gradient: 'from-pink-400 via-rose-400 to-red-300', emoji: '🌸', title: 'Hoa đẹp', effect: 'petals', category: 'nature' },
-  { id: 'garden', gradient: 'from-emerald-400 via-green-500 to-teal-400', emoji: '🌻', title: 'Vườn xanh', effect: 'leaves', category: 'nature' },
-  { id: 'rainbow', gradient: 'from-red-400 via-yellow-400 to-green-400', emoji: '🌈', title: 'Cầu vồng', effect: 'rainbow', category: 'nature' },
-
-  // === TẾT / LUNAR NEW YEAR (6) ===
-  { id: 'tet-lucky', gradient: 'from-red-600 via-red-500 to-orange-500', emoji: '🧧', title: 'Lì xì', effect: 'coins', category: 'tet' },
-  { id: 'tet-lantern', gradient: 'from-red-500 via-orange-400 to-yellow-400', emoji: '🏮', title: 'Đèn lồng', effect: 'sparkle', category: 'tet' },
-  { id: 'tet-dragon', gradient: 'from-red-600 via-orange-500 to-yellow-500', emoji: '🐉', title: 'Rồng vàng', effect: 'coins', category: 'tet' },
-  { id: 'tet-banhchung', gradient: 'from-green-600 via-green-500 to-lime-400', emoji: '🍀', title: 'Bánh chưng', effect: 'leaves', category: 'tet' },
-  { id: 'tet-peach', gradient: 'from-pink-500 via-rose-400 to-red-400', emoji: '🌺', title: 'Hoa đào', effect: 'petals', category: 'tet' },
-  { id: 'tet-fireworks', gradient: 'from-red-500 via-yellow-500 to-orange-400', emoji: '🎇', title: 'Pháo Tết', effect: 'fireworks', category: 'tet' },
-
-  // === BIRTHDAY (4) ===
-  { id: 'birthday-cake', gradient: 'from-fuchsia-500 via-pink-500 to-rose-400', emoji: '🎂', title: 'Sinh nhật', effect: 'confetti', category: 'birthday' },
-  { id: 'birthday-balloon', gradient: 'from-sky-400 via-blue-400 to-purple-500', emoji: '🎈', title: 'Bóng bay', effect: 'confetti', category: 'birthday' },
-  { id: 'birthday-party', gradient: 'from-purple-500 via-pink-500 to-red-400', emoji: '🥳', title: 'Tiệc HBD', effect: 'confetti', category: 'birthday' },
-  { id: 'birthday-gift', gradient: 'from-purple-500 via-violet-500 to-indigo-500', emoji: '🎁', title: 'Quà sinh nhật', effect: 'sparkle', category: 'birthday' },
-
-  // === VALENTINE (1) ===
-  { id: 'valentine-heart', gradient: 'from-red-500 via-rose-500 to-pink-400', emoji: '❤️', title: 'Valentine', effect: 'hearts', category: 'valentine' },
-
-  // === CRYPTO MEME (3) ===
-  { id: 'crypto-rocket', gradient: 'from-orange-500 via-red-500 to-purple-600', emoji: '🚀', title: 'Rocket', effect: 'fireworks', category: 'crypto' },
-  { id: 'crypto-diamond-hands', gradient: 'from-cyan-400 via-blue-500 to-purple-500', emoji: '💎', title: 'Diamond Hands', effect: 'sparkle', category: 'crypto' },
-  { id: 'crypto-money', gradient: 'from-green-500 via-emerald-500 to-teal-400', emoji: '🤑', title: 'Rich Rich', effect: 'coins', category: 'crypto' },
-
-  // === FUN & CUTE (4) ===
-  { id: 'fun-cool', gradient: 'from-blue-500 via-cyan-500 to-teal-400', emoji: '😎', title: 'Cool ngầu', effect: 'sparkle', category: 'fun' },
-  { id: 'fun-star', gradient: 'from-amber-300 via-yellow-400 to-orange-400', emoji: '⭐', title: 'Ngôi sao', effect: 'stars', category: 'fun' },
-  { id: 'fun-rainbow', gradient: 'from-red-400 via-yellow-400 to-blue-400', emoji: '🦄', title: 'Unicorn', effect: 'rainbow', category: 'fun' },
-  { id: 'fun-angel', gradient: 'from-sky-300 via-blue-300 to-purple-300', emoji: '😇', title: 'Thiên thần', effect: 'sparkle', category: 'fun' },
+  { id: 'gratitude', emoji: '🙌', title: 'Biết ơn', message: giftMessages.gratitude, backgrounds: [
+    { id: 'gratitude-leaves', name: 'Lá nắng', src: gratitudeBg },
+    { id: 'gratitude-daisy', name: 'Cúc sớm', src: gratitudeDaisyBg },
+    { id: 'gratitude-meadow', name: 'Đồng cỏ', src: gratitudeMeadowBg },
+    { id: 'gratitude-morning', name: 'Bình minh', src: gratitudeMorningBg },
+    { id: 'gratitude-light', name: 'Ánh xanh', src: gratitudeLightBg },
+  ] },
+  { id: 'love', emoji: '💗', title: 'Yêu thương', message: giftMessages.love, backgrounds: [
+    { id: 'love-blossom', name: 'Hoa mơ', src: loveBg },
+    { id: 'love-rose', name: 'Hồng sương', src: loveRoseBg },
+    { id: 'love-rainbow', name: 'Cầu vồng', src: loveRainbowBg },
+    { id: 'love-tulip', name: 'Tulip', src: loveTulipBg },
+    { id: 'love-hearts', name: 'Trái tim', src: loveHeartsBg },
+  ] },
+  { id: 'celebration', emoji: '🎉', title: 'Chúc mừng', message: giftMessages.celebration, backgrounds: [
+    { id: 'celebration-party', name: 'Dạ tiệc', src: celebrationBg },
+    { id: 'celebration-balloons', name: 'Bóng bay', src: celebrationBalloonsBg },
+    { id: 'celebration-sparkle', name: 'Kim tuyến', src: celebrationSparkleBg },
+    { id: 'celebration-light', name: 'Ánh sáng', src: celebrationLightBg },
+    { id: 'celebration-rainbow', name: 'Cầu vồng', src: celebrationRainbowBg },
+  ] },
 ];
+
+const TemplateIcon = ({ id, className = 'h-5 w-5' }: { id: string; className?: string }) => {
+  const props = { className, strokeWidth: 1.7 };
+  if (id === 'love') return <Heart {...props} />;
+  if (id === 'gratitude') return <HandHeart {...props} />;
+  if (id === 'celebration') return <PartyPopper {...props} />;
+  if (id === 'trophy') return <Trophy {...props} />;
+  if (id === 'farm') return <Sprout {...props} />;
+  if (id === 'birthday-cake') return <CakeSlice {...props} />;
+  if (id === 'tet-lucky' || id === 'crypto-money') return <Coins {...props} />;
+  return <Star {...props} />;
+};
+
+const curatedSoundOptions = giftSoundOptions.filter((sound) =>
+  ['rich1', 'rich2', 'hearts', 'confetti', 'nature'].includes(sound.id)
+);
 
 const formatNumber = (num: number) => {
   // Always show full number
@@ -109,14 +132,27 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [selectedTemplate, setSelectedTemplate] = useState(giftTemplates[0]);
-  const [selectedSound, setSelectedSound] = useState(giftSoundOptions[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState(
+    giftTemplates.find((template) => template.message === giftData.message) || giftTemplates[0]
+  );
+  const [selectedSound, setSelectedSound] = useState(curatedSoundOptions[0]);
+  const [selectedBackgroundId, setSelectedBackgroundId] = useState(giftTemplates[0].backgrounds[0].id);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const [customMessage, setCustomMessage] = useState(
-    giftData.message || `Gửi tặng @${giftData.receiverName} với tất cả yêu thương! 💖`
+    giftData.message || giftTemplates[0].message
   );
   const [isPosting, setIsPosting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const matchedTheme = giftTemplates.find((template) => template.message === giftData.message);
+    if (matchedTheme) {
+      setSelectedTemplate(matchedTheme);
+      setSelectedBackgroundId(matchedTheme.backgrounds[0].id);
+    }
+    setCustomMessage(giftData.message || matchedTheme?.message || giftTemplates[0].message);
+  }, [giftData.message, isOpen]);
 
   const playPreviewSound = (soundUrl: string) => {
     if (audioPreviewRef.current) {
@@ -158,7 +194,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
       const postContent = `${selectedTemplate.emoji} 🎁 @${giftData.receiverName} vừa được @${senderDisplayName} tặng ${formattedAmount} ${giftData.currency} kèm lời nhắn:\n\n` +
         `"${customMessage}"\n\n` +
         `🎁 Đã tặng ${formattedAmount} ${giftData.currency} cho @${giftData.receiverName}\n\n` +
-        `${hashtags.join(' ')}\n[sound:${selectedSound.id}]`;
+        `${hashtags.join(' ')}\n[sound:${selectedSound.id}]\n[gift-theme:${selectedTemplate.id}]\n[gift-bg:${selectedBackgroundId}]`;
 
       const { data: post, error } = await supabase
         .from('posts')
@@ -177,19 +213,11 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 
       if (error) throw error;
 
-      // Link post_id back to wallet_transaction for bidirectional sync
-      // Find the most recent transaction from sender to receiver within last 5 minutes
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      await supabase
-        .from('wallet_transactions')
-        .update({ post_id: post.id })
-        .eq('sender_id', user.id)
-        .eq('receiver_id', giftData.receiverId)
-        .eq('currency', giftData.currency)
-        .gte('created_at', fiveMinutesAgo)
-        .is('post_id', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { error: linkError } = await supabase.rpc('link_verified_gift_post', {
+        p_transaction_id: giftData.transactionId,
+        p_post_id: post.id,
+      });
+      if (linkError) throw linkError;
 
       // Create notification for receiver
       await supabase.from('notifications').insert({
@@ -224,7 +252,8 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
         <div className="space-y-4">
           {/* Gift Card Preview with animated effects */}
           <div 
-            className={`relative rounded-2xl overflow-hidden bg-gradient-to-br ${selectedTemplate.gradient} p-6 text-white shadow-xl`}
+            className="relative overflow-hidden rounded-2xl border border-[#d6b958] bg-cover bg-center p-4 text-[#26382f] shadow-[0_18px_45px_rgba(45,69,52,0.18)]"
+            style={{ backgroundImage: `url(${selectedTemplate.backgrounds.find((background) => background.id === selectedBackgroundId)?.src || selectedTemplate.backgrounds[0].src})` }}
           >
             {/* Animated background effects based on template */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -241,26 +270,27 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                   }}
                 />
               ))}
-              {/* Floating emojis */}
-              <div className="absolute top-2 left-4 text-4xl opacity-30 animate-bounce">{selectedTemplate.emoji}</div>
-              <div className="absolute bottom-2 right-4 text-4xl opacity-30 animate-bounce" style={{ animationDelay: '0.5s' }}>{selectedTemplate.emoji}</div>
-              <div className="absolute top-1/2 right-8 text-2xl opacity-20 animate-pulse">{selectedTemplate.emoji}</div>
+              <div className="absolute -left-20 -top-24 h-64 w-64 rounded-full bg-amber-200/30 blur-3xl" />
+              <div className="absolute -bottom-24 -right-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-100 to-transparent" />
             </div>
 
             {/* Content */}
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Gift className="w-6 h-6" />
-                  <span className="font-bold text-lg">Fun Farm Gift</span>
+                  <img src={logoFunFarm} alt="FUN FARM" className="h-10 w-10 rounded-full object-cover shadow-sm" />
+                  <span className="font-bold text-lg text-[#176b48]">Fun Farm Gift</span>
                 </div>
-                <span className="text-4xl animate-bounce">{selectedTemplate.emoji}</span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200/70 bg-[linear-gradient(145deg,#fff3ad,#b77b13_48%,#ffe89a)] text-emerald-950 shadow-[0_4px_18px_rgba(255,215,90,0.45)]">
+                  <TemplateIcon id={selectedTemplate.id} />
+                </div>
               </div>
 
               {/* Sender to Receiver */}
-              <div className="flex items-center justify-center gap-4 my-6">
+              <div className="my-3 flex items-center justify-center gap-4">
                 <div className="flex flex-col items-center">
-                  <Avatar className="w-14 h-14 border-2 border-white/50 ring-2 ring-white/30 ring-offset-2 ring-offset-transparent">
+                  <Avatar className="h-11 w-11 border-2 border-white/50 ring-2 ring-white/30 ring-offset-1 ring-offset-transparent">
                     <AvatarImage src={profile?.avatar_url || ''} />
                     <AvatarFallback className="bg-white/20 text-white">
                       {profile?.display_name?.charAt(0) || '?'}
@@ -286,7 +316,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <Avatar className="w-14 h-14 border-2 border-white/50 ring-2 ring-white/30 ring-offset-2 ring-offset-transparent">
+                  <Avatar className="h-11 w-11 border-2 border-white/50 ring-2 ring-white/30 ring-offset-1 ring-offset-transparent">
                     <AvatarImage src={giftData.receiverAvatar || ''} />
                     <AvatarFallback className="bg-white/20 text-white">
                       {giftData.receiverName.charAt(0)}
@@ -304,7 +334,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
               </div>
 
               {/* Amount with coin animation */}
-              <div className="text-center bg-white/20 rounded-xl py-3 px-4 backdrop-blur-sm border border-white/30">
+              <div className="rounded-xl border border-white/30 bg-white/20 px-4 py-2 text-center backdrop-blur-sm">
                 <div className="flex items-center justify-center gap-2">
                   <img src={camlyCoinImg} alt="coin" className="w-8 h-8 animate-spin" style={{ animationDuration: '3s' }} />
                   <span className="text-3xl font-bold">{formatNumber(giftData.amount)}</span>
@@ -313,11 +343,17 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
               </div>
 
               {/* Message preview */}
-              {giftData.message && (
-                <div className="mt-4 text-center italic opacity-90 text-sm bg-white/10 rounded-lg p-2">
-                  "{giftData.message}"
+              {customMessage && (
+                <div className="mt-2 rounded-lg border border-white/70 bg-white/75 p-2 text-center text-sm italic shadow-sm backdrop-blur-md">
+                  "{customMessage}"
                 </div>
               )}
+
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-white/35 bg-black/15 px-3 py-2 text-[11px] backdrop-blur-sm">
+                <ShieldCheck className="h-4 w-4 shrink-0" />
+                <span className="font-semibold">BSC đã xác minh</span>
+                <span className="min-w-0 flex-1 truncate text-right font-mono" title={giftData.txHash}>{shortenWallet(giftData.txHash)}</span>
+              </div>
             </div>
           </div>
 
@@ -325,23 +361,41 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
           <div>
             <label className="text-sm font-medium mb-2 block flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-primary" />
-              Chọn kiểu thiệp ({giftTemplates.length} mẫu)
+              Chọn chủ đề ({giftTemplates.length} chủ đề)
             </label>
-            <div className="grid grid-cols-5 gap-2 max-h-[180px] overflow-y-auto p-1">
+            <div className="grid grid-cols-3 gap-2 p-1">
               {giftTemplates.map((template) => (
                 <button
                   key={template.id}
-                  onClick={() => setSelectedTemplate(template)}
+                  onClick={() => { setSelectedTemplate(template); setSelectedBackgroundId(template.backgrounds[0].id); setCustomMessage(template.message); }}
                   className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
                     selectedTemplate.id === template.id
-                      ? 'border-primary bg-primary/10 scale-105 shadow-lg'
-                      : 'border-muted hover:border-muted-foreground hover:scale-102'
+                      ? 'border-amber-500 bg-amber-50 scale-105 shadow-lg'
+                      : 'border-amber-200/60 hover:border-amber-400 hover:scale-102'
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${template.gradient} flex items-center justify-center`}>
-                    <span className="text-lg">{template.emoji}</span>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-amber-300/80 bg-[linear-gradient(145deg,#fff3ad,#bd8420_52%,#ffe9a0)] text-emerald-950 shadow-sm">
+                    <TemplateIcon id={template.id} className="h-4 w-4" />
                   </div>
                   <span className="text-[10px] font-medium text-center leading-tight">{template.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">Chọn hình nền · {selectedTemplate.title}</label>
+            <div className="grid grid-cols-5 gap-2">
+              {selectedTemplate.backgrounds.map((background) => (
+                <button
+                  key={background.id}
+                  type="button"
+                  onClick={() => setSelectedBackgroundId(background.id)}
+                  className={`group overflow-hidden rounded-xl border-2 bg-white p-1 transition ${selectedBackgroundId === background.id ? 'border-amber-500 shadow-md' : 'border-transparent hover:border-amber-200'}`}
+                  title={background.name}
+                >
+                  <img src={background.src} alt={background.name} className="aspect-square w-full rounded-lg object-cover" />
+                  <span className="mt-1 block truncate text-[9px] text-muted-foreground">{background.name}</span>
                 </button>
               ))}
             </div>
@@ -351,10 +405,10 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
           <div>
             <label className="text-sm font-medium mb-2 block flex items-center gap-2">
               <Music className="w-4 h-4 text-purple-500" />
-              Chọn âm thanh ({giftSoundOptions.length} mẫu)
+              Chọn âm thanh ({curatedSoundOptions.length} mẫu tinh tuyển)
             </label>
             <div className="grid grid-cols-3 gap-2 max-h-[120px] overflow-y-auto p-1">
-              {giftSoundOptions.map((sound) => (
+              {curatedSoundOptions.map((sound) => (
                 <button
                   key={sound.id}
                   onClick={() => {

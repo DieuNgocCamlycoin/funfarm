@@ -234,13 +234,14 @@ const WalletPriceChart: React.FC = () => {
 
       const { data: transactions, error } = await supabase
         .from('wallet_transactions')
-        .select('amount, created_at, currency')
-        .eq('currency', 'CLC')
+        .select('amount_decimal, created_at, currency')
+        .eq('currency', 'CAMLY')
+        .eq('status', 'verified')
         .gte('created_at', startDate);
 
       if (error) throw error;
 
-      const totalVolume = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
+      const totalVolume = transactions?.reduce((sum, t) => sum + Number(t.amount_decimal || 0), 0) || 0;
       const totalCount = transactions?.length || 0;
 
       setMarketData(prev => ({
@@ -263,7 +264,7 @@ const WalletPriceChart: React.FC = () => {
           dailyStats[day] = { count: 0, volume: 0 };
         }
         dailyStats[day].count++;
-        dailyStats[day].volume += tx.amount;
+        dailyStats[day].volume += Number(tx.amount_decimal || 0);
       });
 
       const statsArray = Object.entries(dailyStats).map(([date, stats]) => ({

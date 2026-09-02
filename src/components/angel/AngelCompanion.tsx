@@ -147,8 +147,8 @@ const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }
 ];
 
 // ============= VISUAL CONSTANTS =============
-const ANGEL_SIZE = 270;        // 180 * 1.5 = 270px - Lớn hơn để nhìn rõ
-const SAFE_DISTANCE = 150;     // Tăng tương ứng với kích thước
+const ANGEL_SIZE = 175;        // Hiện diện rõ nhưng gọn để không che thao tác
+const SAFE_DISTANCE = 118;
 const OFFSET_ANGLE = Math.PI / 4;
 
 const BRIGHTNESS_LEVELS: Record<number, string> = {
@@ -352,15 +352,17 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     }
     lastMousePosition.current = { x: e.clientX, y: e.clientY };
     
-    // Tính vị trí với khoảng cách an toàn
-    const offsetX = Math.cos(OFFSET_ANGLE) * SAFE_DISTANCE;
+    // Angel bay dọc rìa đối diện con trỏ để luôn hiện diện mà không che hoạt động chính.
+    const edgeInset = ANGEL_SIZE * 0.34;
+    const newX = e.clientX < window.innerWidth / 2
+      ? window.innerWidth - edgeInset
+      : edgeInset;
     const offsetY = Math.sin(OFFSET_ANGLE) * SAFE_DISTANCE;
-    
-    let newX = e.clientX + (isFlipped ? -offsetX : offsetX);
-    let newY = e.clientY - offsetY;
-    
-    newX = Math.max(ANGEL_SIZE / 2, Math.min(window.innerWidth - ANGEL_SIZE / 2, newX));
-    newY = Math.max(ANGEL_SIZE / 2, Math.min(window.innerHeight - ANGEL_SIZE / 2, newY));
+    const navSafeTop = 64 + ANGEL_SIZE / 2;
+    const newY = Math.max(
+      navSafeTop,
+      Math.min(window.innerHeight - ANGEL_SIZE / 2, e.clientY - offsetY),
+    );
     
     setTargetPosition({ x: newX, y: newY });
     
@@ -383,7 +385,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         setState('idle');
       }
     }, 400); // Thời gian dựa theo tốc độ di chuyển
-  }, [enabled, isHidden, isSitting, isMoving, isFlipped, createSparkle, position]);
+  }, [enabled, isHidden, isSitting, isMoving, createSparkle, position]);
 
   // ============= FLOW 4: CLICK HANDLER =============
   const handleClick = useCallback(() => {
@@ -419,24 +421,15 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   // ============= PERCH SPOT DETECTION =============
   const checkPerchSpots = useCallback(() => {
     if (!enabled || isHidden || isMoving) return;
-    
+
     const perchElements = document.querySelectorAll('[data-angel-perch]');
-    
     perchElements.forEach(el => {
       const rect = el.getBoundingClientRect();
-      const distance = Math.sqrt(
-        Math.pow(position.x - (rect.left + rect.width / 2), 2) +
-        Math.pow(position.y - rect.top, 2)
-      );
-      
+      const distance = Math.hypot(position.x - (rect.left + rect.width / 2), position.y - rect.top);
       if (distance < 150 && Math.random() < 0.015) {
         setIsSitting(true);
         setState('sitting');
-        setTargetPosition({
-          x: rect.left + rect.width / 2,
-          y: rect.top - 40,
-        });
-        
+        setTargetPosition({ x: rect.left + rect.width / 2, y: rect.top - 40 });
         setTimeout(() => {
           setIsSitting(false);
           setState('hovering');
@@ -450,9 +443,9 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   const startWandering = useCallback(() => {
     if (!enabled || isMoving || isSitting || isHidden) return;
     
-    const padding = ANGEL_SIZE;
-    const newX = padding + Math.random() * (window.innerWidth - padding * 2);
-    const newY = padding + Math.random() * (window.innerHeight - padding * 2);
+    const edgeInset = ANGEL_SIZE * 0.34;
+    const newX = Math.random() < 0.5 ? edgeInset : window.innerWidth - edgeInset;
+    const newY = 64 + ANGEL_SIZE / 2 + Math.random() * Math.max(0, window.innerHeight - 64 - ANGEL_SIZE * 1.5);
     
     setIsFlipped(newX < position.x);
     setState('wandering');
@@ -571,7 +564,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
 
   // ============= RENDER =============
   return (
-    <div className="fixed inset-0 pointer-events-none z-[99999]">
+    <div className="fixed inset-0 pointer-events-none z-[10000]">
       {/* Sparkle particles */}
       {particles.map(particle => (
         <svg
@@ -607,8 +600,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
           transition: isSpinning ? 'transform 0.8s ease-in-out' : 'transform 0.3s ease-out',
         }}
       >
-        {/* Mask mờ viền để Angel hòa nhập với môi trường */}
-        <div 
+        <div
           className="relative"
           style={{
             mask: 'radial-gradient(ellipse 48% 48% at center, black 70%, transparent 100%)',

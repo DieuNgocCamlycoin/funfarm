@@ -52,7 +52,7 @@ const mockStories: Story[] = [
 
 const StoryBar = () => {
   return (
-    <div className="bg-card rounded-2xl shadow-card border border-border p-4 overflow-hidden">
+    <div className="ff-content-card p-4 overflow-hidden">
       <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
         <Play className="w-4 h-4 text-primary" />
         Stories
@@ -70,7 +70,7 @@ const StoryBar = () => {
                 story.id === "create"
                   ? "bg-muted"
                   : story.hasUnwatched
-                  ? "bg-gradient-to-tr from-primary via-secondary to-accent"
+                  ? "ff-story-ring"
                   : "bg-muted"
               )}
             >

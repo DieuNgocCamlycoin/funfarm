@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.change-email-otp]
 verify_jwt = false
+
+[functions.verify-onchain-gift]
+verify_jwt = true
+
+[functions.link-wallet]
+verify_jwt = true

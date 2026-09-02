@@ -36,6 +36,8 @@ import SellerDashboard from "./pages/SellerDashboard";
 import ProductDetail from "./pages/ProductDetail";
 import SellerShop from "./pages/SellerShop";
 import Wishlist from "./pages/Wishlist";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import GiftCardLab from "./pages/GiftCardLab";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -52,29 +54,30 @@ const App = () => (
                   <Route path="/" element={<Feed />} />
                   <Route path="/feed" element={<Feed />} />
                   <Route path="/welcome" element={<Welcome />} />
-                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/user/:userId" element={<UserProfile />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/auth/callback" element={<SSOCallback />} />
-                  <Route path="/profile-setup" element={<ProfileSetup />} />
-                  <Route path="/reward" element={<Reward />} />
+                  <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
+                  <Route path="/reward" element={<ProtectedRoute><Reward /></ProtectedRoute>} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
-                  <Route path="/shipper" element={<ShipperDashboard />} />
-                  <Route path="/shipper/register" element={<ShipperRegister />} />
-                <Route path="/admin" element={<Admin />} />
+                  <Route path="/shipper" element={<ProtectedRoute><ShipperDashboard /></ProtectedRoute>} />
+                  <Route path="/shipper/register" element={<ProtectedRoute><ShipperRegister /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                   <Route path="/law-of-light" element={<LawOfLight />} />
                   <Route path="/about-fun-farm" element={<AboutFunFarm />} />
                   <Route path="/whitepaper" element={<Whitepaper />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/post/:postId" element={<PostDetail />} />
                   <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/product/:productId" element={<ProductDetail />} />
                   <Route path="/shop/:sellerId" element={<SellerShop />} />
-                  <Route path="/wishlist" element={<Wishlist />} />
+                  <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                   <Route path="/angel-ai" element={<AngelAI />} />
-                  <Route path="/my-orders" element={<MyOrders />} />
-                  <Route path="/seller" element={<SellerDashboard />} />
+                  <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+                  <Route path="/seller" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
+                  <Route path="/gift-card-lab" element={<GiftCardLab />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

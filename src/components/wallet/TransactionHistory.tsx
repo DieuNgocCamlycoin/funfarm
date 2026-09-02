@@ -34,6 +34,7 @@ interface Transaction {
   sender_id: string;
   receiver_id: string;
   amount: number;
+  amount_decimal?: number | null;
   currency: string;
   message: string | null;
   tx_hash: string | null;
@@ -58,6 +59,7 @@ interface TransactionHistoryProps {
 }
 
 const currencyIcons: Record<string, React.ReactNode> = {
+  CAMLY: <img src={camlyCoinImg} alt="CAMLY" className="w-5 h-5" />,
   CLC: <img src={camlyCoinImg} alt="CLC" className="w-5 h-5" />,
   BTCB: <Bitcoin className="w-5 h-5 text-orange-500" />,
   USDT: <span className="text-green-500 font-bold text-sm">₮</span>,
@@ -65,6 +67,7 @@ const currencyIcons: Record<string, React.ReactNode> = {
 };
 
 const currencyNames: Record<string, string> = {
+  CAMLY: 'Camly Coin on BSC',
   CLC: 'Camly Coin',
   BTCB: 'Bitcoin (BSC)',
   USDT: 'Tether USD',
@@ -72,20 +75,21 @@ const currencyNames: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
+  verified: 'bg-green-500/10 text-green-600 border-green-500/20',
   completed: 'bg-green-500/10 text-green-600 border-green-500/20',
   pending: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
   failed: 'bg-red-500/10 text-red-600 border-red-500/20',
 };
 
 const statusLabels: Record<string, string> = {
+  verified: 'Đã xác minh on-chain',
   completed: 'Thành công',
   pending: 'Đang xử lý',
   failed: 'Thất bại',
 };
 
 const formatNumber = (num: number, currency: string) => {
-  if (currency === 'CLC') {
-    // Always show full number for CLC
+  if (currency === 'CAMLY' || currency === 'CLC') {
     return num.toLocaleString('vi-VN');
   }
   // For crypto, show more decimal places
@@ -173,9 +177,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                   {filteredTransactions.map((tx) => {
                     const isSender = tx.sender_id === userId;
                     const otherUser = isSender ? tx.receiver_profile : tx.sender_profile;
-                    const displayAmount = tx.currency === 'CLC' 
-                      ? tx.amount 
-                      : tx.amount / 1e8; // Convert back from smallest unit for crypto
+                    const displayAmount = Number(tx.amount_decimal ?? tx.amount / 1e8);
                     
                     return (
                       <button
@@ -266,9 +268,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({
 
           {selectedTx && (() => {
             const isSender = selectedTx.sender_id === userId;
-            const displayAmount = selectedTx.currency === 'CLC' 
-              ? selectedTx.amount 
-              : selectedTx.amount / 1e8;
+            const displayAmount = Number(selectedTx.amount_decimal ?? selectedTx.amount / 1e8);
 
             return (
               <div className="space-y-4">

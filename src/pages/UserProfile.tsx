@@ -140,9 +140,24 @@ const UserProfile = () => {
           .order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
+
+        const directGiftIds = (postsData || [])
+          .filter((post) => post.post_type === 'gift')
+          .map((post) => post.id);
+        const { data: verifiedGiftRows } = directGiftIds.length
+          ? await supabase
+              .from('wallet_transactions')
+              .select('post_id')
+              .in('post_id', directGiftIds)
+              .eq('status', 'verified')
+          : { data: [] as { post_id: string | null }[] };
+        const verifiedGiftIds = new Set((verifiedGiftRows || []).map((row) => row.post_id));
+        const visiblePosts = (postsData || []).filter(
+          (post) => post.post_type !== 'gift' || verifiedGiftIds.has(post.id),
+        );
         
         // For share posts, fetch original post data
-        const postsWithOriginal = await Promise.all((postsData || []).map(async (post) => {
+        const postsWithOriginal = await Promise.all(visiblePosts.map(async (post) => {
           if (post.post_type === 'share' && post.original_post_id) {
             const { data: origPost } = await supabase
               .from('posts')
@@ -151,6 +166,15 @@ const UserProfile = () => {
               .single();
             
             if (origPost) {
+              if (origPost.post_type === 'gift') {
+                const { data: verifiedOriginal } = await supabase
+                  .from('wallet_transactions')
+                  .select('id')
+                  .eq('post_id', origPost.id)
+                  .eq('status', 'verified')
+                  .maybeSingle();
+                if (!verifiedOriginal) return post;
+              }
               const { data: origProfile } = await supabase.rpc('get_public_profiles', {
                 user_ids: [origPost.author_id]
               });
@@ -186,7 +210,7 @@ const UserProfile = () => {
           .or(`follower_id.eq.${userId},following_id.eq.${userId}`);
 
         setStats({
-          postsCount: postsData?.length || 0,
+          postsCount: visiblePosts.length,
           friendsCount: friendsCount || 0,
         });
 

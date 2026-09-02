@@ -50,7 +50,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[9999] bg-white/95 backdrop-blur-md border-b border-border/50">
+    <nav className="ff-navbar fixed top-0 left-0 right-0 z-[9999]">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo + Search - Facebook style */}
@@ -59,10 +59,10 @@ const Navbar = () => {
               <img 
                 src={funFarmLogo} 
                 alt="FUN FARM Web3" 
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover shadow-glow"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ff-brand-logo"
                 data-angel-perch="logo"
               />
-              <span className="font-display font-bold text-xl text-gradient-hero hidden sm:block">
+              <span className="ff-brand-wordmark font-display font-bold text-xl hidden sm:block">
                 FUN FARM
               </span>
             </Link>
@@ -107,11 +107,11 @@ const Navbar = () => {
           {/* Removed to avoid duplication with MobileBottomNav */}
 
           {/* Desktop Navigation - Simplified */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-3">
             <Link 
               to="/" 
-              className={`flex items-center gap-2 transition-colors font-medium ${
-                isHomePage ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+              className={`ff-nav-link flex items-center gap-2 transition-colors font-medium ${
+                isHomePage ? 'ff-nav-link-active' : 'text-muted-foreground hover:text-primary'
               }`}
             >
               <Home className="w-4 h-4" />
@@ -119,8 +119,8 @@ const Navbar = () => {
             </Link>
             <Link 
               to="/marketplace" 
-              className={`flex items-center gap-2 transition-colors font-medium ${
-                location.pathname === '/marketplace' ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'
+              className={`ff-nav-link flex items-center gap-2 transition-colors font-medium ${
+                location.pathname === '/marketplace' ? 'ff-nav-link-active' : 'text-muted-foreground hover:text-green-600'
               }`}
             >
               <ShoppingBag className="w-4 h-4" />
@@ -234,7 +234,7 @@ const Navbar = () => {
                   </Button>
                 </Link>
                 <Link to="/auth">
-                  <Button className="gradient-hero border-0">
+                  <Button className="ff-luxury-gold-button rounded-full border-0 px-6 text-[#4e3908]">
                     {t('common.joinNow')}
                   </Button>
                 </Link>

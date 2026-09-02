@@ -68,6 +68,7 @@ export interface Post {
   receiver_avatar?: string;
   gift_amount?: number;
   gift_currency?: string;
+  gift_tx_hash?: string;
 }
 
 export interface Comment {

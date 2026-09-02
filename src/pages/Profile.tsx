@@ -154,20 +154,24 @@ const Profile = () => {
         if (giftPostIds.length) {
           const { data: txRows } = await supabase
             .from('wallet_transactions')
-            .select('post_id, amount, currency')
-            .in('post_id', giftPostIds);
+            .select('post_id, amount_decimal, currency')
+            .in('post_id', giftPostIds)
+            .eq('status', 'verified');
 
           (txRows || []).forEach((r: any) => {
             if (!r?.post_id) return;
             giftTxMap.set(r.post_id, {
-              amount: Number(r.amount) || 0,
+              amount: Number(r.amount_decimal) || 0,
               currency: r.currency || 'CAMLY',
             });
           });
         }
         
         // For share posts, fetch original post data; for gift posts, resolve receiver info
-        const postsWithOriginal = await Promise.all((postsData || []).map(async (post) => {
+        const verifiedPosts = (postsData || []).filter(
+          (post) => post.post_type !== 'gift' || giftTxMap.has(post.id),
+        );
+        const postsWithOriginal = await Promise.all(verifiedPosts.map(async (post) => {
           let updatedPost: Post = { ...post };
 
           // Handle share posts
@@ -211,14 +215,15 @@ const Profile = () => {
 
                 const { data: tx } = await supabase
                   .from('wallet_transactions')
-                  .select('amount, currency')
+                  .select('amount_decimal, currency')
                   .eq('post_id', origPost.id)
+                  .eq('status', 'verified')
                   .order('created_at', { ascending: false })
                   .limit(1)
                   .maybeSingle();
 
                 if (tx) {
-                  original.gift_amount = Number((tx as any).amount) || 0;
+                  original.gift_amount = Number((tx as any).amount_decimal) || 0;
                   original.gift_currency = (tx as any).currency || undefined;
                 }
               }
