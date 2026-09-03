@@ -22,6 +22,7 @@ import { Loader2 } from "lucide-react";
 import HonorBoard from "@/components/HonorBoard";
 import TopRanking from "@/components/TopRanking";
 import { useAuth } from "@/hooks/useAuth";
+import defaultFunFarmLogo from "@/assets/branding/fun-farm-logo-2-transparent.png";
 
 // Map profile_type to UserType - defined outside component to avoid hook issues
 const mapProfileTypeToUserType = (profileType: string): 'farm' | 'fisher' | 'ranch' | 'buyer' | 'restaurant' | 'distributor' | 'shipper' | 'reviewer' => {
@@ -202,7 +203,7 @@ const Feed = () => {
                 id: origPost.author_id,
                 name: opName,
                 username: opName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
-                avatar: op?.avatar_url || '/logo_fun_farm_web3.png',
+                avatar: op?.avatar_url || defaultFunFarmLogo,
                 type: mapProfileTypeToUserType(op?.profile_type || 'farmer'),
                 verified: op?.is_verified || false,
                 reputationScore: op?.reputation_score || 0,
@@ -285,7 +286,7 @@ const Feed = () => {
             id: post.author_id,
             name: displayName,
             username: displayName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
-            avatar: profile?.avatar_url || '/logo_fun_farm_web3.png',
+            avatar: profile?.avatar_url || defaultFunFarmLogo,
             type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
             verified: profile?.is_verified || false,
             reputationScore: profile?.reputation_score || 0,
@@ -446,7 +447,7 @@ const Feed = () => {
               id: origPost.author_id,
               name: opName,
               username: opName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
-              avatar: op?.avatar_url || '/logo_fun_farm_web3.png',
+              avatar: op?.avatar_url || defaultFunFarmLogo,
               type: mapProfileTypeToUserType(op?.profile_type || 'farmer'),
               verified: op?.is_verified || false,
               reputationScore: op?.reputation_score || 0,
@@ -516,7 +517,7 @@ const Feed = () => {
           id: newPost.author_id,
           name: displayName,
           username: displayName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, ''),
-          avatar: profile?.avatar_url || '/logo_fun_farm_web3.png',
+          avatar: profile?.avatar_url || defaultFunFarmLogo,
           type: mapProfileTypeToUserType(profile?.profile_type || 'farmer'),
           verified: profile?.is_verified || false,
           reputationScore: profile?.reputation_score || 0,
@@ -643,9 +644,9 @@ const Feed = () => {
       <Navbar />
       
       
-      <main className="pt-20 pb-16">
+      <main className="pt-[65px] pb-16">
         <div className="container max-w-[1640px] mx-auto px-2 lg:px-5">
-          <div className="rounded-2xl p-1 lg:p-3">
+          <div className="rounded-2xl p-1 lg:px-3 lg:pb-3 lg:pt-0">
             {/* 3-Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 xl:gap-6">
               {/* Left Sidebar - Ecosystem */}
@@ -731,7 +732,7 @@ const Feed = () => {
 
               {/* Right Sidebar - Honor Board & Rankings */}
               <div className="hidden lg:block lg:col-span-3">
-                <div className="sticky top-20 overflow-visible pr-2">
+                <div className="ff-sidebar-scroll sticky top-[65px] max-h-[calc(100dvh-65px)] overflow-y-auto overscroll-contain px-1 pb-4 pt-1">
                   <FeedSidebar trendingHashtags={trendingHashtags} suggestedFarms={suggestedFarms} />
                 </div>
               </div>

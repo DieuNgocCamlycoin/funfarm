@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Gift, Volume2, VolumeX, Sparkles, ArrowRight, Heart, Crown, Gem, Download, ShieldCheck, ExternalLink, Copy, Check, PartyPopper, Trophy, Sprout, CakeSlice, Coins, HandHeart, Star, MessageCircle } from 'lucide-react';
+import { Gift, Play, Pause, Sparkles, ArrowRight, Heart, Crown, Gem, Download, ShieldCheck, ExternalLink, Copy, Check, PartyPopper, Trophy, Sprout, CakeSlice, Coins, HandHeart, Star, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import camlyCoinImg from '@/assets/camly_coin.png';
-import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
+import funMoneyImg from '@/assets/ecosystem/fun-money.png';
+import logoFunFarm from '@/assets/branding/fun-farm-logo-2-transparent.png';
 import gratitudeBg from '@/assets/gift-themes/gratitude.jpeg';
 import loveBg from '@/assets/gift-themes/love.jpeg';
 import celebrationBg from '@/assets/gift-themes/celebration.jpeg';
@@ -27,12 +28,6 @@ export const giftSoundOptions = [
   { id: 'rich1', name: 'Giàu Sang 1', url: '/sounds/gift-rich-1.mp3', emoji: '💰' },
   { id: 'rich2', name: 'Giàu Sang 2', url: '/sounds/gift-rich-2.mp3', emoji: '💎' },
   { id: 'rich3', name: 'Giàu Sang 3', url: '/sounds/gift-rich-3.mp3', emoji: '🎊' },
-  { id: 'hearts', name: 'Lãng Mạn', url: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', emoji: '💕' },
-  { id: 'stars', name: 'Phép Màu', url: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3', emoji: '✨' },
-  { id: 'confetti', name: 'Tiệc Tùng', url: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3', emoji: '🎉' },
-  { id: 'coins', name: 'Tiền Vàng', url: 'https://assets.mixkit.co/active_storage/sfx/888/888-preview.mp3', emoji: '🪙' },
-  { id: 'nature', name: 'Thiên Nhiên', url: 'https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3', emoji: '🌿' },
-  { id: 'sparkle', name: 'Lấp Lánh', url: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3', emoji: '🌟' },
 ];
 
 // 29 Gift templates - Clean & Positive only (matching CreateGiftPostModal)
@@ -136,7 +131,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   giftMessage,
   txHash,
 }) => {
-  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -160,9 +155,9 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     customMessage = messageMatch ? messageMatch[1].trim() : '';
   }
 
-  // Truncate long message for display on card (max 80 chars)
-  const truncatedMessage = customMessage.length > 80
-    ? customMessage.substring(0, 80) + '...'
+  // Preserve roughly four lines before shortening the message.
+  const truncatedMessage = customMessage.length > 260
+    ? customMessage.substring(0, 260).trimEnd() + '…'
     : customMessage;
 
   // Parse sound ID from content if exists
@@ -210,7 +205,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             // Component is visible - play sound if not muted and not played yet
-            if (!hasPlayed && !isMuted) {
+            if (!hasPlayed) {
               playSound();
               setHasPlayed(true);
               
@@ -218,14 +213,13 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
               if (giftLevel.effects.hasScreenShake) {
                 triggerScreenShake();
               }
-            } else if (hasPlayed && !isMuted && audioRef.current?.paused) {
-              // Resume if was playing before
-              audioRef.current?.play().catch(() => {});
             }
           } else {
-            // Component scrolled out of view - pause audio (like Facebook/TikTok)
+            // Leaving the card stops the sound completely.
             if (audioRef.current && !audioRef.current.paused) {
               audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+              setIsPlaying(false);
             }
           }
         });
@@ -238,7 +232,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     }
 
     return () => observer.disconnect();
-  }, [autoPlaySound, hasPlayed, giftLevel, isMuted]);
+  }, [autoPlaySound, hasPlayed, giftLevel]);
 
   const triggerScreenShake = () => {
     setIsShaking(true);
@@ -254,8 +248,6 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
   };
 
   const playSound = () => {
-    if (isMuted) return;
-    
     // Use level-appropriate sound
     let soundUrl = giftLevel.sound;
     
@@ -270,10 +262,12 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     
     audioRef.current = new Audio(soundUrl);
     audioRef.current.volume = 0.4;
-    audioRef.current.loop = true; // Loop continuously - rich rich rich
-    audioRef.current.play().catch(() => {
-      console.log('Sound autoplay blocked');
-    });
+    audioRef.current.loop = false;
+    audioRef.current.onended = () => {
+      setIsPlaying(false);
+      if (audioRef.current) audioRef.current.currentTime = 0;
+    };
+    audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
   };
 
   // Cleanup audio on unmount
@@ -286,16 +280,14 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     };
   }, []);
 
-  const toggleMute = () => {
-    const newMuted = !isMuted;
-    setIsMuted(newMuted);
-    if (audioRef.current) {
-      if (newMuted) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch(() => {});
-      }
+  const togglePlayback = () => {
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+      return;
     }
+    playSound();
   };
 
   const copyTxHash = async () => {
@@ -323,18 +315,25 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       if (soundBtn) (soundBtn as HTMLElement).style.display = 'none';
       if (downloadBtn) (downloadBtn as HTMLElement).style.display = 'none';
       
-      // Capture the gift card
+      // Capture the gift card. A capture-only class avoids browser-only text
+      // effects that html2canvas can turn into opaque bars or clipped labels.
+      container.classList.add('gift-capture-mode');
+      await document.fonts?.ready;
       const canvas = await html2canvas(container, {
         backgroundColor: null,
         scale: 2, // High quality
         useCORS: true,
         logging: false,
         allowTaint: true,
+        onclone: (_document, clonedElement) => {
+          clonedElement.classList.add('gift-capture-mode');
+        },
       });
       
       // Restore buttons
       if (soundBtn) (soundBtn as HTMLElement).style.display = '';
       if (downloadBtn) (downloadBtn as HTMLElement).style.display = '';
+      container.classList.remove('gift-capture-mode');
       
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -356,6 +355,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       }, 'image/png', 1.0);
       
     } catch (error) {
+      containerRef.current?.classList.remove('gift-capture-mode');
       console.error('Download gift error:', error);
       toast.error('Không thể tải về. Vui lòng thử lại!');
     }
@@ -385,21 +385,47 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
     );
   };
 
-  // A restrained celebration: a few coins behind the content, then they rest.
+  // One rebuilt decorative system: 12 CAMLY + 12 FUN Money + 7 RICH.
+  // Every coordinate belongs to a reserved pocket outside the content corridor.
   const renderLevelEffects = () => {
-    const count = giftLevel.level === 'diamond' ? 10 : giftLevel.level === 'gold' ? 8 : 6;
-    return Array.from({ length: count }, (_, i) => (
+    const coinPositions = [
+      [14, 8], [22, 13], [75, 8], [84, 13],
+      [3, 24], [13, 29], [87, 25], [96, 31],
+      [4, 43], [15, 47], [85, 44], [96, 49],
+      [3, 61], [14, 65], [86, 61], [96, 67],
+      [4, 79], [15, 82], [85, 79], [96, 84],
+      [15, 94], [29, 91], [72, 92], [86, 95],
+    ];
+    return coinPositions.map(([left, top], i) => (
       <img
         key={`garden-coin-${i}`}
-        src={camlyCoinImg}
+        src={i % 2 === 0 ? camlyCoinImg : funMoneyImg}
         alt=""
-        className="gift-garden-coin absolute h-5 w-5 opacity-0"
+        className="gift-garden-coin absolute"
         style={{
-          left: `${7 + ((i * 17) % 87)}%`,
-          animationDelay: `${i * 0.38}s`,
-          animationDuration: `${4.3 + (i % 3) * 0.45}s`,
+          left: `${left}%`, top: `${top}%`,
+          width: `${15 + (i % 3) * 4}px`, height: `${15 + (i % 3) * 4}px`,
+          animationDelay: `${i % 2 === 0 ? -(i % 6) * .09 : -1.45 - (i % 6) * .09}s`,
         }}
       />
+    ));
+  };
+
+  const renderRichEffects = () => {
+    const palette = ['#ef4d91', '#18a999', '#5a9ee6', '#d5a62e', '#8d63d7'];
+    const positions = [[31, 3], [48, 5], [65, 2], [1, 35], [87, 37], [1, 72], [87, 70]];
+    return positions.map(([left, top], i) => (
+      <span
+        key={`card-rich-${i}`}
+        className="gift-card-rich absolute font-black tracking-[.18em]"
+        style={{
+          left: `${left}%`,
+          top: `${top}%`,
+          color: palette[i % palette.length],
+          textShadow: `0 0 12px ${palette[i % palette.length]}88`,
+          animationDelay: `${i * -.43}s`,
+        }}
+      >RICH</span>
     ));
   };
 
@@ -408,35 +434,31 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       ref={containerRef}
       className={`gift-garden-card relative mx-1 my-2 overflow-hidden rounded-[22px] border border-[#dfcc91] text-[#174c38] shadow-[0_14px_36px_rgba(42,88,57,0.14)] transition-transform sm:mx-2 ${isShaking ? 'animate-shake' : ''}`}
     >
-      <div className="relative overflow-hidden bg-cover bg-center px-4 py-3 sm:px-5 sm:py-4" style={{ backgroundImage: `url(${selectedBackground})` }}>
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,.38),rgba(255,255,255,.08)_52%,rgba(247,240,205,.16))]" />
+      <div className="relative overflow-hidden bg-cover px-4 py-3 sm:px-5 sm:py-4" style={{ backgroundImage: `url(${selectedBackground})`, backgroundPosition: selectedBackgroundId === 'love-tulip' ? 'center 24%' : 'center' }}>
+        <div className={`pointer-events-none absolute inset-0 ${selectedBackgroundId === 'love-tulip' ? 'bg-[linear-gradient(110deg,rgba(255,255,255,.68),rgba(255,255,255,.38)_48%,rgba(255,247,230,.58))]' : 'bg-[linear-gradient(115deg,rgba(255,255,255,.38),rgba(255,255,255,.08)_52%,rgba(247,240,205,.16))]'}`} />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-[linear-gradient(90deg,transparent,#f8e5a5_28%,#fff9d9_50%,#d9bc63_72%,transparent)]" />
         <div className="pointer-events-none absolute -left-16 -top-16 h-44 w-44 rounded-full bg-white/80 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -right-20 h-52 w-52 rounded-full bg-[#cce9bd]/55 blur-3xl" />
 
         <button
-          onClick={toggleMute}
+          onClick={togglePlayback}
           className="absolute right-4 top-3.5 z-20 rounded-full border border-[#d9c990] bg-white/70 p-1.5 text-[#56725f] shadow-sm transition hover:bg-white"
-          title={isMuted ? 'Bật âm thanh 🔊' : 'Tắt âm thanh 🔇'}
+          title={isPlaying ? 'Dừng âm thanh' : 'Bật âm thanh (phát 1 lần)'}
         >
-          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </button>
 
         <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[22px]">
           {renderLevelEffects()}
+          {renderRichEffects()}
         </div>
 
-        <div className="relative z-10 mb-2.5 flex items-center justify-between pr-10">
+        <div className="relative z-10 mb-2.5 flex items-center pr-10">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#176b48]">
               <img src={logoFunFarm} alt="FUN FARM" className="h-7 w-7 rounded-full object-cover shadow-sm" />
               <span>Fun Farm Gift</span>
             </div>
-            <span className="h-3 w-px bg-[#dccb95]" />
-            <span className="rounded-full border border-white/80 bg-white/65 px-2 py-0.5 text-[10px] font-semibold backdrop-blur" style={{ color: themeVisual.accent }}>{emoji} {themeVisual.label}</span>
-          </div>
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f8efcf] text-[#9d7927]">
-            <CardIcon id={template.id} className="h-4 w-4" />
           </div>
         </div>
 
@@ -451,7 +473,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
                 <Gift className="h-2.5 w-2.5" />
               </div>
             </div>
-            <span className="mt-1 max-w-[112px] truncate text-xs font-semibold text-[#234d3a]">{senderName || 'Người tặng'}</span>
+            <span className="gift-person-name mt-1 max-w-[150px] text-center text-xs font-semibold leading-tight text-[#234d3a]">{senderName || 'Người tặng'}</span>
             {senderWallet && (
               <span className="mt-0.5 font-mono text-[9px] text-[#6c8175]">{shortenWallet(senderWallet)}</span>
             )}
@@ -473,7 +495,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
                 <Sparkles className="h-2.5 w-2.5" />
               </div>
             </div>
-            <span className="mt-1 max-w-[112px] truncate text-xs font-semibold text-[#234d3a]">{receiverName || 'Người nhận'}</span>
+            <span className="gift-person-name mt-1 max-w-[150px] text-center text-xs font-semibold leading-tight text-[#234d3a]">{receiverName || 'Người nhận'}</span>
             {receiverWallet && (
               <span className="mt-0.5 font-mono text-[9px] text-[#6c8175]">{shortenWallet(receiverWallet)}</span>
             )}
@@ -483,7 +505,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
         <div className="relative z-10 my-2 flex items-center justify-center gap-2 border-y border-[#dce9d5] py-2.5">
           <img src={camlyCoinImg} alt="Camly Coin" className="h-9 w-9 drop-shadow-[0_3px_5px_rgba(122,83,16,0.28)] sm:h-10 sm:w-10" />
           <div className="flex items-baseline gap-2">
-            <span className="bg-[linear-gradient(180deg,#8e6818_0%,#d4aa42_48%,#765211_100%)] bg-clip-text text-3xl font-extrabold leading-none text-transparent sm:text-[34px]">{displayAmount}</span>
+            <span className="gift-amount-text ff-premium-gold-text text-3xl font-extrabold leading-none sm:text-[34px]">{displayAmount}</span>
             <span className="text-[11px] font-bold tracking-[0.12em] text-[#2f6b4a]">{currency === 'CAMLY' || currency === 'CLC' ? 'CAMLY COIN' : currency}</span>
           </div>
         </div>
@@ -491,7 +513,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
         {truncatedMessage && (
           <div className="relative z-10 flex items-start justify-center gap-2 rounded-xl border border-white/75 bg-white/72 px-3 py-2 text-center shadow-sm backdrop-blur-md">
             <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#b78b2c]" />
-            <p className="text-sm italic leading-relaxed text-[#4e6657]">“{truncatedMessage}”</p>
+            <p className="line-clamp-4 text-sm italic leading-relaxed text-[#344e40]">“{truncatedMessage}”</p>
           </div>
         )}
 
@@ -525,13 +547,19 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
       </div>
 
       <style>{`
-        @keyframes gardenCoinFall {
-          0% { transform: translate3d(0,-36px,0) rotate(0); opacity: 0; }
-          12% { opacity: .42; }
-          75% { opacity: .28; }
-          100% { transform: translate3d(12px,390px,0) rotate(420deg); opacity: 0; }
+        .gift-garden-coin { animation: gardenCoinDance 2.9s ease-in-out infinite; filter: drop-shadow(0 0 5px rgba(255,206,61,.72)) drop-shadow(0 3px 5px rgba(117,83,20,.25)); }
+        @keyframes gardenCoinDance {
+          0%, 100% { transform: rotate(-5deg) scale(.72); opacity: .3; filter: brightness(.9) drop-shadow(0 0 3px rgba(255,202,42,.4)); }
+          50% { transform: rotate(6deg) scale(1.08); opacity: .82; filter: brightness(1.25) drop-shadow(0 0 9px rgba(255,218,75,.9)); }
         }
-        .gift-garden-coin { animation: gardenCoinFall 5s ease-in forwards; filter: drop-shadow(0 2px 3px rgba(117,83,20,.18)); }
+        @keyframes giftCardRichDance {
+          0%, 100% { transform: translate3d(-3px,3px,0) rotate(-3deg) scale(.82); opacity: .2; }
+          50% { transform: translate3d(3px,-3px,0) rotate(3deg) scale(1.08); opacity: .68; filter: saturate(1.35) brightness(.9) drop-shadow(0 0 7px rgba(255,255,255,.82)); }
+        }
+        .gift-card-rich { z-index: 0; font-size: clamp(12px,1.7vw,18px); animation: giftCardRichDance 4.8s ease-in-out infinite; }
+        .gift-capture-mode .gift-amount-text { background: none !important; color: #b47b08 !important; -webkit-text-fill-color: #b47b08 !important; text-shadow: 0 1px 0 #fff3ae, 0 2px 1px rgba(91,52,0,.3) !important; }
+        .gift-capture-mode .gift-person-name { max-width: 180px !important; white-space: normal !important; overflow: visible !important; }
+        .gift-capture-mode .gift-garden-coin, .gift-capture-mode .gift-card-rich { animation-play-state: paused !important; }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
@@ -539,7 +567,7 @@ const GiftPostDisplay: React.FC<GiftPostDisplayProps> = ({
         }
         .animate-shake { animation: shake 0.4s ease-in-out; }
         @media (prefers-reduced-motion: reduce) {
-          .gift-garden-coin, .animate-shake { animation: none !important; }
+          .gift-garden-coin, .gift-card-rich, .animate-shake { animation: none !important; }
         }
       `}</style>
     </div>

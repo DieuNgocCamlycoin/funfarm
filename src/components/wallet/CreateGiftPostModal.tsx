@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import camlyCoinImg from '@/assets/camly_coin.png';
-import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
+import logoFunFarm from '@/assets/branding/fun-farm-logo-2-transparent.png';
 import gratitudeBg from '@/assets/gift-themes/gratitude.jpeg';
 import loveBg from '@/assets/gift-themes/love.jpeg';
 import celebrationBg from '@/assets/gift-themes/celebration.jpeg';
@@ -111,7 +111,7 @@ const TemplateIcon = ({ id, className = 'h-5 w-5' }: { id: string; className?: s
 };
 
 const curatedSoundOptions = giftSoundOptions.filter((sound) =>
-  ['rich1', 'rich2', 'hearts', 'confetti', 'nature'].includes(sound.id)
+  ['rich1', 'rich2', 'rich3'].includes(sound.id)
 );
 
 const formatNumber = (num: number) => {
@@ -241,15 +241,15 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="shrink-0 border-b bg-background/95 px-6 py-4 pr-14 backdrop-blur">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
             Đăng bài chúc mừng
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto px-6 pb-6 pt-4">
           {/* Gift Card Preview with animated effects */}
           <div 
             className="relative overflow-hidden rounded-2xl border border-[#d6b958] bg-cover bg-center p-4 text-[#26382f] shadow-[0_18px_45px_rgba(45,69,52,0.18)]"
@@ -277,13 +277,10 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
 
             {/* Content */}
             <div className="relative z-10">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center">
                 <div className="flex items-center gap-2">
                   <img src={logoFunFarm} alt="FUN FARM" className="h-10 w-10 rounded-full object-cover shadow-sm" />
                   <span className="font-bold text-lg text-[#176b48]">Fun Farm Gift</span>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-200/70 bg-[linear-gradient(145deg,#fff3ad,#b77b13_48%,#ffe89a)] text-emerald-950 shadow-[0_4px_18px_rgba(255,215,90,0.45)]">
-                  <TemplateIcon id={selectedTemplate.id} />
                 </div>
               </div>
 
@@ -405,7 +402,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
           <div>
             <label className="text-sm font-medium mb-2 block flex items-center gap-2">
               <Music className="w-4 h-4 text-purple-500" />
-              Chọn âm thanh ({curatedSoundOptions.length} mẫu tinh tuyển)
+              Chọn âm thanh · 3 bản RICH
             </label>
             <div className="grid grid-cols-3 gap-2 max-h-[120px] overflow-y-auto p-1">
               {curatedSoundOptions.map((sound) => (
@@ -462,7 +459,7 @@ const CreateGiftPostModal: React.FC<CreateGiftPostModalProps> = ({
               Bỏ qua
             </Button>
             <Button
-              className="flex-1 gap-2 bg-gradient-to-r from-primary to-green-500"
+              className="ff-action-metal flex-1 gap-2"
               onClick={handlePost}
               disabled={isPosting}
             >

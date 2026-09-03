@@ -1,7 +1,7 @@
 // 🌱 Divine Mantra: "Free-Fee & Earn - FUN FARM Web3"
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift, Sprout, ShoppingBag } from "lucide-react";
-import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
+import { Menu, X, Wallet, LogOut, Coins, Home, User, Search, Shield, Gift, Sprout, Store } from "lucide-react";
+import funFarmLogo from "@/assets/branding/fun-farm-logo-2-transparent.png";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { FriendSearch } from "@/components/FriendSearch";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import EcosystemSidebar from "@/components/feed/EcosystemSidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const profileTypeEmojis: Record<string, string> = {
   farmer: '🧑‍🌾',
@@ -52,7 +53,7 @@ const Navbar = () => {
   return (
     <nav className="ff-navbar fixed top-0 left-0 right-0 z-[9999]">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="relative flex items-center justify-between h-16">
           {/* Logo + Search - Facebook style */}
           <div className="flex items-center gap-2 sm:gap-3">
             <Link to="/" className="flex items-center gap-2">
@@ -106,57 +107,51 @@ const Navbar = () => {
           {/* Mobile quick actions: Search only - other icons moved to bottom nav */}
           {/* Removed to avoid duplication with MobileBottomNav */}
 
-          {/* Desktop Navigation - Simplified */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link 
-              to="/" 
-              className={`ff-nav-link flex items-center gap-2 transition-colors font-medium ${
-                isHomePage ? 'ff-nav-link-active' : 'text-muted-foreground hover:text-primary'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              Trang Chủ
-            </Link>
-            <Link 
-              to="/marketplace" 
-              className={`ff-nav-link flex items-center gap-2 transition-colors font-medium ${
-                location.pathname === '/marketplace' ? 'ff-nav-link-active' : 'text-muted-foreground hover:text-green-600'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              Chợ Nông Sản
-            </Link>
-          </div>
+          {/* Facebook-style primary navigation: icon first, label on hover only */}
+          <TooltipProvider delayDuration={220}>
+            <div className="absolute left-1/2 hidden -translate-x-1/2 items-stretch gap-1 lg:flex">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/" aria-label="Trang Chủ" className={`ff-fb-nav-item ${isHomePage ? 'ff-fb-nav-active' : ''}`}>
+                    <span className="ff-nav-orb ff-nav-orb-home"><Home className="h-6 w-6" /></span>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="ff-nav-tooltip">Trang Chủ</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/marketplace" aria-label="Chợ Nông Sản" className={`ff-fb-nav-item ${location.pathname === '/marketplace' ? 'ff-fb-nav-active' : ''}`}>
+                    <span className="ff-nav-orb ff-nav-orb-market"><Store className="h-6 w-6" /></span>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="ff-nav-tooltip">Chợ Nông Sản</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/wallet" aria-label="Ví và Quà" className={`ff-fb-nav-item ${location.pathname === '/wallet' ? 'ff-fb-nav-active' : ''}`}>
+                    <span className="ff-nav-orb ff-nav-orb-gift"><Gift className="h-6 w-6" /></span>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="ff-nav-tooltip">Ví &amp; Quà</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
 
           {/* Auth Buttons / User Menu */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
             <LanguageSwitcher />
             
             {isLoading ? (
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user && profile ? (
-              <div className="flex items-center gap-3">
-                {/* Wallet Link */}
-                <Link 
-                  to="/wallet" 
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full transition-colors ${
-                    location.pathname === '/wallet' 
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
-                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Gift className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden lg:inline">Ví & Quà</span>
-                </Link>
-
+              <div className="flex items-center gap-2">
                 {/* Notification Bell */}
                 <NotificationBell />
 
                 {/* Avatar - Click to go to profile (like Facebook) */}
-                <Link to="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <span className="text-sm font-medium hidden lg:block">
-                    {profile.display_name || 'FUN Farmer'}
-                  </span>
+                <Link to="/profile" aria-label="Trang cá nhân" title="Trang cá nhân" className="flex items-center hover:opacity-80 transition-opacity">
                   <Avatar className="h-10 w-10 border-2 border-primary/20 cursor-pointer">
                     <AvatarImage src={profile.avatar_url || undefined} />
                     <AvatarFallback className="bg-primary/10 text-lg">
@@ -292,7 +287,7 @@ const Navbar = () => {
                 className="flex items-center gap-2 text-green-600 hover:text-green-700 transition-colors font-medium"
                 onClick={() => setIsOpen(false)}
               >
-                <ShoppingBag className="w-4 h-4" />
+                <Store className="w-4 h-4" />
                 🛒 Chợ Nông Sản
               </Link>
               {user && profile && (

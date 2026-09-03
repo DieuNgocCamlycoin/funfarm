@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMetaMask } from '@/hooks/useMetaMask';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,6 +106,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<'idle' | 'wallet' | 'verifying'>('idle');
+  const [pendingTxHash, setPendingTxHash] = useState<string | null>(null);
 
   useEffect(() => {
     if (preselectedUser) {
@@ -126,6 +127,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
       setReceiverWallet('');
       setMessage('');
       setTransactionStatus('idle');
+      setPendingTxHash(null);
     }
   }, [isOpen, preselectedUser]);
 
@@ -159,6 +161,37 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
     && profile?.wallet_address
     && metamask.address.toLowerCase() === profile.wallet_address.toLowerCase()
   );
+
+  const currencyBalance = useMemo(() => {
+    if (selectedCurrency === 'CAMLY') return Number(metamask.camlyBalance);
+    if (selectedCurrency === 'BNB') return Number(metamask.bnbBalance);
+    if (selectedCurrency === 'USDT') return Number(metamask.usdtBalance);
+    return Number(metamask.btcbBalance);
+  }, [selectedCurrency, metamask.camlyBalance, metamask.bnbBalance, metamask.usdtBalance, metamask.btcbBalance]);
+
+  const amountNumber = Number(amount);
+  const amountIsValid = amount.trim() !== '' && Number.isFinite(amountNumber) && amountNumber > 0;
+  const hasEnoughBalance = !metamask.isConnected || !amountIsValid || amountNumber <= currencyBalance;
+  const isSameWallet = Boolean(
+    metamask.address && receiverWallet && metamask.address.toLowerCase() === receiverWallet.toLowerCase()
+  );
+
+  const explainGiftError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error || '');
+    if (/user rejected|user denied|ACTION_REJECTED|code 4001/i.test(message)) {
+      return 'Bạn đã hủy xác nhận trong MetaMask. Chưa có khoản tiền nào được gửi.';
+    }
+    if (/insufficient funds|exceeds balance/i.test(message)) {
+      return 'Số dư không đủ để tặng quà và thanh toán phí gas.';
+    }
+    if (/network|chain/i.test(message)) {
+      return 'Vui lòng chuyển MetaMask sang BNB Smart Chain rồi thử lại.';
+    }
+    if (/already recorded/i.test(message)) {
+      return 'Giao dịch này đã được FUN FARM ghi nhận trước đó.';
+    }
+    return message || 'Có lỗi xảy ra khi gửi quà. Vui lòng thử lại.';
+  };
 
   const searchUsers = async (query: string) => {
     if (query.length < 2) {
@@ -199,7 +232,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   };
 
   const handleSendGift = async () => {
-    if (!user || !selectedUser || !amount) return;
+    if (!user || !selectedUser || !amountIsValid || isSending) return;
 
     if (isTreasuryMode) {
       toast.error('Ví Treasury cần được liên kết với một tài khoản FUN FARM đã xác minh trước khi nhận quà.');
@@ -226,6 +259,14 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
         toast.error('Số tiền phải lớn hơn 0');
         return;
       }
+      if (!hasEnoughBalance) {
+        toast.error(`Số dư ${selectedCurrency} không đủ để thực hiện giao dịch.`);
+        return;
+      }
+      if (isSameWallet) {
+        toast.error('Không thể tặng quà vào chính ví đang gửi.');
+        return;
+      }
     }
 
     setIsSending(true);
@@ -248,8 +289,9 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
             txHash = await metamask.sendBTCB(receiverWallet, amount);
           }
         } catch (err: any) {
-          toast.error(err.message || 'Giao dịch blockchain thất bại');
+          toast.error(explainGiftError(err));
           setIsSending(false);
+          setTransactionStatus('idle');
           return;
         }
 
@@ -259,6 +301,8 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
           return;
         }
       }
+
+      setPendingTxHash(txHash);
 
       // Backend independently verifies the mined BSC receipt before recording it.
       setTransactionStatus('verifying');
@@ -289,7 +333,7 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
       });
     } catch (error) {
       console.error('Error sending gift:', error);
-      toast.error('Có lỗi xảy ra khi gửi quà');
+      toast.error(explainGiftError(error));
     } finally {
       setIsSending(false);
       setTransactionStatus('idle');
@@ -297,8 +341,14 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden p-0 sm:h-auto sm:max-h-[82dvh] sm:max-w-lg">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open && !isSending) onClose();
+    }}>
+      <DialogContent
+        className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden p-0 sm:h-auto sm:max-h-[82dvh] sm:max-w-lg"
+        onEscapeKeyDown={(event) => { if (isSending) event.preventDefault(); }}
+        onPointerDownOutside={(event) => { if (isSending) event.preventDefault(); }}
+      >
         <DialogHeader className="shrink-0 border-b bg-background px-6 py-4 pr-14">
           <DialogTitle className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-primary" />
@@ -485,6 +535,8 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 onChange={(e) => setAmount(e.target.value)}
                 className="text-lg font-semibold"
                 step={isOnChainCurrency ? "0.001" : "1000"}
+                min="0"
+                inputMode="decimal"
               />
               {selectedCurrency === 'CAMLY' && metamask.isConnected && (
                 <div className="text-sm text-muted-foreground mt-1">
@@ -505,6 +557,16 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 <div className="text-sm text-muted-foreground mt-1">
                   Số dư: {parseFloat(metamask.btcbBalance).toFixed(6)} BTCB
                 </div>
+              )}
+              {amountIsValid && !hasEnoughBalance && (
+                <p className="mt-1 text-sm font-medium text-destructive">
+                  Số lượng vượt quá số dư {selectedCurrency} hiện có.
+                </p>
+              )}
+              {isSameWallet && (
+                <p className="mt-1 text-sm font-medium text-destructive">
+                  Ví người nhận trùng với ví đang gửi.
+                </p>
               )}
               
               {/* Quick amounts */}
@@ -574,8 +636,8 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
             {/* Review Button */}
             <Button
               onClick={() => setStep(3)}
-              disabled={!amount || Number(amount) <= 0 || !walletMatchesProfile || !receiverWallet}
-              className="w-full gap-2 bg-gradient-to-r from-primary to-green-500"
+              disabled={!amountIsValid || !hasEnoughBalance || isSameWallet || !walletMatchesProfile || !receiverWallet}
+              className="ff-action-metal w-full gap-2"
             >
               Xem lại &amp; xác nhận
               <CheckCircle2 className="w-4 h-4" />
@@ -644,6 +706,16 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-900">
                   <div className={`h-full rounded-full bg-emerald-500 transition-all ${transactionStatus === 'verifying' ? 'w-3/4' : 'w-1/3'}`} />
                 </div>
+                {pendingTxHash && (
+                  <a
+                    href={`https://bscscan.com/tx/${pendingTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
+                  >
+                    Theo dõi giao dịch trên BscScan <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </div>
             )}
 
@@ -653,8 +725,8 @@ const SendGiftModal: React.FC<SendGiftModalProps> = ({
               </Button>
               <Button
                 onClick={handleSendGift}
-                disabled={isSending || !walletMatchesProfile}
-                className="gap-2 bg-gradient-to-r from-amber-400 via-primary to-emerald-500 text-primary-foreground shadow-lg"
+                disabled={isSending || !walletMatchesProfile || !amountIsValid || !hasEnoughBalance || isSameWallet}
+                className="ff-action-metal gap-2"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                 {isSending ? 'Đang xử lý…' : 'Xác nhận & Tặng'}

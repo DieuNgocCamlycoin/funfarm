@@ -1,5 +1,6 @@
 // 🧚 FUN FARM Angel Companion - Thiên thần đồng hành với GIF Animation (nền trong suốt)
-// Kịch bản Animation v2: Mượt mà, có câu chuyện, kết nối cảm xúc với user
+// Kịch bản Animation v2: Mượt mà, có câu chuyện, kết nối cảm xúc với user.
+// Bổ sung duy nhất: Angel lịch sự tránh vùng nhập liệu/chat/tặng quà khi người dùng thao tác.
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Import GIF animations (hỗ trợ nền trong suốt)
@@ -124,7 +125,7 @@ const ONE_SHOT_DURATIONS: Partial<Record<AngelState, number>> = {
 
 // ============= RANDOM BEHAVIORS - SÔI ĐỘNG HƠN =============
 // Interval 8s để Angel hoạt động sôi động hơn
-const BEHAVIOR_INTERVAL = 8000; // 8 giây giữa mỗi lần check
+const BEHAVIOR_INTERVAL = 8000;
 
 const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }[] = [
   // ⬆️ TĂNG chance cho các animation vui vẻ - sôi động hơn!
@@ -147,8 +148,8 @@ const RANDOM_BEHAVIORS: { action: AngelState; chance: number; duration: number }
 ];
 
 // ============= VISUAL CONSTANTS =============
-const ANGEL_SIZE = 175;        // Hiện diện rõ nhưng gọn để không che thao tác
-const SAFE_DISTANCE = 118;
+const ANGEL_SIZE = 220;        // Angel lớn, rực rỡ và hiện diện rõ trên FUN FARM
+const SAFE_DISTANCE = 145;
 const OFFSET_ANGLE = Math.PI / 4;
 
 const BRIGHTNESS_LEVELS: Record<number, string> = {
@@ -161,6 +162,13 @@ const BRIGHTNESS_LEVELS: Record<number, string> = {
 };
 
 const DEFAULT_GLOW = 'drop-shadow(0 0 25px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 50px rgba(255, 182, 193, 0.4))';
+
+const isQuietInteraction = (target: EventTarget | null) => {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest(
+    'input, textarea, [contenteditable="true"], [role="textbox"], [role="dialog"], [data-angel-quiet-zone]'
+  ));
+};
 
 // ============= COMPONENT =============
 
@@ -202,6 +210,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   const wanderTimer = useRef<NodeJS.Timeout>();
   const transitionTimer = useRef<NodeJS.Timeout>();
   const frameRef = useRef<number>();
+  const quietInteractionRef = useRef(false);
 
   // ============= FLOW 1: INITIAL GREETING =============
   useEffect(() => {
@@ -338,6 +347,21 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
   
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!enabled || isHidden || isSitting) return;
+
+    // Phần bổ sung duy nhất: tránh con trỏ trong vùng nhập liệu và modal thao tác.
+    if (isQuietInteraction(e.target)) {
+      if (!quietInteractionRef.current) {
+        quietInteractionRef.current = true;
+        const retreatX = e.clientX < window.innerWidth / 2
+          ? window.innerWidth - ANGEL_SIZE * 0.38
+          : ANGEL_SIZE * 0.38;
+        const retreatY = Math.max(ANGEL_SIZE * 0.45, Math.min(window.innerHeight - ANGEL_SIZE * 0.45, e.clientY - ANGEL_SIZE * 0.7));
+        setTargetPosition({ x: retreatX, y: retreatY });
+        setState('hovering');
+      }
+      return;
+    }
+    quietInteractionRef.current = false;
     
     const now = Date.now();
     const timeDelta = now - lastMoveTime.current;
@@ -352,7 +376,7 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
     }
     lastMousePosition.current = { x: e.clientX, y: e.clientY };
     
-    // Angel bay dọc rìa đối diện con trỏ để luôn hiện diện mà không che hoạt động chính.
+    // Khôi phục nguyên quỹ đạo cũ: Angel bay dọc rìa đối diện con trỏ.
     const edgeInset = ANGEL_SIZE * 0.34;
     const newX = e.clientX < window.innerWidth / 2
       ? window.innerWidth - edgeInset
@@ -384,12 +408,12 @@ const AngelCompanion: React.FC<AngelCompanionProps> = ({
         // Trực tiếp về idle vì idle đã là bay lấp lánh
         setState('idle');
       }
-    }, 400); // Thời gian dựa theo tốc độ di chuyển
+    }, 400);
   }, [enabled, isHidden, isSitting, isMoving, createSparkle, position]);
 
   // ============= FLOW 4: CLICK HANDLER =============
-  const handleClick = useCallback(() => {
-    if (!enabled || isHidden) return;
+  const handleClick = useCallback((event: MouseEvent) => {
+    if (!enabled || isHidden || isQuietInteraction(event.target)) return;
     
     // Chỉ chọn từ các animation vui vẻ phù hợp
     const actions: AngelState[] = [

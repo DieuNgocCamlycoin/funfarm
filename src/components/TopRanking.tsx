@@ -77,7 +77,7 @@ const TopRanking = ({ compact = false }: TopRankingProps) => {
       <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
         <div className="mb-4 flex items-center justify-center gap-2.5">
           <Award className="h-5 w-5 text-[#bd8b18]" />
-          <h2 className="ff-metallic-gold-text text-xl font-black tracking-[0.12em]">TOP RANKING</h2>
+          <h2 className="ff-premium-gold-text text-xl font-black tracking-[0.12em]">TOP RANKING</h2>
         </div>
 
         {/* User List - Compact Rows */}

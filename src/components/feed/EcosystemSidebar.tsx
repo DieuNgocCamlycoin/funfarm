@@ -1,10 +1,10 @@
 import { CSSProperties, ReactNode, SyntheticEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, ChevronDown, FileText, ShoppingBag, Zap } from "lucide-react";
+import { BookOpen, ChevronDown, FileText, Store, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
-import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
+import funFarmLogo from "@/assets/branding/fun-farm-logo-2-transparent.png";
 import funProfileLogo from "@/assets/platforms/fun-profile.png";
 import funPlayLogo from "@/assets/platforms/fun-play.png";
 import funPlanetLogo from "@/assets/platforms/fun-planet.png";
@@ -105,9 +105,9 @@ const EcosystemSidebar = () => {
   }, []);
 
   return (
-    <div className="sticky top-20 overflow-visible pr-2">
-      <section className="ff-luxury-panel ff-ecosystem-map p-4">
-        <div className="mb-3 flex items-center justify-center gap-2">
+    <div className="ff-sidebar-scroll sticky top-[65px] max-h-[calc(100dvh-65px)] overflow-y-auto overscroll-contain px-1 pb-4 pt-1">
+      <section className="ff-luxury-panel ff-ecosystem-map p-3">
+        <div className="mb-2 flex items-center justify-center gap-2">
           <img src={ecosystemLogo} alt="FUN Ecosystem" className="ff-hologram-ring h-10 w-10 rounded-full object-cover" />
           <h2 className="ff-hologram-text text-center text-xl font-black tracking-wide">FUN ECOSYSTEM</h2>
         </div>
@@ -127,21 +127,26 @@ const EcosystemSidebar = () => {
           </div>
           <a href="https://money.fun.rich/" target="_blank" rel="noopener noreferrer" className="ff-orbit-center" aria-label="PureLove Protocol"><img src={plpLogo} alt="PLP - PureLove Protocol" /></a>
         </div>
-        <p className="ff-orbit-caption mb-4 text-center text-[11px] font-medium text-emerald-900/70">Chạm vào logo để khám phá hệ sinh thái</p>
+        <p className="ff-orbit-caption mb-2 text-center text-[11px] font-medium text-emerald-900/70">Chạm vào logo để khám phá hệ sinh thái</p>
 
-        <Link to="/marketplace" onClick={() => window.scrollTo(0, 0)} className="mb-3 block transition-transform hover:scale-[1.015]">
-          <GreenButton><ShoppingBag className="h-6 w-6 text-amber-300" /><span className="flex-1"><strong className="ff-clean-gold-text block">Chợ Nông Sản</strong>{productCount > 0 && <small className="text-white/90">{productCount} sản phẩm đang bán</small>}</span></GreenButton>
+        <div className="space-y-2.5">
+        <Link to="/marketplace" onClick={() => window.scrollTo(0, 0)} className="ff-marketplace-ecosystem block transition-transform hover:scale-[1.015]">
+          <span className="ff-marketplace-metal flex h-[58px] w-full items-center gap-3 rounded-[15px] px-4 py-1.5">
+            <span className="ff-marketplace-icon"><Store className="h-5 w-5" /></span>
+            <span className="relative z-[2] flex-1"><strong className="ff-metallic-market-text block text-lg">Chợ Nông Sản</strong>{productCount > 0 && <small className="font-medium text-white/95">{productCount} sản phẩm đang bán</small>}</span>
+          </span>
         </Link>
-        <Link to="/law-of-light" className="ff-luxury-gold-button mb-3 flex items-center gap-3 rounded-xl px-4 py-3 transition-transform hover:scale-[1.015]"><Zap className="h-6 w-6" /><span className="font-extrabold">Law of Light</span></Link>
+        <Link to="/law-of-light" className="ff-luxury-gold-button flex h-[58px] items-center gap-3 rounded-[15px] px-4 py-1.5 transition-transform hover:scale-[1.015]"><Zap className="h-5 w-5" /><span className="font-extrabold">Law of Light</span></Link>
         <Collapsible open={aboutOpen} onOpenChange={setAboutOpen}>
           <CollapsibleTrigger asChild>
-            <button className="w-full transition-transform hover:scale-[1.015]"><GreenButton><img src={funFarmLogo} alt="FUN FARM" className="h-10 w-10 rounded-full object-cover ring-2 ring-amber-300" /><span className="ff-clean-gold-text flex-1 text-left font-extrabold">ABOUT FUN FARM</span><ChevronDown className={cn("h-5 w-5 text-amber-300 transition-transform", aboutOpen && "rotate-180")} /></GreenButton></button>
+            <button className="w-full transition-transform hover:scale-[1.015]"><GreenButton className="h-[58px] rounded-[15px] py-1.5"><img src={funFarmLogo} alt="FUN FARM" className="h-8 w-8 rounded-full object-cover drop-shadow-md" /><span className="ff-clean-gold-text flex-1 text-left font-extrabold">ABOUT FUN FARM</span><ChevronDown className={cn("h-5 w-5 text-amber-300 transition-transform", aboutOpen && "rotate-180")} /></GreenButton></button>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 space-y-2 pl-3">
             <Link to="/about-fun-farm" className="block"><GreenButton className="py-2.5"><BookOpen className="h-5 w-5 text-amber-300" /><span className="ff-clean-gold-text font-bold">Thông tin chung</span></GreenButton></Link>
             <Link to="/whitepaper" className="block"><GreenButton className="py-2.5"><FileText className="h-5 w-5 text-amber-300" /><span className="ff-clean-gold-text font-bold">Whitepaper</span></GreenButton></Link>
           </CollapsibleContent>
         </Collapsible>
+        </div>
       </section>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Copy, ExternalLink, Gift, Heart, PartyPopper, ShieldCheck, Sparkles, Volume2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
+import logoFunFarm from '@/assets/branding/fun-farm-logo-2-transparent.png';
 import camlyCoin from '@/assets/camly_coin.png';
 import senderAvatar from '@/assets/default-avatar-girl.jpeg';
 import gratitudeBg from '@/assets/gift-themes/gratitude.jpeg';

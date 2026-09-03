@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, FileText, Image, Video, Coins } from "lucide-react";
 import camlyCoin from "@/assets/camly_coin.png";
-import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
+import logoFunFarm from "@/assets/branding/fun-farm-logo-2-transparent.png";
 
 interface HonorStats {
   totalUsers: number;
@@ -122,10 +122,10 @@ const TotalRewardRow = ({
   compact?: boolean;
 }) => (
   <div 
-    className={`stat-row-shine flex items-center justify-between ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`} 
+    className={`stat-row-shine flex flex-col items-stretch justify-center gap-1 ${compact ? 'px-3 py-2' : 'px-4 py-2'}`}
     style={totalRowStyle}
   >
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-2">
       <img 
         src={camlyCoin} 
         alt="CAMLY" 
@@ -145,7 +145,7 @@ const TotalRewardRow = ({
       </span>
     </div>
     <span 
-      className={`ff-metallic-gold-text ${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums`}
+      className={`ff-metallic-gold-text block text-center ${compact ? 'text-lg' : 'text-xl'} font-black leading-none tabular-nums`}
       style={{ 
         color: '#ffd700',
         textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(255,215,0,0.7)' 
@@ -252,15 +252,15 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
     <div className="ff-luxury-panel ff-honor-panel relative overflow-hidden rounded-2xl" data-angel-perch="honor">
       
       {/* Content */}
-      <div className={`relative z-10 ${compact ? 'p-3' : 'p-4'}`}>
-        <div className="mb-3 flex items-center justify-center gap-3">
+      <div className="relative z-10 p-3">
+        <div className="mb-2 flex items-center justify-center gap-3">
           <img 
             src={logoFunFarm} 
             alt="FUN FARM" 
             className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} ff-honor-logo shrink-0 rounded-full object-cover`}
           />
           <h2 
-          className="ff-metallic-gold-text whitespace-nowrap text-center uppercase"
+          className="ff-premium-gold-text whitespace-nowrap text-center uppercase"
           style={{ 
             fontFamily: "system-ui, -apple-system, sans-serif",
             fontWeight: 900,
@@ -275,7 +275,7 @@ const HonorBoard = ({ compact = false }: HonorBoardProps) => {
         </div>
 
         {/* Stats */}
-        <div className={`space-y-${compact ? '1.5' : '2'}`}>
+        <div className="space-y-2.5">
           {statItems.map((item) => (
             <StatRow 
               key={item.label}

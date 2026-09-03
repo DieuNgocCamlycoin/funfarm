@@ -29,7 +29,7 @@ import {
   Eye,
   Leaf
 } from 'lucide-react';
-import logoFunFarm from '@/assets/logo_fun_farm_web3.png';
+import logoFunFarm from '@/assets/branding/fun-farm-logo-2-transparent.png';
 
 const AboutFunFarm = () => {
   return (
@@ -48,7 +48,7 @@ const AboutFunFarm = () => {
             <img 
               src={logoFunFarm} 
               alt="FUN FARM Web3" 
-              className="w-32 h-32 rounded-full border-4 border-yellow-400 shadow-lg"
+              className="w-32 h-32 rounded-full object-contain drop-shadow-lg"
             />
           </div>
           <h1 className="text-4xl font-bold text-green-700 mb-3">

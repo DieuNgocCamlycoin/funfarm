@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Twitter, Github, MessageCircle } from "lucide-react";
-import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
+import funFarmLogo from "@/assets/branding/fun-farm-logo-2-transparent.png";
 import { useTranslation } from "react-i18next";
 
 const Footer = () => {

@@ -90,10 +90,129 @@
   box-shadow: 0 4px 18px rgba(5,59,42,.055);
   backdrop-filter: blur(18px) saturate(1.15);
 }
-.ff-brand-logo { border: 1px solid rgba(215,170,58,.65); box-shadow: 0 0 0 3px #fff, 0 3px 11px rgba(5,59,42,.12); }
+.ff-brand-logo { border: 0; box-shadow: none; filter: drop-shadow(0 3px 7px rgba(5,59,42,.15)); }
 .ff-brand-wordmark { color: transparent; background: linear-gradient(180deg, #f4d56e, #bd8412); -webkit-background-clip: text; background-clip: text; }
 .ff-nav-link { border-radius: 999px; padding: .6rem 1rem; }
 .ff-nav-link-active { color: #087a4b; background: #edf8f1; box-shadow: inset 0 0 0 1px rgba(8,122,75,.08); }
+
+/* Facebook-like compact navigation with jewel-like 3D FUN FARM icons */
+.ff-fb-nav-item {
+  position: relative;
+  display: grid;
+  width: clamp(72px, 6.2vw, 108px);
+  height: 64px;
+  place-items: center;
+  border-radius: 10px 10px 0 0;
+  transition: background .18s ease;
+}
+.ff-fb-nav-item:hover { background: rgba(7,126,78,.055); }
+.ff-fb-nav-item::after {
+  content: '';
+  position: absolute;
+  inset: auto 8px 0;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg, #11bf62, #19bde2, #f2c34f);
+  box-shadow: 0 -2px 8px rgba(19,183,130,.3);
+  transform: scaleX(0);
+  transition: transform .2s ease;
+}
+.ff-fb-nav-active::after { transform: scaleX(1); }
+.ff-nav-orb {
+  position: relative;
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,215,91,.88);
+  border-radius: 15px;
+  color: #fffdec;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.76), inset 0 -7px 11px rgba(0,48,42,.22), 0 4px 10px rgba(7,93,70,.2), 0 0 0 2px rgba(255,250,223,.72);
+  filter: saturate(1.12);
+  transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+}
+.ff-nav-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, rgba(255,255,255,.62), transparent 31% 70%, rgba(255,232,135,.24));
+  pointer-events: none;
+}
+.ff-nav-orb svg { position: relative; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,48,41,.34)); }
+.ff-fb-nav-item:hover .ff-nav-orb { transform: translateY(-2px) scale(1.055); filter: saturate(1.22) brightness(1.08); box-shadow: inset 0 2px 0 rgba(255,255,255,.86), inset 0 -7px 11px rgba(0,48,42,.18), 0 7px 15px rgba(7,93,70,.26), 0 0 0 2px rgba(255,218,83,.66); }
+.ff-nav-orb-home { background: radial-gradient(circle at 18% 10%, #fff29b, transparent 29%), linear-gradient(140deg, #10c95f, #08aa82 58%, #168dd7); }
+.ff-nav-orb-market {
+  background:
+    radial-gradient(ellipse 115% 82% at 50% -3%, #fff4a3 0%, #ffd52e 24%, rgba(255,151,27,.78) 47%, transparent 72%),
+    radial-gradient(ellipse 94% 125% at -8% 57%, #13d657 0%, rgba(16,183,78,.72) 43%, transparent 75%),
+    radial-gradient(ellipse 100% 92% at 50% 112%, #19dcf1 0%, #168fe8 46%, transparent 78%),
+    radial-gradient(ellipse 80% 116% at 111% 55%, #ff59ba 0%, #8151d8 52%, transparent 79%),
+    #08b995;
+}
+.ff-nav-orb-market::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  z-index: 1;
+  border-radius: 12px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 27% 24%, white 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 18%, #fffbd4 0 1.2px, transparent 2.3px),
+    radial-gradient(circle at 77% 67%, white 0 1px, transparent 2px),
+    radial-gradient(circle at 34% 78%, #fff5a2 0 1px, transparent 2px);
+  filter: drop-shadow(0 0 4px rgba(255,244,153,.95));
+}
+.ff-nav-orb-gift { background: radial-gradient(circle at 15% 8%, #fff0a1, transparent 29%), linear-gradient(140deg, #f4bd38, #f08c49 42%, #d44fab 70%, #6d64dd); }
+.ff-nav-tooltip { border: 0; background: rgba(31,35,33,.94); color: white; font-size: 12px; font-weight: 600; box-shadow: 0 5px 14px rgba(0,0,0,.22); }
+
+/* Marketplace jewel — 5D rainbow abundance inspired by the FUN FARM emblem */
+.ff-market-nav {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 213, 78, .94);
+  color: #fffef2;
+  background:
+    radial-gradient(circle at 10% 4%, rgba(255,239,128,.92), transparent 24%),
+    radial-gradient(ellipse at 86% 8%, rgba(255,177,73,.75), transparent 31%),
+    radial-gradient(ellipse at 82% 100%, rgba(167,78,220,.6), transparent 38%),
+    linear-gradient(112deg, #079444 0%, #18d865 28%, #08c7aa 49%, #16aee8 69%, #416ee1 86%, #8b56d8 100%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.82), inset 0 -7px 12px rgba(2,55,52,.22), 0 4px 13px rgba(12,119,89,.23), 0 0 0 2px rgba(255,248,205,.58), 0 0 16px rgba(45,211,150,.15);
+  backdrop-filter: blur(10px) saturate(1.35);
+  text-shadow: 0 1px 2px rgba(0,52,45,.42);
+  transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+}
+.ff-market-nav > * { position: relative; z-index: 2; }
+.ff-market-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 72%, rgba(255,255,255,.95) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 24%, rgba(255,248,198,.88) 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 91% 66%, rgba(255,255,255,.88) 0 1px, transparent 2px);
+  filter: drop-shadow(0 0 3px white);
+}
+.ff-market-nav::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 16%, rgba(255,255,255,.78) 34%, rgba(255,237,137,.34) 40%, transparent 52%);
+  transform: translateX(-130%);
+  animation: ff-market-shine 4.8s ease-in-out infinite;
+}
+.ff-market-nav:hover, .ff-market-nav-active {
+  color: #fff;
+  filter: saturate(1.13) brightness(1.07);
+  transform: translateY(-1px);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.9), inset 0 -7px 12px rgba(2,55,52,.18), 0 7px 19px rgba(12,119,89,.28), 0 0 0 2px rgba(255,215,82,.38), 0 0 20px rgba(54,205,170,.22);
+}
+.ff-market-nav-icon { display: grid; place-items: center; color: #fff2a6; filter: drop-shadow(0 1px 2px rgba(61,47,0,.24)); }
 
 .ff-luxury-green-button,
 .ff-luxury-gold-button {
@@ -139,6 +258,18 @@
   filter: drop-shadow(0 1px 0 rgba(255,255,255,.34));
 }
 
+/* Sharp FUN MONEY gold: diagonal depth, no horizontal shine stripe. */
+.ff-premium-gold-text {
+  color: #c88a0a;
+  background: linear-gradient(135deg, #704100 0%, #b87505 18%, #f0bb2d 38%, #fff0a0 51%, #e0a015 66%, #925600 84%, #d99b13 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .28px rgba(132, 78, 0, .72);
+  filter: drop-shadow(0 1px 0 rgba(255, 247, 189, .9)) drop-shadow(0 2px 1px rgba(91, 52, 0, .32));
+  text-shadow: none !important;
+}
+
 .ff-luxury-green-button:hover,
 .ff-luxury-gold-button:hover {
   filter: saturate(1.12) brightness(1.06);
@@ -153,6 +284,122 @@
 .ff-luxury-green-button span,
 .ff-luxury-gold-button span {
   text-shadow: none !important;
+}
+
+.ff-sidebar-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.ff-sidebar-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+.ff-marketplace-metal {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255, 211, 70, .96);
+  color: #fffef2;
+  background:
+    radial-gradient(ellipse 62% 185% at 20% -32%, rgba(255,246,159,.98) 0%, rgba(255,208,43,.88) 30%, rgba(255,151,26,.38) 51%, transparent 75%),
+    radial-gradient(ellipse 78% 180% at 20% 125%, rgba(32,220,91,.96) 0%, rgba(32,220,91,.48) 38%, transparent 76%),
+    radial-gradient(ellipse 76% 170% at 68% -35%, rgba(29,160,240,.96) 0%, rgba(29,160,240,.47) 42%, transparent 78%),
+    radial-gradient(ellipse 67% 170% at 108% 118%, rgba(240,69,170,.96) 0%, rgba(132,69,218,.7) 43%, transparent 79%),
+    linear-gradient(105deg, #0ac28d, #0dbabd 54%, #238ddd);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.86), inset 0 -10px 16px rgba(1,53,48,.24), 0 1px 0 rgba(139,94,2,.72), 0 8px 20px rgba(5,115,83,.25), 0 0 0 2px rgba(255,249,207,.62), 0 0 22px rgba(52,212,163,.16);
+  backdrop-filter: blur(11px) saturate(1.35);
+  transition: filter .22s ease, box-shadow .22s ease;
+}
+.ff-marketplace-metal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 72%, rgba(255,255,255,.96) 0 1.4px, transparent 2.7px),
+    radial-gradient(circle at 43% 20%, rgba(255,251,213,.9) 0 1px, transparent 2.3px),
+    radial-gradient(circle at 73% 68%, rgba(255,255,255,.9) 0 1.2px, transparent 2.5px),
+    radial-gradient(circle at 92% 25%, rgba(255,240,161,.94) 0 1px, transparent 2.2px);
+  filter: drop-shadow(0 0 4px rgba(255,255,255,.92));
+}
+.ff-marketplace-metal:hover {
+  filter: brightness(1.07) saturate(1.12);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.94), inset 0 -9px 15px rgba(0,48,36,.19), 0 10px 24px rgba(5,115,83,.3), 0 0 0 2px rgba(255,211,70,.4), 0 0 24px rgba(52,212,163,.22);
+}
+.ff-marketplace-metal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(108deg, transparent 13%, rgba(255,255,255,.78) 31%, rgba(255,229,120,.36) 39%, transparent 51%);
+  transform: translateX(-130%);
+  animation: ff-market-shine 4.8s ease-in-out infinite .45s;
+}
+.ff-marketplace-icon {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  height: 36px;
+  width: 36px;
+  place-items: center;
+  border: 1px solid rgba(255,239,132,.98);
+  border-radius: 50%;
+  color: #fffef1;
+  background:
+    radial-gradient(ellipse 110% 75% at 50% -2%, #fff5aa 0%, #ffd32f 32%, rgba(255,151,25,.72) 54%, transparent 76%),
+    radial-gradient(ellipse 105% 110% at -7% 62%, #14d75b 0%, rgba(12,174,77,.72) 47%, transparent 77%),
+    radial-gradient(ellipse 100% 82% at 50% 110%, #16d9ef 0%, #178edf 48%, transparent 78%),
+    radial-gradient(ellipse 80% 110% at 110% 58%, #ff56b8 0%, #7b50d5 54%, transparent 80%),
+    #08b894;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.84), inset 0 -5px 9px rgba(0,57,69,.2), 0 3px 10px rgba(0,45,32,.18), 0 0 10px rgba(255,211,54,.26);
+}
+.ff-marketplace-icon::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 24% 27%, white 0 1px, transparent 2px),
+    radial-gradient(circle at 73% 18%, #fff8bd 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 72%, white 0 1px, transparent 2px);
+  filter: drop-shadow(0 0 3px white);
+  pointer-events: none;
+}
+.ff-marketplace-icon svg { position: relative; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,47,53,.34)); }
+.ff-metallic-market-text { color: #fff8c7; text-shadow: 0 1px 1px rgba(73,55,0,.72), 0 0 12px rgba(255,239,151,.3); }
+
+/* Shared premium action language for confirmation and publishing flows. */
+.ff-action-metal {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 210, 67, .92) !important;
+  color: #123f2d !important;
+  font-weight: 800;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.72) 0%, rgba(255,255,255,0) 36%),
+    linear-gradient(105deg, #f6b817 0%, #ffe66d 26%, #43cd62 62%, #13b985 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -3px 5px rgba(74,91,18,.22), 0 7px 18px rgba(42,139,75,.2), 0 2px 0 #a97808;
+  text-shadow: 0 1px 0 rgba(255,255,255,.55);
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+}
+.ff-action-metal::after {
+  content: "";
+  position: absolute;
+  inset: -70% -30%;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.72) 49%, transparent 58%);
+  transform: translateX(-60%) rotate(7deg);
+  animation: ffActionShine 3.8s ease-in-out infinite;
+}
+.ff-action-metal:hover { filter: saturate(1.08) brightness(1.04); transform: translateY(-1px); }
+.ff-action-metal:active { transform: translateY(2px); box-shadow: inset 0 2px 5px rgba(39,70,27,.25), 0 1px 0 #a97808; }
+.ff-action-metal:disabled { filter: grayscale(.35); opacity: .6; transform: none; }
+@keyframes ffActionShine { 0%, 62% { transform: translateX(-65%) rotate(7deg); } 82%, 100% { transform: translateX(65%) rotate(7deg); } }
+
+@keyframes ff-market-shine {
+  0%, 68% { transform: translateX(-130%); }
+  86%, 100% { transform: translateX(130%); }
 }
 
 /* ========== ANGEL COMPANION ANIMATIONS ========== */
@@ -1320,7 +1567,7 @@
 
 .ff-orbit-stage {
   position: relative;
-  width: min(100%, 350px);
+  width: min(100%, 318px);
   aspect-ratio: 1;
   margin: 0 auto .35rem;
   isolation: isolate;
@@ -1424,7 +1671,7 @@
   box-shadow: none !important;
 }
 .ff-kingdom-card::after { display: none; }
-.ff-kingdom-emblem { width: 168px; height: 135px; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+.ff-kingdom-emblem { width: 194px; height: 132px; margin-top: -2px; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
 
 /* Compact editorial ranking — restrained emerald and metal details */
 .ff-ranking-panel {
@@ -1435,7 +1682,7 @@
   background: linear-gradient(155deg, #ffffff 0%, #f4faf6 100%) !important;
 }
 .ff-honor-panel::after { display: none; }
-.ff-honor-logo { border: 2px solid #d7bd6b; box-shadow: 0 0 0 3px #fff, 0 4px 12px rgba(5,59,42,.12); }
+.ff-honor-logo { border: 0; box-shadow: none; filter: drop-shadow(0 3px 7px rgba(5,59,42,.14)); }
 
 .ff-ranking-panel::after { display: none; }
 
@@ -1497,7 +1744,7 @@
 @media (max-width: 1279px) and (min-width: 1024px) {
   .ff-orbit-logo { width: 48px; height: 48px; }
   .ff-orbit-coin { width: 13px; height: 13px; }
-  .ff-kingdom-emblem { width: 144px; height: 116px; }
+  .ff-kingdom-emblem { width: 172px; height: 118px; }
 }
 
 @media (max-width: 767px) {
@@ -1513,5 +1760,5 @@
 @keyframes ff-hologram-flow { to { background-position: 220% 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .ff-orbit-platforms, .ff-orbit-coins, .ff-orbit-face-counter, .ff-orbit-face-clockwise, .ff-hologram-text { animation-play-state: paused; }
+  .ff-orbit-platforms, .ff-orbit-coins, .ff-orbit-face-counter, .ff-orbit-face-clockwise, .ff-hologram-text, .ff-market-nav::after, .ff-marketplace-metal::after { animation-play-state: paused; }
 }

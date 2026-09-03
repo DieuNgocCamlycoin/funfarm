@@ -530,7 +530,7 @@ export default function ProductPostForm({ userId, onSuccess, onCancel }: Product
         <Button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          className="ff-action-metal flex-1"
         >
           {isSubmitting ? (
             <>

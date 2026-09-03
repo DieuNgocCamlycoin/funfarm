@@ -619,7 +619,7 @@ const CreatePostModal = ({ isOpen, onClose, onPost, initialTab = "post" }: Creat
               <Button
                 onClick={handlePost}
                 disabled={!content.trim() || isPosting}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2.5"
+                className="ff-action-metal w-full py-2.5"
               >
                 {isPosting ? (
                   <span className="flex items-center gap-2">

@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
-import funFarmLogo from "@/assets/logo_fun_farm_web3.png";
+import funFarmLogo from "@/assets/branding/fun-farm-logo-2-transparent.png";
 import camlyCoin from "@/assets/camly_coin.png";
 
 interface RewardBan {

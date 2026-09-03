@@ -28,7 +28,7 @@ import WalletPriceChart from '@/components/wallet/WalletPriceChart';
 import MetaMaskConnect from '@/components/wallet/MetaMaskConnect';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import TopSponsor from '@/components/wallet/TopSponsor';
-import funFarmLogo from '@/assets/logo_fun_farm_web3.png';
+import funFarmLogo from '@/assets/branding/fun-farm-logo-2-transparent.png';
 
 // FUN FARM TREASURY wallet info
 const TREASURY_USER = {

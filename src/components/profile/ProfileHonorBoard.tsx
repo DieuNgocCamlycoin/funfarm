@@ -15,7 +15,7 @@ import {
   ArrowUp,
   ArrowDown
 } from "lucide-react";
-import logoFunFarm from "@/assets/logo_fun_farm_web3.png";
+import logoFunFarm from "@/assets/branding/fun-farm-logo-2-transparent.png";
 
 interface ProfileHonorBoardProps {
   userId: string;
@@ -397,7 +397,7 @@ const ProfileHonorBoard = ({ userId, displayName, avatarUrl, variant = 'cover' }
             <img 
               src={logoFunFarm} 
               alt="FUN FARM" 
-              className="w-8 h-8 rounded-full border-2 border-amber-400/60 shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+              className="w-8 h-8 rounded-full object-contain drop-shadow-md"
             />
             <h2 
               className="text-lg md:text-xl font-black tracking-[0.08em]"

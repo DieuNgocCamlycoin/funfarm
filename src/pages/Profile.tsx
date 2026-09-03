@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import defaultFunFarmLogo from "@/assets/branding/fun-farm-logo-2-transparent.png";
 import { AvatarUploadMenu } from "@/components/profile/AvatarUploadMenu";
 import { FriendRequests } from "@/components/FriendRequests";
 import { FriendsList } from "@/components/FriendsList";
@@ -403,7 +404,7 @@ const Profile = () => {
           id: opAuthor.id,
           name: opAuthor.display_name || 'Nông dân FUN',
           username: (opAuthor.display_name || 'funfarmer').toLowerCase().replace(/\s+/g, ''),
-          avatar: opAuthor.avatar_url || '/logo_fun_farm_web3.png',
+          avatar: opAuthor.avatar_url || defaultFunFarmLogo,
           type: mapProfileTypeToUserType(opAuthor.profile_type || 'farmer') as any,
           verified: opAuthor.is_verified || false,
           reputationScore: opAuthor.reputation_score || 0,

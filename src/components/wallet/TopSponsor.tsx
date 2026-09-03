@@ -119,7 +119,7 @@ const TopSponsor = () => {
       <div className="px-4 pb-3 pt-4">
         <div className="flex items-center justify-center gap-2.5">
           <HeartHandshake className="h-5 w-5 text-[#bd8b18]" />
-          <h2 className="ff-metallic-gold-text text-xl font-black tracking-[0.12em]">
+          <h2 className="ff-premium-gold-text text-xl font-black tracking-[0.12em]">
             TOP SPONSOR
           </h2>
         </div>

@@ -40,7 +40,7 @@ const FeedSidebar = ({ trendingHashtags, suggestedFarms }: FeedSidebarProps) => 
   const [showFriendSearch, setShowFriendSearch] = useState(false);
 
   return (
-    <aside className="space-y-4">
+    <aside className="space-y-3">
       {/* FUN Kingdom - đặt trước các bảng vinh danh */}
       <FunKingdomCard />
 
