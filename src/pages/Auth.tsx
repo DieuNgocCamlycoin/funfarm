@@ -1,9 +1,11 @@
 // 🌱 Divine Mantra: "Farmers rich, Eaters happy. Farm to Table, Fair & Fast."
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ConnectWallet from '@/components/auth/ConnectWallet';
 import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { startSSOLogin } from '@/lib/sso';
 import { Sprout, Waves, Sun } from 'lucide-react';
 
 const Auth = () => {
@@ -11,6 +13,8 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  const [ssoError, setSsoError] = useState('');
+  const [doorAttempt, setDoorAttempt] = useState(0);
 
   useEffect(() => {
     if (!isLoading && user && profile) {
@@ -19,7 +23,7 @@ const Auth = () => {
       if (!profile.email_verified) {
         return; // Stay on auth page - ConnectWallet will handle OTP modal
       }
-      
+
       const requestedPath = searchParams.get('returnTo');
       const returnTo = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
         ? requestedPath
@@ -34,6 +38,58 @@ const Auth = () => {
       }
     }
   }, [user, profile, isLoading, navigate, searchParams]);
+
+  // PILOT (đính chính 2026-10-28: KHÔNG nút bấm, KHÔNG màn hình chọn):
+  // Chưa đăng nhập thì TỰ ĐỘNG chuyển thẳng sang cửa account.fun.rich bằng
+  // startAuth/PKCE có sẵn trong src/lib/sso. Form native OTP bên dưới vẫn giữ
+  // nguyên trong code, chỉ là trong pilot nó không còn là đường vào đăng nhập.
+  // User đã có session native thì không bị chuyển (giữ logic cũ ở trên).
+  useEffect(() => {
+    if (isLoading || user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = await startSSOLogin();
+        if (!cancelled) {
+          window.location.href = url;
+        }
+      } catch {
+        if (!cancelled) {
+          setSsoError('Không mở được cửa đăng nhập FUN. Vui lòng thử lại.');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, user, doorAttempt]);
+
+  // Chưa đăng nhập: chỉ hiện trạng thái chuyển hướng, không hiện form chọn.
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          {ssoError ? (
+            <>
+              <p className="text-destructive mb-4">{ssoError}</p>
+              <Button
+                onClick={() => {
+                  setSsoError('');
+                  setDoorAttempt((c) => c + 1);
+                }}
+              >
+                Thử lại / Retry
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              Đang chuyển tới cửa FUN... / Redirecting to the FUN door...
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
