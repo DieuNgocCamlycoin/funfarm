@@ -51,7 +51,7 @@ const SSOCallback = () => {
 
         // Map SDK user to our SSOUser type
         const ssoUser: SSOUser = {
-          fun_id: result.user.id,
+          fun_id: result.user.funId || result.user.id,
           email: result.user.email || '',
           display_name: result.user.username || result.user.fullName || null,
           avatar_url: result.user.avatarUrl || null,
