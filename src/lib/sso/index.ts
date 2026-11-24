@@ -77,6 +77,8 @@ export const syncProfileFromSSO = async (ssoUser: SSOUser): Promise<SSOSyncResul
           avatar_url: ssoUser.avatar_url,
           wallet_address: ssoUser.wallet_address,
           is_verified: ssoUser.is_verified,
+          // Email đã được Fun Profile xác thực nên không bị kẹt màn hình OTP
+          email_verified: true,
           synced_from_profile: true,
           last_synced_at: new Date().toISOString(),
         })
