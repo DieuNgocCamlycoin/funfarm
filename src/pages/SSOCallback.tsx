@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { SSOUser } from '@/lib/sso/types';
 
-type CallbackState = 'loading' | 'success' | 'error' | 'linked';
+type CallbackState = 'loading' | 'success' | 'error' | 'linked' | 'exists';
 
 const SSOCallback = () => {
   const navigate = useNavigate();
@@ -121,8 +121,11 @@ const SSOCallback = () => {
 
           if (authError) {
             if (authError.message.includes('already registered')) {
-              toast.info('Tài khoản đã tồn tại. Đang liên kết với Fun-ID...');
-              navigate('/auth');
+              // Tài khoản đã có trên Farm từ trước khi gắn FUN-ID.
+              // Không chuyển về /auth: trang đó sẽ tự đẩy lại về cửa rồi quay lại đây, thành vòng lặp.
+              // Dừng lại tại trang này để người dùng liên hệ đội ngũ gắn tài khoản.
+              setState('exists');
+              setErrorMessage('Tài khoản này đã có trên Farm từ trước và chưa được gắn FUN-ID, nên chưa thể đăng nhập bằng cửa. Vui lòng liên hệ đội ngũ để được hỗ trợ gắn tài khoản.');
               return;
             }
             
@@ -139,6 +142,8 @@ const SSOCallback = () => {
               avatar_url: ssoUser.avatar_url,
               wallet_address: ssoUser.wallet_address,
               is_verified: ssoUser.is_verified,
+              // Email đã được Fun Profile xác thực nên không bị kẹt màn hình OTP
+              email_verified: true,
               synced_from_profile: true,
               last_synced_at: new Date().toISOString(),
             }).eq('id', authData.user.id);
@@ -222,6 +227,20 @@ const SSOCallback = () => {
             </>
           )}
 
+          {state === 'exists' && (
+            <>
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <LinkIcon className="w-10 h-10 text-amber-500" />
+              </div>
+              <CardTitle className="text-2xl font-display text-amber-600">
+                Tài khoản đã có từ trước
+              </CardTitle>
+              <CardDescription className="text-base">
+                {errorMessage}
+              </CardDescription>
+            </>
+          )}
+
           {state === 'error' && (
             <>
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-destructive/20 flex items-center justify-center">
@@ -253,6 +272,17 @@ const SSOCallback = () => {
               <p className="text-sm text-muted-foreground">
                 Đang chuyển hướng đến hồ sơ của bạn...
               </p>
+            </div>
+          )}
+
+          {state === 'exists' && (
+            <div className="space-y-3">
+              <Button
+                onClick={() => navigate('/')}
+                className="w-full"
+              >
+                Về trang chủ
+              </Button>
             </div>
           )}
 
